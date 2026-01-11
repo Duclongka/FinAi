@@ -1,0 +1,5 @@
+{
+  "name": "FinAi",
+  "description": "A personal finance management tool based on the 6 Jars rule. It uses AI to categorize spending and provides personalized financial advice.",
+  "requestFramePermissions": []
+}
