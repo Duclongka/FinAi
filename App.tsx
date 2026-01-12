@@ -5,10 +5,11 @@ import { JAR_CONFIG } from './constants';
 import { analyzeTransactionText, getFinancialAdvice } from './services/geminiService';
 import JarVisual from './components/JarVisual';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { GoogleGenAI, Type } from "@google/genai";
 
 const App: React.FC = () => {
   // --- Constants ---
-  const APP_VERSION = "3.4.0";
+  const APP_VERSION = "3.5.0";
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const defaultRatios: Record<JarType, number> = {
@@ -60,7 +61,7 @@ const App: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<'export' | 'info' | 'connect'>('info');
+  const [settingsTab, setSettingsTab] = useState<'export' | 'info' | 'connect' | 'policy' | 'guide'>('info');
   
   // Pay/Recover Loan Modal States
   const [isPayLoanModalOpen, setIsPayLoanModalOpen] = useState(false);
@@ -101,6 +102,7 @@ const App: React.FC = () => {
 
   const manualFormRef = useRef<HTMLDivElement>(null);
   const aiInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Effects ---
   useEffect(() => localStorage.setItem('jars_balances', JSON.stringify(balances)), [balances]);
@@ -250,6 +252,79 @@ const App: React.FC = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    showToast("Đang đọc và phân tích file bằng AI...", "info");
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const content = event.target?.result as string;
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: `Hãy phân tích nội dung bảng tính/CSV sau và trích xuất danh sách giao dịch tài chính.
+          Quy tắc 6 hũ (NEC, LTS, EDU, PLAY, FFA, GIVE).
+          Nội dung file:
+          ${content.substring(0, 5000)}
+          
+          Trả về mảng JSON chứa các đối tượng:
+          { "type": "income" | "expense", "amount": number, "description": string, "jarType": JarType | undefined, "timestamp": number }`,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  type: { type: Type.STRING, enum: ["income", "expense"] },
+                  amount: { type: Type.INTEGER },
+                  description: { type: Type.STRING },
+                  jarType: { type: Type.STRING, enum: Object.values(JarType) },
+                  timestamp: { type: Type.INTEGER }
+                },
+                required: ["type", "amount", "description"]
+              }
+            }
+          }
+        });
+
+        const newTransList = JSON.parse(response.text || "[]") as Transaction[];
+        if (newTransList.length > 0) {
+          const finalTrans = newTransList.map(t => ({ ...t, id: Math.random().toString(36).substr(2, 9) }));
+          setTransactions(prev => [...finalTrans, ...prev]);
+          
+          // Cập nhật số dư hàng loạt
+          let nb = { ...balances };
+          finalTrans.forEach(t => {
+            const ratios = settings.jarRatios;
+            if (t.type === 'income') {
+              if (t.jarType) nb[t.jarType] += t.amount;
+              else Object.values(JarType).forEach(type => { nb[type as JarType] += t.amount * ratios[type as JarType]; });
+            } else {
+              if (t.jarType) nb[t.jarType] -= t.amount;
+              else Object.values(JarType).forEach(type => { nb[type as JarType] -= t.amount * ratios[type as JarType]; });
+            }
+          });
+          setBalances(nb);
+          showToast(`Đã nhập thành công ${finalTrans.length} giao dịch!`);
+        } else {
+          showToast("AI không tìm thấy giao dịch nào hợp lệ.", "danger");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Lỗi khi phân tích file bằng AI.", "danger");
+      } finally {
+        setIsLoading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -656,10 +731,14 @@ const App: React.FC = () => {
           <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             {settingsTab === 'export' && (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300 text-center py-6">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-2">DỮ LIỆU & KHÔI PHỤC</h4>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-2">DỮ LIỆU & NHẬP FILE AI</h4>
                 <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center text-4xl mx-auto shadow-inner border border-emerald-100 mb-2">📁</div>
                 <div className="space-y-3">
                   <button onClick={exportToCSV} className="w-full py-4 bg-emerald-600 text-white text-[11px] font-black uppercase rounded-2xl shadow-xl active:scale-95 transition-all">XUẤT BẢNG TÍNH CSV</button>
+                  <label className="block w-full py-4 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-2xl shadow-xl active:scale-95 transition-all cursor-pointer">
+                    NHẬP FILE BẢNG TÍNH (AI)
+                    <input type="file" accept=".csv, .txt, .xlsx" onChange={handleFileUpload} className="hidden" ref={fileInputRef} />
+                  </label>
                   <button onClick={handleResetData} className="w-full py-4 bg-red-600 text-white text-[11px] font-black uppercase rounded-2xl shadow-xl active:scale-95 transition-all">KHÔI PHỤC CÀI ĐẶT GỐC</button>
                 </div>
               </div>
@@ -678,8 +757,60 @@ const App: React.FC = () => {
             {settingsTab === 'connect' && (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-2">LIÊN HỆ</h4><div className="grid grid-cols-1 gap-3"><a href="https://www.facebook.com/duclongka" target="_blank" className="flex items-center gap-4 p-5 bg-blue-50 text-blue-700 rounded-2xl border border-blue-100 group"><div className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm text-lg">📘</div><div><p className="text-[11px] font-black uppercase tracking-tight">Facebook</p><p className="text-[10px] font-medium opacity-60">duclongka</p></div></a><div className="flex items-center gap-4 p-5 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 group"><div className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm text-lg">💬</div><div><p className="text-[11px] font-black uppercase tracking-tight">Zalo</p><p className="text-[10px] font-medium opacity-60">0964 855 899</p></div></div></div><form onSubmit={handleFeedbackSubmit} className="space-y-4 pt-4 border-t border-slate-100"><input required type="text" value={feedbackForm.name} onChange={e => setFeedbackForm({...feedbackForm, name: e.target.value})} className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-[11px] font-bold outline-none" placeholder="Họ tên..." /><textarea required rows={4} value={feedbackForm.opinion} onChange={e => setFeedbackForm({...feedbackForm, opinion: e.target.value})} className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-[11px] font-bold outline-none resize-none" placeholder="Góp ý..." /><button type="submit" className="w-full py-4 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-2xl shadow-xl active:scale-95 transition-all">GỬI</button></form></div>
             )}
+            {settingsTab === 'policy' && (
+              <div className="space-y-6 animate-in slide-in-from-right-4 duration-300 text-left py-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-2">CHÍNH SÁCH & BẢO MẬT</h4>
+                <div className="space-y-4 text-slate-600">
+                  <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                    <p className="text-[11px] font-black text-red-600 uppercase mb-2">Điều khoản miễn trừ trách nhiệm</p>
+                    <p className="text-[10px] font-bold italic leading-relaxed">
+                      FinAi là công cụ hỗ trợ cá nhân. Chúng tôi MIỄN TRỪ TRÁCH NHIỆM trong trường hợp người dùng bị mất dữ liệu do lỗi thiết bị, trình duyệt hoặc bị mất cắp thông tin do truy cập các liên kết không an toàn. Mọi dữ liệu của bạn được lưu trữ cục bộ trên máy khách (Local Storage) và không được lưu trữ trên máy chủ của chúng tôi.
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <p className="text-[11px] font-black text-slate-800 uppercase mb-2">An toàn thông tin mạng (Luật VN)</p>
+                    <ul className="text-[10px] font-bold space-y-2 list-disc pl-4">
+                      <li>Tuân thủ Luật An ninh mạng 2018 của Việt Nam.</li>
+                      <li>Người dùng tự bảo quản mật khẩu/mã PIN truy cập thiết bị.</li>
+                      <li>Khuyến cáo định kỳ sử dụng tính năng "Xuất bảng tính CSV" để sao lưu dữ liệu quan trọng.</li>
+                      <li>Không chia sẻ ảnh hóa đơn nhạy cảm lên mạng xã hội thông qua ứng dụng.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+            {settingsTab === 'guide' && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300 text-center py-6">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-2">HƯỚNG DẪN SỬ DỤNG</h4>
+                <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-[2rem] flex items-center justify-center text-4xl mx-auto shadow-inner border border-indigo-100 mb-2">📖</div>
+                <div className="space-y-4">
+                  <p className="text-[11px] font-bold text-slate-500 italic">Để biết cách sử dụng FinAi hiệu quả nhất, vui lòng xem tài liệu chi tiết tại đây:</p>
+                  <a 
+                    href="https://itsuprogroup-my.sharepoint.com/:w:/g/personal/longld_itsupro_org/IQBdYXaYoB6oTItr2tb0ZwwZAd3RZWco8SxetSlAJWDF_kk?e=ZphnBf" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block w-full py-4 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-2xl shadow-xl active:scale-95 transition-all"
+                  >
+                    XEM HƯỚNG DẪN CHI TIẾT
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="p-4 border-t-2 border-slate-100 flex items-center justify-around bg-slate-50 shadow-inner">{[{ id: 'export', icon: '📁', label: 'Dữ liệu' }, { id: 'info', icon: 'ℹ️', label: 'Tin' }, { id: 'connect', icon: '💬', label: 'Góp ý' }].map(tab => (<button key={tab.id} onClick={() => setSettingsTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all ${settingsTab === tab.id ? 'bg-white shadow-lg text-indigo-600 scale-110' : 'text-slate-400'}`}><span className="text-xl">{tab.icon}</span><span className="text-[8px] font-black uppercase tracking-tighter">{tab.label}</span></button>))}</div>
+          <div className="p-4 border-t-2 border-slate-100 grid grid-cols-5 items-center justify-around bg-slate-50 shadow-inner">
+            {[
+              { id: 'export', icon: '📁', label: 'Dữ liệu' }, 
+              { id: 'info', icon: 'ℹ️', label: 'Tin' }, 
+              { id: 'connect', icon: '💬', label: 'Góp ý' },
+              { id: 'policy', icon: '🛡️', label: 'Pháp lý' },
+              { id: 'guide', icon: '📖', label: 'HDSD' }
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setSettingsTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-1 py-2 rounded-xl transition-all ${settingsTab === tab.id ? 'bg-white shadow-lg text-indigo-600 scale-105' : 'text-slate-400'}`}>
+                <span className="text-lg">{tab.icon}</span>
+                <span className="text-[7px] font-black uppercase tracking-tighter text-center">{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
