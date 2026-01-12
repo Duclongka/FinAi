@@ -27,6 +27,7 @@ export interface Transaction {
   rawText?: string;
   note?: string;
   imageUrl?: string;
+  loanId?: string; // Liên kết với khoản vay/nợ
 }
 
 export type JarBalance = Record<JarType, number>;
@@ -62,6 +63,7 @@ export interface Loan {
   paidAmount: number; // Đã trả/Đã thu hồi
   isUrgent: boolean; 
   purpose?: string; // Mục đích vay/cho vay
+  loanJar?: JarType; // Hũ liên quan để hoàn trả chính xác
 }
 
 export interface User {

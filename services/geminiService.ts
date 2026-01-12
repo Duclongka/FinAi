@@ -32,15 +32,21 @@ export const analyzeTransactionText = async (
       config: {
         systemInstruction: `Bạn là một chuyên gia quản lý tài chính. Nhiệm vụ của bạn là phân tích yêu cầu người dùng và trả về JSON.
         
+        QUY TẮC ĐẶC BIỆT CHO ĐƠN VỊ TIỀN TỆ:
+        - Nếu người dùng nhập "man" hoặc "vạn": 1 man = 10,000. (Ví dụ: "1 man" -> 10000, "2.5 man" -> 25000)
+        - Nếu người dùng nhập "s", "sen", hoặc "nghìn": 1s = 1,000. (Ví dụ: "1s" -> 1000, "5s2" -> 5200)
+        - TUYỆT ĐỐI KHÔNG TỰ QUY ĐỔI SANG VND. Nếu người dùng đang dùng Yên (JPY), hãy giữ nguyên con số theo đơn vị Yên.
+        - Giữ nguyên giá trị số học mà người dùng mong muốn.
+
         Các loại hành động (action):
         1. "create": Tạo giao dịch mới.
-        2. "update": Nhận diện yêu cầu sửa (ví dụ: "Sửa...", "Đổi...").
-        3. "delete": Xóa một giao dịch (ví dụ: "Xóa giao dịch cuối").
+        2. "update": Nhận diện yêu cầu sửa.
+        3. "delete": Xóa một giao dịch.
 
         Quy tắc trả về JSON:
         - action: "create" | "update" | "delete"
         - targetId: ID của giao dịch cần sửa/xóa.
-        - amount: Số tiền giao dịch.
+        - amount: Số tiền giao dịch thô (áp dụng man/s/vạn/nghìn).
         - jarType: NEC, LTS, EDU, PLAY, FFA, GIVE.
         - description: Mô tả ngắn gọn.
         - isExpense: true nếu là chi tiêu, false nếu là thu nhập.`,
