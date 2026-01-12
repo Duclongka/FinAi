@@ -1,11 +1,11 @@
 
 export enum JarType {
-  NEC = 'NEC', // Necessities (55%)
-  LTS = 'LTS', // Long-term Savings (10%)
-  EDU = 'EDU', // Education (10%)
-  PLAY = 'PLAY', // Play (10%)
-  FFA = 'FFA', // Financial Freedom (10%)
-  GIVE = 'GIVE', // Give (5%)
+  NEC = 'NEC', // Necessities
+  LTS = 'LTS', // Long-term Savings
+  EDU = 'EDU', // Education
+  PLAY = 'PLAY', // Play
+  FFA = 'FFA', // Financial Freedom
+  GIVE = 'GIVE', // Give
 }
 
 export interface JarInfo {
@@ -61,6 +61,7 @@ export interface Loan {
   termInMonths?: number;
   paidAmount: number; // Đã trả/Đã thu hồi
   isUrgent: boolean; 
+  purpose?: string; // Mục đích vay/cho vay
 }
 
 export interface User {
@@ -70,4 +71,14 @@ export interface User {
   avatarUrl?: string;
   password?: string;
   provider: 'google' | 'local';
+}
+
+export interface AppSettings {
+  pin: string;
+  pinEnabled: boolean;
+  faceIdEnabled: boolean;
+  currency: 'VND' | 'JPY' | 'USD';
+  language: 'vi' | 'en' | 'ja';
+  notificationsEnabled: boolean;
+  jarRatios: Record<JarType, number>;
 }

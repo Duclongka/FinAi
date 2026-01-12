@@ -2,6 +2,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { JarType, AIAnalysisResult, Transaction, JarBalance, Loan } from "../types";
 
+// Helper to get Vietnamese names for Jars
+const getJarName = (type: string) => {
+  const names: Record<string, string> = {
+    'NEC': 'Thiết yếu',
+    'LTS': 'Tiết kiệm dài hạn',
+    'EDU': 'Giáo dục',
+    'PLAY': 'Hưởng thụ',
+    'FFA': 'Đầu tư tự do tài chính',
+    'GIVE': 'Cho đi'
+  };
+  return names[type] || type;
+};
+
 export const analyzeTransactionText = async (
   text: string, 
   recentTransactions: Transaction[]
@@ -61,18 +74,19 @@ export const getFinancialAdvice = async (
 ): Promise<string> => {
   try {
     const balanceInfo = Object.entries(balances)
-      .map(([type, amt]) => `${type}: ${amt.toLocaleString()} VND`)
-      .join(", ");
+      .map(([type, amt]) => `- Hũ ${getJarName(type)}: ${amt.toLocaleString()}đ`)
+      .join("\n");
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Số dư các hũ hiện tại: ${balanceInfo}. Hành động vừa thực hiện: "${lastActionSummary}".`,
+      contents: `Số dư các hũ hiện tại:\n${balanceInfo}\n\nHành động vừa thực hiện: "${lastActionSummary}".`,
       config: {
         systemInstruction: `Bạn là chuyên gia tài chính theo quy tắc 6 chiếc lọ. 
         NHIỆM VỤ: Đưa ra lời khuyên tài chính cực kỳ NGẮN GỌN (1-2 câu).
-        1. KHÔNG liệt kê chi tiết số tiền.
-        2. Nhận xét về kỷ luật tài chính dựa trên số dư các hũ.`,
+        1. KHÔNG sử dụng các từ viết tắt như NEC, FFA, LTS, EDU, PLAY, GIVE. Hãy gọi tên đầy đủ (Thiết yếu, Đầu tư, Tiết kiệm, Giáo dục, Hưởng thụ, Cho đi).
+        2. KHÔNG liệt kê chi tiết số tiền lại.
+        3. Nhận xét về kỷ luật tài chính dựa trên số dư các hũ.`,
       },
     });
 
@@ -93,11 +107,11 @@ export const getDeepFinancialAnalysis = async (
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const balanceInfo = Object.entries(balances)
-      .map(([type, amt]) => `- Hũ ${type}: ${amt.toLocaleString()}đ`)
+      .map(([type, amt]) => `- Hũ ${getJarName(type)}: ${amt.toLocaleString()}đ`)
       .join("\n");
       
     const recentHistory = transactions.slice(0, 20).map(t => 
-      `${t.type === 'income' ? 'Thu' : 'Chi'} ${t.amount.toLocaleString()}đ cho "${t.description}" (${t.jarType || 'Phân bổ'})`
+      `${t.type === 'income' ? 'Thu' : 'Chi'} ${t.amount.toLocaleString()}đ cho "${t.description}" (${t.jarType ? getJarName(t.jarType) : 'Phân bổ'})`
     ).join("\n");
 
     const loanInfo = loans.length > 0 ? loans.map(l => 
@@ -109,14 +123,15 @@ export const getDeepFinancialAnalysis = async (
       contents: `Thông tin tài chính của ${userName}:\n\nSỐ DƯ CÁC HŨ:\n${balanceInfo}\n\nKHOẢN NỢ:\n${loanInfo}\n\nLỊCH SỬ GIAO DỊCH GẦN ĐÂY:\n${recentHistory}`,
       config: {
         systemInstruction: `Bạn là Chuyên gia Tài chính Cao cấp. Hãy thực hiện một bản phân tích sức khỏe tài chính chi tiết theo quy tắc 6 chiếc lọ.
+        Hãy sử dụng tên tiếng Việt đầy đủ cho các hũ (Thiết yếu, Tiết kiệm, Giáo dục, Hưởng thụ, Đầu tư, Cho đi).
         
         CẤU TRÚC BÁO CÁO (Markdown):
         1. **Đánh giá tổng quát**: Nhận xét về tổng tài sản ròng và kỷ luật chi tiêu.
-        2. **Phân tích từng hũ**: Hũ nào đang quá cao hoặc quá thấp? Người dùng có đang bỏ bê hũ EDU (Giáo dục) hay FFA (Tự do tài chính) không?
-        3. **Chiến lược quản lý nợ**: Nếu có nợ, hãy đưa ra lộ trình trả nợ tối ưu dựa trên số dư hiện có.
-        4. **Lời khuyên hành động (Top 3)**: 3 việc cụ thể cần làm ngay trong tuần này để cải thiện tình hình.
+        2. **Phân tích từng hũ**: Hũ nào đang quá cao hoặc quá thấp?
+        3. **Chiến lược quản lý nợ**: Nếu có nợ, hãy đưa ra lộ trình trả nợ tối ưu.
+        4. **Lời khuyên hành động (Top 3)**: 3 việc cụ thể cần làm ngay.
         
-        PHONG CÁCH: Chuyên nghiệp, khích lệ nhưng thẳng thắn. Sử dụng các emoji phù hợp.`,
+        PHONG CÁCH: Chuyên nghiệp, khích lệ nhưng thẳng thắn.`,
       },
     });
 
