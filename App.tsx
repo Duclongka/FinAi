@@ -236,7 +236,7 @@ const TRANSLATIONS = {
 
 const App: React.FC = () => {
   // --- Constants ---
-  const APP_VERSION = "4.5.3";
+  const APP_VERSION = "4.5.4";
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const defaultRatios: Record<JarType, number> = {
@@ -437,6 +437,7 @@ const App: React.FC = () => {
     if (!input.trim() || isLoading) return;
     setIsLoading(true);
     try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const result = await analyzeTransactionText(input, transactions);
       if (result && result.action === 'create' && (result.amount || 0) > 0) {
         const isExpense = result.isExpense !== false;
@@ -895,20 +896,20 @@ const App: React.FC = () => {
   }, [transactions, chartTab, settings.currency, settings.language]);
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 pt-20 pb-32 font-sans flex flex-col items-center overflow-x-hidden">
+    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 pt-24 pb-32 font-sans flex flex-col items-center overflow-x-hidden">
       {toast && (
         <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] ${toast.type === 'success' ? 'bg-indigo-600' : toast.type === 'danger' ? 'bg-red-600' : 'bg-slate-800'} text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xl animate-in slide-in-from-top-4 duration-300`}>
           {toast.msg}
         </div>
       )}
 
-      {/* --- AI INPUT BAR (UPDATED) --- */}
-      <div className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-xl border-b border-indigo-100 p-3 shadow-lg shadow-indigo-500/5">
-        <div className="max-w-2xl mx-auto flex items-center gap-2">
+      {/* --- AI INPUT BAR (TĂNG ĐỘ RỘNG & ĐỔ BÓNG) --- */}
+      <div className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-xl border-b border-indigo-100 p-4 shadow-[0_4px_30px_rgba(79,70,229,0.08)]">
+        <div className="max-w-4xl mx-auto flex items-center gap-2">
           <form onSubmit={handleProcessInput} className="relative flex-1">
-            <input ref={aiInputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t.ai_placeholder} className="w-full bg-slate-100 border-2 border-slate-200 rounded-full px-5 py-2 text-[11px] font-bold outline-none focus:border-indigo-400 shadow-inner" />
-            <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 shadow-lg">
-              {isLoading ? <div className="w-2 h-2 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "✨"}
+            <input ref={aiInputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t.ai_placeholder} className="w-full bg-slate-100 border-2 border-slate-200 rounded-full px-5 py-2.5 text-[11px] font-bold outline-none focus:border-indigo-400 shadow-inner" />
+            <button type="submit" className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 shadow-lg transition-transform active:scale-95">
+              {isLoading ? <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "✨"}
             </button>
           </form>
         </div>
@@ -1190,16 +1191,16 @@ const App: React.FC = () => {
         </section>
       </main>
 
-      {/* --- GLOSSY CENTER FAB (UPDATED POSITION) --- */}
-      <button onClick={scrollToAi} className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[80] w-16 h-16 bg-gradient-to-tr from-indigo-700 to-indigo-400 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all border-4 border-white"><span className="text-4xl">＋</span></button>
+      {/* --- GLOSSY CENTER FAB (ĐIỀU CHỈNH VỊ TRÍ) --- */}
+      <button onClick={scrollToAi} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[80] w-16 h-16 bg-gradient-to-tr from-indigo-700 to-indigo-400 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all border-4 border-white"><span className="text-4xl">＋</span></button>
 
-      {/* --- UTILITY BAR (UPDATED) --- */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t-2 border-indigo-50 p-4 shadow-[0_-8px_20px_-6px_rgba(79,70,229,0.1)]">
+      {/* --- UTILITY BAR (FOOTER - TĂNG ĐỘ RỘNG & ĐỔ BÓNG MỜ) --- */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100/50 p-5 shadow-[0_-10px_40px_rgba(79,70,229,0.08)]">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4">
           <div className="flex flex-col leading-none"><span className="text-xs font-black text-slate-900 uppercase">FINAI</span><span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest">by Loong Lee</span></div>
           <div className="flex items-center gap-6">
-            <button onClick={() => setIsAuthModalOpen(true)} className="flex items-center gap-2 p-1 bg-slate-50 rounded-full border shadow-inner transition-all hover:bg-slate-100"><img src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'} className="w-5 h-5 rounded-full" /><span className="text-[8px] font-black uppercase max-w-[80px] truncate text-indigo-600">{currentUser?.displayName || t.user_label}</span></button>
-            <button onClick={() => setIsSettingsOpen(true)} className="w-10 h-10 flex flex-col items-center justify-center gap-1 bg-slate-50 text-slate-500 rounded-2xl border border-slate-200 shadow-sm transition-all hover:bg-indigo-50"><div className="w-5 h-0.5 bg-slate-400 rounded-full"></div><div className="w-5 h-0.5 bg-slate-400 rounded-full"></div><div className="w-5 h-0.5 bg-slate-400 rounded-full"></div></button>
+            <button onClick={() => setIsAuthModalOpen(true)} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-full border border-slate-200 shadow-inner transition-all hover:bg-slate-100"><img src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'} className="w-5 h-5 rounded-full" /><span className="text-[8px] font-black uppercase max-w-[80px] truncate text-indigo-600">{currentUser?.displayName || t.user_label}</span></button>
+            <button onClick={() => setIsSettingsOpen(true)} className="w-11 h-11 flex flex-col items-center justify-center gap-1 bg-slate-50 text-slate-500 rounded-2xl border border-slate-200 shadow-sm transition-all hover:bg-indigo-50"><div className="w-5 h-0.5 bg-slate-400 rounded-full"></div><div className="w-5 h-0.5 bg-slate-400 rounded-full"></div><div className="w-5 h-0.5 bg-slate-400 rounded-full"></div></button>
           </div>
         </div>
       </div>
@@ -1275,6 +1276,14 @@ const App: React.FC = () => {
                   <div className="flex items-start gap-3"><span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 text-[10px] font-black">3</span><p className="text-[11px] font-bold text-slate-700">Vay nợ: Quản lý các khoản nợ phải trả và nợ thu hồi một cách minh bạch.</p></div>
                   <div className="flex items-start gap-3"><span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 text-[10px] font-black">4</span><p className="text-[11px] font-bold text-slate-700">Dữ liệu: Mọi thông tin lưu trên máy bạn. Hãy xuất CSV định kỳ để sao lưu!</p></div>
                 </div>
+                {/* MỤC MỚI THÊM: TÌM HIỂU QUY TẮC 6 CHIẾC LỌ QUA VIDEO */}
+                <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-3">
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center">Video Tài Liệu Tham Khảo</p>
+                  <p className="text-[11px] font-bold text-slate-700">Tìm hiểu chi tiết hơn về quy tắc 6 chiếc lọ để quản lý tài chính cá nhân thông minh qua video sau:</p>
+                  <a href="https://fb.watch/EB-ewk_ZJ5/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 p-3 bg-white border border-emerald-200 rounded-xl text-[10px] font-black text-emerald-600 shadow-sm hover:shadow-md transition-all active:scale-95 uppercase">
+                    <span>🎬</span> Xem Video Quy Tắc 6 Lọ
+                  </a>
+                </div>
                 <div className="text-center"><a href="https://itsuprogroup-my.sharepoint.com/:w:/g/personal/longld_itsupro_org/IQBdYXaYoB6oTItr2tb0ZwwZAd3RZWco8SxetSlAJWDF_kk?e=ZphnBf" target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-2xl shadow-xl transition-all hover:bg-indigo-700">TÀI LIỆU CHI TIẾT</a></div>
               </div>
             )}
@@ -1327,7 +1336,7 @@ const App: React.FC = () => {
 
       {isPayLoanModalOpen && activeLoanForPay && (
         <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] w-full max-w-lg p-8 shadow-2xl relative"><h2 className="text-sm font-black text-slate-800 flex items-center gap-2 uppercase tracking-tighter mb-6">💳 {activeLoanForPay.lenderName.toUpperCase()}</h2><form onSubmit={handleConfirmPayLoan} className="space-y-6"><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Số tiền giao dịch ({settings.currency})</label><input required type="text" value={formatNumberForDisplay(payLoanAmount)} onChange={handlePayLoanAmountChange} placeholder="Nhập số tiền..." className="w-full p-3.5 bg-slate-50 border rounded-xl text-[11px] font-bold outline-none shadow-inner focus:border-indigo-300" />{settings.currency === 'JPY' && (<p className="text-[9px] font-black text-indigo-500 mt-1 uppercase italic">{getJpyBreakdown(payLoanAmount)}</p>)}</div><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Thực hiện qua hũ</label><select value={payLoanJar} onChange={e => setPayLoanJar(e.target.value as JarType | 'AUTO')} className="w-full p-3.5 bg-slate-50 border rounded-xl text-[11px] font-bold outline-none h-12 shadow-inner focus:border-indigo-300"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div><div className="flex items-center justify-between gap-4 pt-4"><button type="button" onClick={() => setIsPayLoanModalOpen(false)} className="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px] hover:text-red-500 transition-colors">Hủy</button><button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black uppercase text-[11px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95">Xác nhận</button></div></form></div>
+          <div className="bg-white rounded-[2rem] w-full max-w-lg p-8 shadow-2xl relative"><h2 className="text-sm font-black text-slate-800 flex items-center gap-2 uppercase tracking-tighter mb-6">💳 {activeLoanForPay.lenderName.toUpperCase()}</h2><form onSubmit={handleConfirmPayLoan} className="space-y-6"><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Số tiền giao dịch ({settings.currency})</label><input required type="text" value={formatNumberForDisplay(payLoanAmount)} onChange={handlePayLoanAmountChange} placeholder="Nhập số tiền..." className="w-full p-3.5 bg-slate-50 border rounded-xl text-[13px] font-bold outline-none shadow-inner focus:border-indigo-300" />{settings.currency === 'JPY' && (<p className="text-[9px] font-black text-indigo-500 mt-1 uppercase italic">{getJpyBreakdown(payLoanAmount)}</p>)}</div><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Thực hiện qua hũ</label><select value={payLoanJar} onChange={e => setPayLoanJar(e.target.value as JarType | 'AUTO')} className="w-full p-3.5 bg-slate-50 border rounded-xl text-[11px] font-bold outline-none h-12 shadow-inner focus:border-indigo-300"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div><div className="flex items-center justify-between gap-4 pt-4"><button type="button" onClick={() => setIsPayLoanModalOpen(false)} className="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px] hover:text-red-500 transition-colors">Hủy</button><button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black uppercase text-[11px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95">Xác nhận</button></div></form></div>
         </div>
       )}
 
