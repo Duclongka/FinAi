@@ -70,6 +70,7 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  gender: 'male' | 'female' | 'other';
   avatarUrl?: string;
   password?: string;
   provider: 'google' | 'local';
@@ -82,5 +83,6 @@ export interface AppSettings {
   currency: 'VND' | 'JPY' | 'USD';
   language: 'vi' | 'en' | 'ja';
   notificationsEnabled: boolean;
+  notificationTime: string; // HH:mm
   jarRatios: Record<JarType, number>;
 }

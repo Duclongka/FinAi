@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { JarType, AIAnalysisResult, Transaction, JarBalance, Loan } from "../types";
+import { JarType, AIAnalysisResult, Transaction, JarBalance, Loan, User } from "../types";
 
 // Helper to get Vietnamese names for Jars
 const getJarName = (type: string) => {
@@ -76,23 +76,28 @@ export const analyzeTransactionText = async (
 
 export const getFinancialAdvice = async (
   balances: JarBalance, 
-  lastActionSummary: string
+  lastActionSummary: string,
+  user: User | null
 ): Promise<string> => {
   try {
     const balanceInfo = Object.entries(balances)
       .map(([type, amt]) => `- Hũ ${getJarName(type)}: ${amt.toLocaleString()}đ`)
       .join("\n");
 
+    const genderAddress = user?.gender === 'male' ? 'Anh' : user?.gender === 'female' ? 'Chị' : 'Bạn';
+    const userName = user?.displayName || 'bạn';
+
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Số dư các hũ hiện tại:\n${balanceInfo}\n\nHành động vừa thực hiện: "${lastActionSummary}".`,
+      contents: `Người dùng: ${userName}, Giới tính/Cách xưng hô: ${genderAddress}.\nSố dư các hũ hiện tại:\n${balanceInfo}\n\nHành động vừa thực hiện: "${lastActionSummary}".`,
       config: {
         systemInstruction: `Bạn là chuyên gia tài chính theo quy tắc 6 chiếc lọ. 
         NHIỆM VỤ: Đưa ra lời khuyên tài chính cực kỳ NGẮN GỌN (1-2 câu).
-        1. KHÔNG sử dụng các từ viết tắt như NEC, FFA, LTS, EDU, PLAY, GIVE. Hãy gọi tên đầy đủ (Thiết yếu, Đầu tư, Tiết kiệm, Giáo dục, Hưởng thụ, Cho đi).
-        2. KHÔNG liệt kê chi tiết số tiền lại.
-        3. Nhận xét về kỷ luật tài chính dựa trên số dư các hũ.`,
+        1. Sử dụng đúng cách xưng hô (${genderAddress}) và tên người dùng nếu thấy phù hợp.
+        2. KHÔNG sử dụng các từ viết tắt như NEC, FFA, LTS, EDU, PLAY, GIVE. Hãy gọi tên đầy đủ (Thiết yếu, Đầu tư, Tiết kiệm, Giáo dục, Hưởng thụ, Cho đi).
+        3. KHÔNG liệt kê chi tiết số tiền lại.
+        4. Nhận xét về kỷ luật tài chính dựa trên số dư các hũ.`,
       },
     });
 
@@ -107,7 +112,7 @@ export const getDeepFinancialAnalysis = async (
   balances: JarBalance,
   transactions: Transaction[],
   loans: Loan[],
-  userName: string
+  user: User | null
 ): Promise<string> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -124,11 +129,15 @@ export const getDeepFinancialAnalysis = async (
       `- Nợ ${l.lenderName}: ${l.principal.toLocaleString()}đ (Còn lại ${(l.principal - l.paidAmount).toLocaleString()}đ)`
     ).join("\n") : "Không có nợ.";
 
+    const genderAddress = user?.gender === 'male' ? 'Anh' : user?.gender === 'female' ? 'Chị' : 'Bạn';
+    const userName = user?.displayName || 'Người dùng';
+
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
-      contents: `Thông tin tài chính của ${userName}:\n\nSỐ DƯ CÁC HŨ:\n${balanceInfo}\n\nKHOẢN NỢ:\n${loanInfo}\n\nLỊCH SỬ GIAO DỊCH GẦN ĐÂY:\n${recentHistory}`,
+      contents: `Thông tin tài chính của ${userName} (${genderAddress}):\n\nSỐ DƯ CÁC HŨ:\n${balanceInfo}\n\nKHOẢN NỢ:\n${loanInfo}\n\nLỊCH SỬ GIAO DỊCH GẦN ĐÂY:\n${recentHistory}`,
       config: {
         systemInstruction: `Bạn là Chuyên gia Tài chính Cao cấp. Hãy thực hiện một bản phân tích sức khỏe tài chính chi tiết theo quy tắc 6 chiếc lọ.
+        Hãy xưng hô lịch sự với người dùng là ${genderAddress} ${userName}.
         Hãy sử dụng tên tiếng Việt đầy đủ cho các hũ (Thiết yếu, Tiết kiệm, Giáo dục, Hưởng thụ, Đầu tư, Cho đi).
         
         CẤU TRÚC BÁO CÁO (Markdown):
