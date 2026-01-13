@@ -171,7 +171,7 @@ const TRANSLATIONS = {
     chart_week: "週",
     chart_month: "月",
     chart_year: "年",
-    manual_title: "手 động nhập",
+    manual_title: "手動入力",
     manual_edit: "編集中",
     manual_cancel: "キャンセル",
     manual_type: "取引タイプ",
@@ -226,17 +226,17 @@ const TRANSLATIONS = {
     jars: {
       NEC: { name: "必要経費", desc: "毎月の基本的な生活費。" },
       LTS: { name: "長期貯蓄", desc: "将来の大きな目標（家、車など）のため。" },
-      EDU: { name: "教育基金", desc: "知識や skills の習得への投資。" },
+      EDU: { name: "教育基金", desc: "知識やスキルの習得への投資。" },
       PLAY: { name: "娯楽基金", desc: "遊び、買い物、趣味などの楽しみ。" },
       FFA: { name: "財務自由", desc: "不労所得を得るための投資基金。" },
-      GIVE: { name: "奉仕基金", desc: "寄付や thê 者への援助のため。" }
+      GIVE: { name: "奉仕基金", desc: "寄付や他者への援助のため。" }
     }
   }
 };
 
 const App: React.FC = () => {
   // --- Constants ---
-  const APP_VERSION = "4.4.9";
+  const APP_VERSION = "4.5.1";
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const defaultRatios: Record<JarType, number> = {
@@ -312,16 +312,15 @@ const App: React.FC = () => {
   const [manualImage, setManualImage] = useState<string | null>(null);
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   
-  // Logic nhấn 2 lần để xóa
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [loanDeleteConfirmId, setLoanDeleteConfirmId] = useState<string | null>(null);
 
-  // States cho modal vay nợ (dùng chuỗi để chống lỗi nhảy số JPY)
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
   const [editingLoanId, setEditingLoanId] = useState<string | null>(null);
   const [loanPrincipalStr, setLoanPrincipalStr] = useState('');
   const [loanPaidAmountStr, setLoanPaidAmountStr] = useState('');
-  const [loanForm, setLoanForm] = useState<Partial<Loan> & { loanJar: JarType | 'AUTO' }>({
+  // Fix: Explicitly omit loanJar from the intersection to allow 'AUTO' in the state type
+  const [loanForm, setLoanForm] = useState<Omit<Partial<Loan>, 'loanJar'> & { loanJar: JarType | 'AUTO' }>({
     type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO'
   });
 
@@ -356,7 +355,6 @@ const App: React.FC = () => {
     const n = parseFloat(cleanedString);
     if (isNaN(n)) return "";
     
-    // Đối với JPY không cần phần thập phân
     const isJpy = settings.currency === 'JPY';
     const decimals = isJpy ? 0 : (settings.currency === 'USD' ? 2 : 0);
     
@@ -373,7 +371,6 @@ const App: React.FC = () => {
     return inputVal / EXCHANGE_RATES[settings.currency];
   };
 
-  // Hàm hỗ trợ đọc số tiền JPY sang Man-Sen-Yen
   const getJpyBreakdown = (valStr: string) => {
     const n = parseInt(valStr.replace(/\D/g, '')) || 0;
     if (n === 0) return "";
@@ -430,7 +427,6 @@ const App: React.FC = () => {
         else Object.values(JarType).forEach(type => { nb[type as JarType] -= nextTrans.amount * ratios[type as JarType]; });
       }
 
-      // Làm tròn để tránh lỗi số thực tích lũy
       Object.keys(nb).forEach(k => { nb[k as JarType] = Math.round(nb[k as JarType] * 1000) / 1000; });
       return nb;
     });
@@ -442,6 +438,7 @@ const App: React.FC = () => {
     if (!input.trim() || isLoading) return;
     setIsLoading(true);
     try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const result = await analyzeTransactionText(input, transactions);
       if (result && result.action === 'create' && (result.amount || 0) > 0) {
         const isExpense = result.isExpense !== false;
@@ -911,7 +908,7 @@ const App: React.FC = () => {
       <div className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-xl border-b border-slate-200 p-2 shadow-sm">
         <div className="max-w-xl mx-auto flex items-center gap-2">
           <form onSubmit={handleProcessInput} className="relative flex-1">
-            <input ref={aiInputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t.ai_placeholder} className="w-full bg-slate-100 border-2 border-slate-200 rounded-full px-5 py-2 text-[11px] font-bold outline-none focus:border-indigo-400 shadow-inner" />
+            <input ref={aiInputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t.ai_placeholder} className="w-full bg-slate-100 border-2 border-slate-200 rounded-full px-5 py-2 text-base font-bold outline-none focus:border-indigo-400 shadow-inner" />
             <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 shadow-lg">
               {isLoading ? <div className="w-2 h-2 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "✨"}
             </button>
@@ -987,11 +984,11 @@ const App: React.FC = () => {
             </div>
             <div className="space-y-3">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.manual_amount} ({settings.currency})</label>
-              <input required type="text" value={formatNumberForDisplay(manualAmount)} onChange={handleAmountChange} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-[12px] font-bold outline-none h-12 shadow-inner focus:border-indigo-300 transition-colors" />
+              <input required type="text" value={formatNumberForDisplay(manualAmount)} onChange={handleAmountChange} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-base font-bold outline-none h-12 shadow-inner focus:border-indigo-300 transition-colors" />
             </div>
             <div className="space-y-3">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.manual_desc}</label>
-              <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder="..." className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-[12px] font-bold outline-none h-12 shadow-inner focus:border-indigo-300 transition-colors" />
+              <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder="..." className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-base font-bold outline-none h-12 shadow-inner focus:border-indigo-300 transition-colors" />
             </div>
             <div className="space-y-3">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{manualType === 'income' ? t.manual_allocation_only : t.manual_jar_img}</label>
@@ -999,7 +996,7 @@ const App: React.FC = () => {
                 <div className="w-full bg-indigo-50 border-2 border-indigo-100 text-indigo-600 rounded-xl p-3 text-[10px] font-black flex items-center justify-center h-12 uppercase italic">{t.manual_auto}</div>
               ) : (
                 <div className="flex gap-2 h-12">
-                  <select value={manualJar} onChange={e => setManualJar(e.target.value as JarType)} className="flex-1 bg-slate-50 border-2 border-slate-200 rounded-xl px-3 text-[11px] font-bold outline-none shadow-inner focus:border-indigo-300 transition-colors">
+                  <select value={manualJar} onChange={e => setManualJar(e.target.value as JarType)} className="flex-1 bg-slate-50 border-2 border-slate-200 rounded-xl px-3 text-base font-bold outline-none shadow-inner focus:border-indigo-300 transition-colors">
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t.jars[type as JarType].name}</option>)}
                   </select>
                   <label className="w-12 bg-slate-100 border-2 border-slate-200 rounded-xl flex items-center justify-center cursor-pointer hover:bg-slate-200 transition-colors shadow-sm">
@@ -1017,7 +1014,7 @@ const App: React.FC = () => {
             </div>
             <div className="space-y-3">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.manual_date_label}</label>
-              <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-[12px] font-bold outline-none h-12 shadow-inner focus:border-indigo-300 transition-colors" />
+              <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-base font-bold outline-none h-12 shadow-inner focus:border-indigo-300 transition-colors" />
             </div>
             <div className="space-y-3 flex flex-col justify-end">
               <button type="submit" className="w-full h-12 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-xl shadow-lg hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2">
@@ -1036,7 +1033,7 @@ const App: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[8px] font-black text-slate-400 uppercase">{t.history_type}</label>
-                  <select value={historyFilter} onChange={e => setHistoryFilter(e.target.value as any)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase outline-none">
+                  <select value={historyFilter} onChange={e => setHistoryFilter(e.target.value as any)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-base font-black uppercase outline-none">
                     <option value="all">{t.history_all}</option>
                     <option value="income">{t.history_inc_only}</option>
                     <option value="expense">{t.history_exp_only}</option>
@@ -1044,21 +1041,20 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[8px] font-black text-slate-400 uppercase">{t.history_jar}</label>
-                  <select value={historyJarFilter} onChange={e => setHistoryJarFilter(e.target.value as any)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase outline-none">
+                  <select value={historyJarFilter} onChange={e => setHistoryJarFilter(e.target.value as any)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-base font-black uppercase outline-none">
                     <option value="all">{t.history_all}</option>
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t.jars[type as JarType].name}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[8px] font-black text-slate-400 uppercase">{t.history_date}</label>
-                  <input type="date" value={historyDateFilter} onChange={e => setHistoryDateFilter(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase outline-none"/>
+                  <input type="date" value={historyDateFilter} onChange={e => setHistoryDateFilter(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-base font-black uppercase outline-none"/>
                 </div>
               </div>
             </div>
           </div>
           <div className="space-y-3">
             {filteredTransactions.length === 0 ? <div className="py-20 text-center text-slate-300 italic text-[11px] font-bold">{t.history_empty}</div> : displayedHistory.map(item => {
-              // Kiểm tra xem giao dịch này có liên quan đến một khoản nợ đã hoàn thành không
               const linkedLoan = item.loanId ? loans.find(l => l.id === item.loanId) : null;
               const isLinkedToPaidOffLoan = linkedLoan ? (Math.max(0, linkedLoan.principal - linkedLoan.paidAmount) < 0.01) : false;
 
@@ -1076,7 +1072,6 @@ const App: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <p className={`text-[11px] font-black ${item.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>{item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}</p>
                     <div className="flex items-center gap-1 shrink-0">
-                      {/* Ẩn nút sửa nếu khoản nợ liên quan đã hoàn thành */}
                       {!isLinkedToPaidOffLoan && (
                         <button onClick={() => handleEditClick(item)} className="w-8 h-8 flex items-center justify-center bg-indigo-50 text-indigo-500 hover:bg-indigo-100 rounded-lg border border-indigo-100 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
                       )}
@@ -1090,7 +1085,7 @@ const App: React.FC = () => {
           {filteredTransactions.length > visibleHistoryCount && <button onClick={() => setVisibleHistoryCount(prev => prev + 5)} className="mt-6 w-full py-3 bg-slate-50 text-slate-500 text-[10px] font-black uppercase rounded-xl border-2 border-dashed border-slate-200 hover:bg-slate-100 transition-all">{t.history_more}</button>}
         </section>
 
-        {/* LOANS SECTION - REFINED UI */}
+        {/* LOANS SECTION */}
         <section className="bg-white p-6 md:p-8 rounded-[2.5rem] border-2 border-slate-200 shadow-xl space-y-6 w-full">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
@@ -1112,7 +1107,6 @@ const App: React.FC = () => {
                 const remaining = Math.max(0, loan.principal - loan.paidAmount);
                 const isPaidOff = remaining < 0.01;
                 
-                // Tìm ngày hoàn thành (giao dịch gần nhất của khoản vay này)
                 const completionDate = isPaidOff 
                   ? transactions
                       .filter(t => t.loanId === loan.id)
@@ -1222,8 +1216,8 @@ const App: React.FC = () => {
               <div className="space-y-8 py-6">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-2 text-center">{t.settings_app}</h4>
                 <div className="space-y-6">
-                  <div className="space-y-3"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.currency}</label><div className="flex bg-slate-50 p-1.5 rounded-2xl border gap-1">{['VND', 'JPY', 'USD'].map(curr => (<button key={curr} onClick={() => setSettings({...settings, currency: curr as any})} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${settings.currency === curr ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{curr}</button>))}</div></div>
-                  <div className="space-y-3"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.language}</label><div className="flex flex-col bg-slate-50 p-2 rounded-2xl border gap-1"><button onClick={() => setSettings({...settings, language: 'vi'})} className={`w-full py-3 text-[10px] font-black rounded-xl transition-all ${settings.language === 'vi' ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{t.lang_vi}</button><button onClick={() => setSettings({...settings, language: 'en'})} className={`w-full py-3 text-[10px] font-black rounded-xl transition-all ${settings.language === 'en' ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{t.lang_en}</button><button onClick={() => setSettings({...settings, language: 'ja'})} className={`w-full py-3 text-[10px] font-black rounded-xl transition-all ${settings.language === 'ja' ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{t.lang_ja}</button></div></div>
+                  <div className="space-y-3"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.currency}</label><div className="flex bg-slate-50 p-1.5 rounded-2xl border gap-1">{['VND', 'JPY', 'USD'].map(curr => (<button key={curr} onClick={() => setSettings({...settings, currency: curr as any})} className={`flex-1 py-3 text-base font-black rounded-xl transition-all ${settings.currency === curr ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{curr}</button>))}</div></div>
+                  <div className="space-y-3"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.language}</label><div className="flex flex-col bg-slate-50 p-2 rounded-2xl border gap-1"><button onClick={() => setSettings({...settings, language: 'vi'})} className={`w-full py-3 text-base font-black rounded-xl transition-all ${settings.language === 'vi' ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{t.lang_vi}</button><button onClick={() => setSettings({...settings, language: 'en'})} className={`w-full py-3 text-base font-black rounded-xl transition-all ${settings.language === 'en' ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{t.lang_en}</button><button onClick={() => setSettings({...settings, language: 'ja'})} className={`w-full py-3 text-base font-black rounded-xl transition-all ${settings.language === 'ja' ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{t.lang_ja}</button></div></div>
                 </div>
               </div>
             )}
@@ -1259,33 +1253,6 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {settingsTab === 'policy' && (
-              <div className="space-y-6 py-4 text-left">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-2">{t.settings_policy}</h4>
-                <div className="space-y-4">
-                  <div className="bg-red-50 p-5 rounded-2xl border border-red-100 space-y-4">
-                    <p className="text-[11px] font-black text-red-600 uppercase">CHÍNH SÁCH BẢO MẬT & MIỄN TRỪ TRÁCH NHIỆM</p>
-                    <p className="text-[10px] font-bold text-slate-700 leading-relaxed">1. <strong>Quyền riêng tư tuyệt đối:</strong> Ứng dụng FINAI cam kết không lưu trữ bất kỳ dữ liệu tài chính nào của người dùng trên máy chủ (server). Mọi dữ liệu đều được lưu trữ trực tiếp trên thiết bị cá nhân (LocalStorage/Browser Storage) của chính bạn.</p>
-                    <p className="text-[10px] font-bold text-slate-700 leading-relaxed">2. <strong>An toàn mạng:</strong> Chúng tôi tuân thủ nghiêm ngặt Luật An toàn thông tin mạng và Luật An ninh mạng Việt Nam. Vì dữ liệu không được tải lên mạng, nguy cơ rò rỉ dữ liệu cá nhân từ hệ thống là bằng 0.</p>
-                    <p className="text-[10px] font-bold text-slate-700 leading-relaxed">3. <strong>Trách nhiệm người dùng:</strong> Do đặc thù lưu trữ tại chỗ, người dùng có trách nhiệm tự bảo mật thiết bị truy cập và sao lưu dữ liệu (qua tính năng Export CSV).</p>
-                    <p className="text-[10px] font-bold text-slate-700 leading-relaxed">4. <strong>Miễn trừ trách nhiệm:</strong> FINAI không chịu trách nhiệm cho bất kỳ mất mát dữ liệu nào do lỗi thiết bị, xóa bộ nhớ trình duyệt, hoặc hành vi xâm nhập trái phép vào thiết bị của người dùng.</p>
-                    <div className="pt-2 border-t border-red-200"><p className="text-[9px] font-black text-red-500 uppercase italic">* Dựa trên Luật An ninh mạng Việt Nam 2018 và Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân.</p></div>
-                  </div>
-                </div>
-              </div>
-            )}
-            {settingsTab === 'guide' && (
-              <div className="space-y-8 py-6">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-2 text-center">HƯỚNG DẪN SỬ DỤNG</h4>
-                <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 space-y-4">
-                  <div className="flex items-start gap-3"><span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 text-[10px] font-black">1</span><p className="text-[11px] font-bold text-slate-700">Sử dụng AI: Nhập nhanh giao dịch tại thanh tìm kiếm trên cùng. (Ví dụ: "Sáng ăn phở 50k hũ thiết yếu")</p></div>
-                  <div className="flex items-start gap-3"><span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 text-[10px] font-black">2</span><p className="text-[11px] font-bold text-slate-700">Quy tắc 6 Hũ: Hệ thống tự động chia thu nhập của bạn theo tỉ lệ (55%, 10%, 10%, 10%, 10%, 5%).</p></div>
-                  <div className="flex items-start gap-3"><span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 text-[10px] font-black">3</span><p className="text-[11px] font-bold text-slate-700">Vay nợ: Quản lý các khoản nợ phải trả và nợ thu hồi một cách minh bạch.</p></div>
-                  <div className="flex items-start gap-3"><span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 text-[10px] font-black">4</span><p className="text-[11px] font-bold text-slate-700">Dữ liệu: Mọi thông tin lưu trên máy bạn. Hãy xuất CSV định kỳ để sao lưu!</p></div>
-                </div>
-                <div className="text-center"><a href="https://itsuprogroup-my.sharepoint.com/:w:/g/personal/longld_itsupro_org/IQBdYXaYoB6oTItr2tb0ZwwZAd3RZWco8SxetSlAJWDF_kk?e=ZphnBf" target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-2xl shadow-xl transition-all hover:bg-indigo-700">TÀI LIỆU CHI TIẾT</a></div>
-              </div>
-            )}
           </div>
           <div className="p-4 border-t-2 border-slate-100 grid grid-cols-6 items-center justify-around bg-slate-50">
             {[ { id: 'app', icon: '⚙️', label: t.settings_app }, { id: 'export', icon: '📁', label: t.settings_data }, { id: 'info', icon: 'ℹ️', label: t.settings_info }, { id: 'connect', icon: '💬', label: t.settings_connect }, { id: 'policy', icon: '🛡️', label: t.settings_policy }, { id: 'guide', icon: '📖', label: t.settings_guide } ].map(tab => (
@@ -1303,23 +1270,16 @@ const App: React.FC = () => {
             <h2 className="text-base font-black text-slate-800 flex items-center gap-3 uppercase mb-4 md:mb-8 relative z-10"><span className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg text-sm">🏦</span>{editingLoanId ? 'Sửa thông tin vay nợ' : t.loan_new}</h2>
             <form onSubmit={handleSaveLoan} className="space-y-4 md:space-y-6 relative z-10">
                <div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Hình thức giao dịch</label><div className="flex bg-slate-100 p-1 rounded-xl gap-1 border border-slate-200 shadow-inner"><button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.BORROW})} className={`flex-1 py-2 text-[8px] font-black uppercase rounded-lg transition-all flex items-center justify-center gap-1 ${loanForm.type === LoanType.BORROW ? 'bg-white shadow text-red-600' : 'text-slate-400'}`}><span>💸</span> {t.loan_i_owe}</button><button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.LEND})} className={`flex-1 py-2 text-[8px] font-black uppercase rounded-lg transition-all flex items-center justify-center gap-1 ${loanForm.type === LoanType.LEND ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}><span>🤝</span> {t.loan_owes_me}</button></div></div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label><input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-[11px] font-bold outline-none shadow-sm focus:border-indigo-400 transition-all" placeholder="Tên cá nhân / Tổ chức..." /></div><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label><select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as JarType | 'AUTO'})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-[10px] font-bold outline-none shadow-sm focus:border-indigo-400 transition-all cursor-pointer"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div></div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label><input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-bold outline-none shadow-sm focus:border-indigo-400 transition-all" placeholder="Tên cá nhân / Tổ chức..." /></div><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label><select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as JarType | 'AUTO'})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-bold outline-none shadow-sm focus:border-indigo-400 transition-all cursor-pointer"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div></div>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                  <div className="space-y-1">
                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_date_label}</label>
-                   <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-[10px] font-bold outline-none shadow-sm focus:border-indigo-400 transition-all" />
+                   <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-bold outline-none shadow-sm focus:border-indigo-400 transition-all" />
                  </div>
                  <div className="space-y-1">
                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_principal} ({settings.currency})</label>
                    <div className="relative">
-                     <input 
-                       required 
-                       type="text" 
-                       value={formatNumberForDisplay(loanPrincipalStr)} 
-                       onChange={handleLoanPrincipalChange} 
-                       placeholder="0" 
-                       className="w-full p-2.5 pl-8 bg-slate-50 border-2 border-slate-200 rounded-xl text-[12px] font-black outline-none shadow-sm focus:border-indigo-400 transition-all text-indigo-700" 
-                     />
+                     <input required type="text" value={formatNumberForDisplay(loanPrincipalStr)} onChange={handleLoanPrincipalChange} placeholder="0" className="w-full p-2.5 pl-8 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-black outline-none shadow-sm focus:border-indigo-400 transition-all text-indigo-700" />
                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]">💰</span>
                    </div>
                    {settings.currency === 'JPY' && (<p className="text-[7px] font-black text-indigo-500 mt-0.5 uppercase italic tracking-tight leading-none">{getJpyBreakdown(loanPrincipalStr)}</p>)}
@@ -1327,13 +1287,7 @@ const App: React.FC = () => {
                  <div className="space-y-1">
                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_paid} ({settings.currency})</label>
                    <div className="relative">
-                     <input 
-                       type="text" 
-                       value={formatNumberForDisplay(loanPaidAmountStr)} 
-                       onChange={handleLoanPaidChange} 
-                       placeholder="0" 
-                       className="w-full p-2.5 pl-8 bg-slate-50 border-2 border-slate-200 rounded-xl text-[12px] font-black outline-none shadow-sm focus:border-indigo-400 transition-all text-emerald-600" 
-                     />
+                     <input type="text" value={formatNumberForDisplay(loanPaidAmountStr)} onChange={handleLoanPaidChange} placeholder="0" className="w-full p-2.5 pl-8 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-black outline-none shadow-sm focus:border-indigo-400 transition-all text-emerald-600" />
                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]">✅</span>
                    </div>
                    {settings.currency === 'JPY' && (<p className="text-[7px] font-black text-emerald-500 mt-0.5 uppercase italic tracking-tight leading-none">{getJpyBreakdown(loanPaidAmountStr)}</p>)}
@@ -1348,19 +1302,19 @@ const App: React.FC = () => {
 
       {isPayLoanModalOpen && activeLoanForPay && (
         <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] w-full max-w-lg p-8 shadow-2xl relative"><h2 className="text-sm font-black text-slate-800 flex items-center gap-2 uppercase tracking-tighter mb-6">💳 {activeLoanForPay.lenderName.toUpperCase()}</h2><form onSubmit={handleConfirmPayLoan} className="space-y-6"><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Số tiền giao dịch ({settings.currency})</label><input required type="text" value={formatNumberForDisplay(payLoanAmount)} onChange={handlePayLoanAmountChange} placeholder="Nhập số tiền..." className="w-full p-3.5 bg-slate-50 border rounded-xl text-[13px] font-bold outline-none shadow-inner focus:border-indigo-300" />{settings.currency === 'JPY' && (<p className="text-[9px] font-black text-indigo-500 mt-1 uppercase italic">{getJpyBreakdown(payLoanAmount)}</p>)}</div><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Thực hiện qua hũ</label><select value={payLoanJar} onChange={e => setPayLoanJar(e.target.value as JarType | 'AUTO')} className="w-full p-3.5 bg-slate-50 border rounded-xl text-[11px] font-bold outline-none h-12 shadow-inner focus:border-indigo-300"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div><div className="flex items-center justify-between gap-4 pt-4"><button type="button" onClick={() => setIsPayLoanModalOpen(false)} className="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px] hover:text-red-500 transition-colors">Hủy</button><button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black uppercase text-[11px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95">Xác nhận</button></div></form></div>
+          <div className="bg-white rounded-[2rem] w-full max-w-lg p-8 shadow-2xl relative"><h2 className="text-sm font-black text-slate-800 flex items-center gap-2 uppercase tracking-tighter mb-6">💳 {activeLoanForPay.lenderName.toUpperCase()}</h2><form onSubmit={handleConfirmPayLoan} className="space-y-6"><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Số tiền giao dịch ({settings.currency})</label><input required type="text" value={formatNumberForDisplay(payLoanAmount)} onChange={handlePayLoanAmountChange} placeholder="Nhập số tiền..." className="w-full p-3.5 bg-slate-50 border rounded-xl text-base font-bold outline-none shadow-inner focus:border-indigo-300" />{settings.currency === 'JPY' && (<p className="text-[9px] font-black text-indigo-500 mt-1 uppercase italic">{getJpyBreakdown(payLoanAmount)}</p>)}</div><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Thực hiện qua hũ</label><select value={payLoanJar} onChange={e => setPayLoanJar(e.target.value as JarType | 'AUTO')} className="w-full p-3.5 bg-slate-50 border rounded-xl text-base font-bold outline-none h-12 shadow-inner focus:border-indigo-300"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div><div className="flex items-center justify-between gap-4 pt-4"><button type="button" onClick={() => setIsPayLoanModalOpen(false)} className="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px] hover:text-red-500 transition-colors">Hủy</button><button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black uppercase text-[11px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95">Xác nhận</button></div></form></div>
         </div>
       )}
 
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-[320px] p-10 shadow-2xl relative border-4 border-indigo-50"><div className="w-16 h-16 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 shadow-indigo-200 shadow-xl animate-bounce">✨</div><h2 className="text-lg font-black text-slate-800 mb-2 text-center uppercase tracking-tight">{t.user_label}</h2><p className="text-[10px] text-slate-400 text-center mb-6 font-bold">Hãy để chúng tôi đồng hành cùng tài chính của bạn</p><form onSubmit={(e) => { e.preventDefault(); const nameInput = (e.currentTarget.elements[0] as HTMLInputElement).value; setCurrentUser({ id: '1', email: 'user@finai.app', displayName: nameInput || 'User', provider: 'local', avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${nameInput}` }); setIsAuthModalOpen(false); }} className="space-y-5"><input required type="text" className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-[12px] font-bold outline-none focus:border-indigo-400 shadow-inner" placeholder="..." /><button type="submit" className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-indigo-300 shadow-lg uppercase text-[11px] hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all">BẮT ĐẦU NGAY</button></form></div>
+          <div className="bg-white rounded-[2.5rem] w-full max-w-[320px] p-10 shadow-2xl relative border-4 border-indigo-50"><div className="w-16 h-16 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 shadow-indigo-200 shadow-xl animate-bounce">✨</div><h2 className="text-lg font-black text-slate-800 mb-2 text-center uppercase tracking-tight">{t.user_label}</h2><p className="text-[10px] text-slate-400 text-center mb-6 font-bold">Hãy để chúng tôi đồng hành cùng tài chính của bạn</p><form onSubmit={(e) => { e.preventDefault(); const nameInput = (e.currentTarget.elements[0] as HTMLInputElement).value; setCurrentUser({ id: '1', email: 'user@finai.app', displayName: nameInput || 'User', provider: 'local', avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${nameInput}` }); setIsAuthModalOpen(false); }} className="space-y-5"><input required type="text" className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-base font-bold outline-none focus:border-indigo-400 shadow-inner" placeholder="..." /><button type="submit" className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-indigo-300 shadow-lg uppercase text-[11px] hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all">BẮT ĐẦU NGAY</button></form></div>
         </div>
       )}
 
       {isTransferModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl relative"><h2 className="text-sm font-black text-slate-800 mb-6 uppercase tracking-tight flex items-center gap-2"><span>⇄</span> Điều chuyển hũ</h2><form onSubmit={handleTransferSubmit} className="space-y-4"><div><label className="text-[9px] font-black text-slate-400 uppercase block mb-1.5 ml-1">Đến hũ mục tiêu</label><select value={transferTo} onChange={e => setTransferTo(e.target.value as JarType)} className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-[11px] font-bold outline-none focus:border-indigo-400 shadow-inner">{Object.values(JarType).filter(jt => jt !== transferFrom).map(jt => <option key={jt} value={jt}>{t.jars[jt].name}</option>)}</select></div><div><label className="text-[9px] font-black text-slate-400 uppercase block mb-1.5 ml-1">Số tiền</label><input required type="text" value={formatNumberForDisplay(transferAmount)} onChange={e => setTransferAmount(e.target.value)} className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-[11px] font-bold outline-none focus:border-indigo-400 shadow-inner" placeholder="0" /></div><button type="submit" className="w-full py-4 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl shadow-lg active:scale-95 transition-all mt-4 hover:bg-emerald-700">Xác nhận chuyển</button></form><button onClick={() => setIsTransferModalOpen(false)} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 transition-colors">✕</button></div>
+          <div className="bg-white rounded-[2.5rem] w-full max-sm p-8 shadow-2xl relative"><h2 className="text-sm font-black text-slate-800 mb-6 uppercase tracking-tight flex items-center gap-2"><span>⇄</span> Điều chuyển hũ</h2><form onSubmit={handleTransferSubmit} className="space-y-4"><div><label className="text-[9px] font-black text-slate-400 uppercase block mb-1.5 ml-1">Đến hũ mục tiêu</label><select value={transferTo} onChange={e => setTransferTo(e.target.value as JarType)} className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-base font-bold outline-none focus:border-indigo-400 shadow-inner">{Object.values(JarType).filter(jt => jt !== transferFrom).map(jt => <option key={jt} value={jt}>{t.jars[jt].name}</option>)}</select></div><div><label className="text-[9px] font-black text-slate-400 uppercase block mb-1.5 ml-1">Số tiền</label><input required type="text" value={formatNumberForDisplay(transferAmount)} onChange={e => setTransferAmount(e.target.value)} className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-base font-bold outline-none focus:border-indigo-400 shadow-inner" placeholder="0" /></div><button type="submit" className="w-full py-4 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl shadow-lg active:scale-95 transition-all mt-4 hover:bg-emerald-700">Xác nhận chuyển</button></form><button onClick={() => setIsTransferModalOpen(false)} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 transition-colors">✕</button></div>
         </div>
       )}
     </div>
