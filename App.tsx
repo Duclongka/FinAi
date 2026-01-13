@@ -229,14 +229,14 @@ const TRANSLATIONS = {
       EDU: { name: "教育基金", desc: "知識や skills の習得への投資。" },
       PLAY: { name: "娯楽基金", desc: "遊び、買い物、趣味などの楽しみ。" },
       FFA: { name: "財務自由", desc: "不労所得を得るための投資基金。" },
-      GIVE: { name: "奉仕基金", desc: "寄付や他者への援助のため。" }
+      GIVE: { name: "奉仕基金", desc: "寄付や thê 者への援助のため。" }
     }
   }
 };
 
 const App: React.FC = () => {
   // --- Constants ---
-  const APP_VERSION = "4.4.5";
+  const APP_VERSION = "4.4.9";
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const defaultRatios: Record<JarType, number> = {
@@ -293,7 +293,7 @@ const App: React.FC = () => {
   const [isPayLoanModalOpen, setIsPayLoanModalOpen] = useState(false);
   const [activeLoanForPay, setActiveLoanForPay] = useState<Loan | null>(null);
   const [payLoanAmount, setPayLoanAmount] = useState('');
-  const [payLoanJar, setPayLoanJar] = useState<JarType>(JarType.NEC);
+  const [payLoanJar, setPayLoanJar] = useState<JarType | 'AUTO'>('AUTO');
 
   const [historyFilter, setHistoryFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [historyJarFilter, setHistoryJarFilter] = useState<JarType | 'all'>('all');
@@ -322,7 +322,7 @@ const App: React.FC = () => {
   const [loanPrincipalStr, setLoanPrincipalStr] = useState('');
   const [loanPaidAmountStr, setLoanPaidAmountStr] = useState('');
   const [loanForm, setLoanForm] = useState<Partial<Loan> & { loanJar: JarType | 'AUTO' }>({
-    type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: JarType.NEC
+    type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO'
   });
 
   const [transferFrom, setTransferFrom] = useState<JarType>(JarType.NEC);
@@ -527,9 +527,7 @@ const App: React.FC = () => {
       return nb;
     });
 
-    // Đồng thời xóa các giao dịch liên quan để không bị rác lịch sử
     setTransactions(prev => prev.filter(t => t.loanId !== id));
-
     setLoans(prev => prev.filter(l => l.id !== id));
     showToast(settings.language === 'vi' ? "Đã xóa & hoàn số dư." : "Deleted & balance reverted.", "info");
     setLoanDeleteConfirmId(null);
@@ -613,12 +611,9 @@ const App: React.FC = () => {
     const finalLoanJar = loanForm.loanJar === 'AUTO' ? undefined : (loanForm.loanJar as JarType);
 
     if (editingLoanId) {
-      // Logic sửa khoản vay: 
       const oldLoan = loans.find(l => l.id === editingLoanId);
       if (oldLoan) {
-        // Tìm giao dịch gốc (Principal) để đồng bộ
         const oldTx = transactions.find(t => t.loanId === editingLoanId && !t.description.includes('Thanh toán') && !t.description.includes('Thu hồi'));
-        
         const newTx: Transaction = {
           id: oldTx?.id || Date.now().toString(),
           type: loanForm.type === LoanType.BORROW ? 'income' : 'expense',
@@ -628,20 +623,12 @@ const App: React.FC = () => {
           jarType: finalLoanJar,
           loanId: editingLoanId
         };
-
-        // Cập nhật số dư một cách an toàn thông qua hàm updateBalances
         updateBalances(oldTx || null, newTx);
-
-        // Cập nhật Transactions state
         if (oldTx) {
           setTransactions(prev => prev.map(t => t.id === oldTx.id ? newTx : t));
         } else {
           setTransactions(prev => [newTx, ...prev]);
         }
-
-        // Nếu paidAmount bị thay đổi thủ công, ta cũng phải xử lý phần này (nhưng chỉ mang tính cập nhật metadata)
-        // Lưu ý: User chỉ nên đổi Principal và Jar. Phần PaidAmount thường do lịch sử giao dịch Pay Loan quyết định.
-
         setLoans(prev => prev.map(l => l.id === editingLoanId ? {
           ...(loanForm as Loan),
           id: editingLoanId,
@@ -649,12 +636,10 @@ const App: React.FC = () => {
           paidAmount: paidAmountVnd,
           loanJar: finalLoanJar
         } : l));
-        
         showToast("Updated!");
       }
       setEditingLoanId(null);
     } else {
-      // Logic ghi vay nợ mới
       const loanId = Date.now().toString();
       const newLoan: Loan = { 
         ...(loanForm as Loan), 
@@ -663,7 +648,6 @@ const App: React.FC = () => {
         paidAmount: paidAmountVnd,
         loanJar: finalLoanJar
       };
-      
       const tx: Transaction = { 
         id: Date.now().toString(), 
         type: newLoan.type === LoanType.BORROW ? 'income' : 'expense', 
@@ -673,13 +657,11 @@ const App: React.FC = () => {
         jarType: finalLoanJar,
         loanId: loanId 
       };
-
       setTransactions(p => [tx, ...p]);
       updateBalances(null, tx);
       setLoans(p => [newLoan, ...p]);
       showToast("Success!");
     }
-
     setIsLoanModalOpen(false);
     setLoanPrincipalStr('');
     setLoanPaidAmountStr('');
@@ -702,8 +684,8 @@ const App: React.FC = () => {
       amount: actualPayVnd, 
       description: `${isRecovery ? 'Thu hồi' : 'Thanh toán'} nợ: ${loan.lenderName}`, 
       timestamp: Date.now(), 
-      jarType: payLoanJar,
-      loanId: loan.id // Liên kết với loanId
+      jarType: payLoanJar === 'AUTO' ? undefined : payLoanJar,
+      loanId: loan.id
     };
     
     setTransactions(p => [tx, ...p]);
@@ -759,14 +741,14 @@ const App: React.FC = () => {
   const handleOpenPayLoanModal = (loan: Loan) => {
     setActiveLoanForPay(loan);
     setPayLoanAmount('');
-    setPayLoanJar(loan.type === LoanType.BORROW ? JarType.NEC : JarType.FFA);
+    setPayLoanJar('AUTO');
     setIsPayLoanModalOpen(true);
   };
 
   const handleOpenNewLoanModal = () => {
     setEditingLoanId(null);
     setLoanForm({
-      type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: JarType.NEC
+      type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO'
     });
     setLoanPrincipalStr('');
     setLoanPaidAmountStr('');
@@ -941,17 +923,17 @@ const App: React.FC = () => {
         {/* STATS */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: t.stats_jars, val: totalInJars, icon: '💰', type: 'TOTAL' }, 
-            { label: t.stats_debt, val: totalBorrowed, icon: '📉', type: 'DEBT' }, 
-            { label: t.stats_lent, val: totalLent, icon: '🤝', type: 'LENT' }, 
-            { label: t.stats_net, val: netAssets, icon: '💎', dark: true, type: 'NET' }
+            { label: t.stats_jars, val: totalInJars, icon: '💰', type: 'TOTAL', colorClass: 'text-slate-900' }, 
+            { label: t.stats_debt, val: totalBorrowed, icon: '📉', type: 'DEBT', colorClass: 'text-blue-600' }, 
+            { label: t.stats_lent, val: totalLent, icon: '🤝', type: 'LENT', colorClass: 'text-red-600' }, 
+            { label: t.stats_net, val: netAssets, icon: '💎', dark: true, type: 'NET', colorClass: 'text-white' }
           ].map((s, i) => (
             <div key={i} className={`${s.dark ? 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-200' : 'bg-white border-slate-200 shadow-slate-200'} p-4 rounded-2xl border-2 shadow-lg transition-all hover:-translate-y-1 relative group`}>
               <div className="flex justify-between items-start mb-1">
                 <p className={`${s.dark ? 'text-indigo-100' : 'text-slate-400'} text-[8px] font-black uppercase tracking-wider`}>{s.label}</p>
                 <span className="text-sm opacity-50">{s.icon}</span>
               </div>
-              <h3 className="text-base font-black truncate">{formatCurrency(s.val)}</h3>
+              <h3 className={`text-base font-black truncate ${s.colorClass}`}>{formatCurrency(s.val)}</h3>
               <button 
                 onClick={(e) => { e.stopPropagation(); handleEditBalance(s.type as any); }}
                 className={`absolute bottom-2 right-2 w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-all cursor-pointer ${s.dark ? 'bg-indigo-50 text-indigo-100' : 'bg-slate-50 text-slate-300 hover:text-indigo-500'}`}
@@ -1075,26 +1057,35 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="space-y-3">
-            {filteredTransactions.length === 0 ? <div className="py-20 text-center text-slate-300 italic text-[11px] font-bold">{t.history_empty}</div> : displayedHistory.map(item => (
-              <div key={item.id} className="group flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white transition-all shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white shadow-inner relative overflow-hidden">
-                    {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" alt="tx" /> : (item.type === 'income' ? '💰' : JAR_CONFIG[item.jarType as JarType]?.icon || '🏦')}
+            {filteredTransactions.length === 0 ? <div className="py-20 text-center text-slate-300 italic text-[11px] font-bold">{t.history_empty}</div> : displayedHistory.map(item => {
+              // Kiểm tra xem giao dịch này có liên quan đến một khoản nợ đã hoàn thành không
+              const linkedLoan = item.loanId ? loans.find(l => l.id === item.loanId) : null;
+              const isLinkedToPaidOffLoan = linkedLoan ? (Math.max(0, linkedLoan.principal - linkedLoan.paidAmount) < 0.01) : false;
+
+              return (
+                <div key={item.id} className="group flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white transition-all shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white shadow-inner relative overflow-hidden">
+                      {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" alt="tx" /> : (item.type === 'income' ? '💰' : JAR_CONFIG[item.jarType as JarType]?.icon || '🏦')}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-slate-800 leading-tight">{item.description}</p>
+                      <p className="text-[8px] text-slate-400 font-black uppercase">{new Date(item.timestamp).toLocaleDateString()} • {item.jarType ? t.jars[item.jarType].name : 'Auto'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[11px] font-black text-slate-800 leading-tight">{item.description}</p>
-                    <p className="text-[8px] text-slate-400 font-black uppercase">{new Date(item.timestamp).toLocaleDateString()} • {item.jarType ? t.jars[item.jarType].name : 'Auto'}</p>
+                  <div className="flex items-center gap-2">
+                    <p className={`text-[11px] font-black ${item.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>{item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}</p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Ẩn nút sửa nếu khoản nợ liên quan đã hoàn thành */}
+                      {!isLinkedToPaidOffLoan && (
+                        <button onClick={() => handleEditClick(item)} className="w-8 h-8 flex items-center justify-center bg-indigo-50 text-indigo-500 hover:bg-indigo-100 rounded-lg border border-indigo-100 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
+                      )}
+                      <button onClick={() => deleteTransaction(item.id)} className={`w-8 h-8 flex items-center justify-center rounded-lg border shadow-sm transition-all ${deleteConfirmId === item.id ? 'bg-red-600 text-white border-red-700 animate-pulse' : 'bg-red-50 text-red-500 border-red-100 opacity-0 group-hover:opacity-100'}`}>{deleteConfirmId === item.id ? '?' : '🗑️'}</button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <p className={`text-[11px] font-black ${item.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>{item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}</p>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => handleEditClick(item)} className="w-8 h-8 flex items-center justify-center bg-indigo-50 text-indigo-500 hover:bg-indigo-100 rounded-lg border border-indigo-100 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
-                    <button onClick={() => deleteTransaction(item.id)} className={`w-8 h-8 flex items-center justify-center rounded-lg border shadow-sm transition-all ${deleteConfirmId === item.id ? 'bg-red-600 text-white border-red-700 animate-pulse' : 'bg-red-50 text-red-500 border-red-100 opacity-0 group-hover:opacity-100'}`}>{deleteConfirmId === item.id ? '?' : '🗑️'}</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {filteredTransactions.length > visibleHistoryCount && <button onClick={() => setVisibleHistoryCount(prev => prev + 5)} className="mt-6 w-full py-3 bg-slate-50 text-slate-500 text-[10px] font-black uppercase rounded-xl border-2 border-dashed border-slate-200 hover:bg-slate-100 transition-all">{t.history_more}</button>}
         </section>
@@ -1117,51 +1108,91 @@ const App: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {loans.map(loan => (
-                <div key={loan.id} className={`group p-5 rounded-[1.5rem] border-2 transition-all shadow-sm hover:shadow-md relative overflow-hidden bg-white ${loan.type === LoanType.BORROW ? 'border-red-50 hover:border-red-100' : 'border-emerald-50 hover:border-emerald-100'}`}>
-                  {/* Decorative side accent */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${loan.type === LoanType.BORROW ? 'bg-red-400' : 'bg-emerald-400'}`} />
-                  
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner ${loan.type === LoanType.BORROW ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'}`}>
-                        {loan.type === LoanType.BORROW ? '💸' : '🤝'}
+              {loans.map(loan => {
+                const remaining = Math.max(0, loan.principal - loan.paidAmount);
+                const isPaidOff = remaining < 0.01;
+                
+                // Tìm ngày hoàn thành (giao dịch gần nhất của khoản vay này)
+                const completionDate = isPaidOff 
+                  ? transactions
+                      .filter(t => t.loanId === loan.id)
+                      .sort((a, b) => b.timestamp - a.timestamp)[0]?.timestamp 
+                  : null;
+
+                return (
+                  <div key={loan.id} className={`group p-5 rounded-[1.5rem] border-2 transition-all shadow-sm hover:shadow-md relative overflow-hidden bg-white ${loan.type === LoanType.BORROW ? 'border-red-50 hover:border-red-100' : 'border-emerald-50 hover:border-emerald-100'}`}>
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${loan.type === LoanType.BORROW ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                    
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner ${loan.type === LoanType.BORROW ? (isPaidOff ? 'bg-slate-50 text-slate-400' : 'bg-red-50 text-red-500') : (isPaidOff ? 'bg-slate-50 text-slate-400' : 'bg-emerald-50 text-emerald-500')}`}>
+                          {isPaidOff ? '✅' : (loan.type === LoanType.BORROW ? '💸' : '🤝')}
+                        </div>
+                        <div>
+                          <h4 className={`text-[12px] font-black leading-tight ${isPaidOff ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                            {loan.lenderName}
+                          </h4>
+                          {!isPaidOff && (
+                            <span className={`text-[7px] font-black px-2 py-0.5 rounded-full uppercase mt-1 inline-block ${loan.type === LoanType.BORROW ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                              {loan.type === LoanType.BORROW ? t.loan_i_owe : t.loan_owes_me}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-[12px] font-black text-slate-800 leading-tight">{loan.lenderName}</h4>
-                        <span className={`text-[7px] font-black px-2 py-0.5 rounded-full uppercase mt-1 inline-block ${loan.type === LoanType.BORROW ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                          {loan.type === LoanType.BORROW ? t.loan_i_owe : t.loan_owes_me}
+                      
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-1 mb-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                          {!isPaidOff && (
+                            <>
+                              <button onClick={() => handleEditLoanClick(loan)} className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg border border-slate-100 shadow-sm transition-all">✏️</button>
+                              <button onClick={() => handleOpenPayLoanModal(loan)} className={`h-7 px-2.5 flex items-center justify-center text-[8px] font-black uppercase rounded-lg border shadow-sm transition-all ${loan.type === LoanType.BORROW ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-white' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-white'}`}>💰 {loan.type === LoanType.BORROW ? t.loan_pay : t.loan_recover}</button>
+                            </>
+                          )}
+                          
+                          {isPaidOff && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); deleteLoan(loan.id); }} 
+                              className={`w-7 h-7 flex items-center justify-center rounded-lg border shadow-sm transition-all ${loanDeleteConfirmId === loan.id ? 'bg-red-600 text-white border-red-700 animate-pulse' : 'bg-red-50 text-red-400 border-red-100 hover:bg-white'}`}
+                            >
+                              {loanDeleteConfirmId === loan.id ? '?' : '🗑️'}
+                            </button>
+                          )}
+                        </div>
+                        {isPaidOff ? (
+                          <div className="text-right">
+                             <p className="text-[10px] font-black text-emerald-600">{formatCurrency(loan.paidAmount)}</p>
+                             <p className="text-[7px] text-slate-400 font-bold uppercase tracking-tighter">Đã trả hết</p>
+                          </div>
+                        ) : (
+                          <div className="text-right">
+                             <p className="text-[10px] font-black text-slate-800">{formatCurrency(remaining)}</p>
+                             <p className="text-[7px] text-slate-400 font-bold uppercase tracking-tighter">{t.loan_rem}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {!isPaidOff ? (
+                      <div className="space-y-1.5">
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                          <div className={`h-full transition-all duration-1000 rounded-full ${loan.type === LoanType.BORROW ? 'bg-indigo-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min((loan.paidAmount/loan.principal)*100, 100)}%` }} />
+                        </div>
+                        <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase tracking-tighter">
+                          <span>{t.loan_paid}: {formatCurrency(loan.paidAmount)}</span>
+                          <span>Ngày vay: {new Date(loan.startDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pt-2 border-t border-slate-50 flex justify-between items-center text-[8px] font-black text-slate-400 uppercase tracking-tighter">
+                        <span>Ngày hoàn thành:</span>
+                        <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                          {completionDate ? new Date(completionDate).toLocaleDateString() : 'N/A'}
                         </span>
                       </div>
-                    </div>
-                    
-                    <div className="flex flex-col items-end">
-                      <div className="flex items-center gap-1 mb-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                        <button onClick={() => handleEditLoanClick(loan)} className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg border border-slate-100 shadow-sm transition-all">✏️</button>
-                        <button onClick={() => handleOpenPayLoanModal(loan)} className={`h-7 px-2.5 flex items-center justify-center text-[8px] font-black uppercase rounded-lg border shadow-sm transition-all ${loan.type === LoanType.BORROW ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-white' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-white'}`}>💰 {loan.type === LoanType.BORROW ? t.loan_pay : t.loan_recover}</button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); deleteLoan(loan.id); }} 
-                          className={`w-7 h-7 flex items-center justify-center rounded-lg border shadow-sm transition-all ${loanDeleteConfirmId === loan.id ? 'bg-red-600 text-white border-red-700 animate-pulse' : 'bg-red-50 text-red-400 border-red-100 hover:bg-white'}`}
-                        >
-                          {loanDeleteConfirmId === loan.id ? '?' : '🗑️'}
-                        </button>
-                      </div>
-                      <p className="text-[10px] font-black text-slate-800">{formatCurrency(Math.max(0, loan.principal - loan.paidAmount))}</p>
-                      <p className="text-[7px] text-slate-400 font-bold uppercase tracking-tighter">{t.loan_rem}</p>
-                    </div>
+                    )}
                   </div>
-
-                  <div className="space-y-1.5">
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                      <div className={`h-full transition-all duration-1000 rounded-full ${loan.type === LoanType.BORROW ? 'bg-indigo-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min((loan.paidAmount/loan.principal)*100, 100)}%` }} />
-                    </div>
-                    <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase tracking-tighter">
-                      <span>{t.loan_paid}: {formatCurrency(loan.paidAmount)}</span>
-                      <span>Hạn: {new Date(loan.startDate).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -1272,9 +1303,43 @@ const App: React.FC = () => {
             <h2 className="text-base font-black text-slate-800 flex items-center gap-3 uppercase mb-4 md:mb-8 relative z-10"><span className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center shadow-lg text-sm">🏦</span>{editingLoanId ? 'Sửa thông tin vay nợ' : t.loan_new}</h2>
             <form onSubmit={handleSaveLoan} className="space-y-4 md:space-y-6 relative z-10">
                <div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Hình thức giao dịch</label><div className="flex bg-slate-100 p-1 rounded-xl gap-1 border border-slate-200 shadow-inner"><button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.BORROW})} className={`flex-1 py-2 text-[8px] font-black uppercase rounded-lg transition-all flex items-center justify-center gap-1 ${loanForm.type === LoanType.BORROW ? 'bg-white shadow text-red-600' : 'text-slate-400'}`}><span>💸</span> {t.loan_i_owe}</button><button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.LEND})} className={`flex-1 py-2 text-[8px] font-black uppercase rounded-lg transition-all flex items-center justify-center gap-1 ${loanForm.type === LoanType.LEND ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}><span>🤝</span> {t.loan_owes_me}</button></div></div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label><input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-[11px] font-bold outline-none shadow-sm focus:border-indigo-400 transition-all" placeholder="Tên cá nhân / Tổ chức..." /></div><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label><select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as JarType | 'AUTO'})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-[10px] font-bold outline-none shadow-sm focus:border-indigo-400 transition-all cursor-pointer">{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div></div>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4"><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_date_label}</label><input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-[10px] font-bold outline-none shadow-sm focus:border-indigo-400 transition-all" /></div><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_principal} ({settings.currency})</label><div className="relative"><input required type="text" value={loanPrincipalStr} onChange={handleLoanPrincipalChange} placeholder="0" className="w-full p-2.5 pl-8 bg-slate-50 border-2 border-slate-200 rounded-xl text-[12px] font-black outline-none shadow-sm focus:border-indigo-400 transition-all text-indigo-700" /><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]">💰</span></div>{settings.currency === 'JPY' && (<p className="text-[7px] font-black text-indigo-500 mt-0.5 uppercase italic tracking-tight leading-none">{getJpyBreakdown(loanPrincipalStr)}</p>)}</div><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_paid} ({settings.currency})</label><div className="relative"><input type="text" value={loanPaidAmountStr} onChange={handleLoanPaidChange} placeholder="0" className="w-full p-2.5 pl-8 bg-slate-50 border-2 border-slate-200 rounded-xl text-[12px] font-black outline-none shadow-sm focus:border-indigo-400 transition-all text-emerald-600" /><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]">✅</span></div>{settings.currency === 'JPY' && (<p className="text-[7px] font-black text-emerald-500 mt-0.5 uppercase italic tracking-tight leading-none">{getJpyBreakdown(loanPaidAmountStr)}</p>)}</div></div>
-               <div className="flex items-center justify-between gap-3 md:gap-4 pt-2"><button type="button" onClick={() => setIsLoanModalOpen(false)} className="px-4 py-2 text-slate-400 font-black uppercase text-[8px] hover:text-red-500 transition-colors tracking-widest">HỦY</button><button type="submit" className="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-black uppercase text-[9px] rounded-xl shadow-indigo-100 shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-95 transition-all tracking-widest">LƯU</button></div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label><input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-[11px] font-bold outline-none shadow-sm focus:border-indigo-400 transition-all" placeholder="Tên cá nhân / Tổ chức..." /></div><div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label><select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as JarType | 'AUTO'})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-[10px] font-bold outline-none shadow-sm focus:border-indigo-400 transition-all cursor-pointer"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div></div>
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                 <div className="space-y-1">
+                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_date_label}</label>
+                   <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full p-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-[10px] font-bold outline-none shadow-sm focus:border-indigo-400 transition-all" />
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_principal} ({settings.currency})</label>
+                   <div className="relative">
+                     <input 
+                       required 
+                       type="text" 
+                       value={formatNumberForDisplay(loanPrincipalStr)} 
+                       onChange={handleLoanPrincipalChange} 
+                       placeholder="0" 
+                       className="w-full p-2.5 pl-8 bg-slate-50 border-2 border-slate-200 rounded-xl text-[12px] font-black outline-none shadow-sm focus:border-indigo-400 transition-all text-indigo-700" 
+                     />
+                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]">💰</span>
+                   </div>
+                   {settings.currency === 'JPY' && (<p className="text-[7px] font-black text-indigo-500 mt-0.5 uppercase italic tracking-tight leading-none">{getJpyBreakdown(loanPrincipalStr)}</p>)}
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_paid} ({settings.currency})</label>
+                   <div className="relative">
+                     <input 
+                       type="text" 
+                       value={formatNumberForDisplay(loanPaidAmountStr)} 
+                       onChange={handleLoanPaidChange} 
+                       placeholder="0" 
+                       className="w-full p-2.5 pl-8 bg-slate-50 border-2 border-slate-200 rounded-xl text-[12px] font-black outline-none shadow-sm focus:border-indigo-400 transition-all text-emerald-600" 
+                     />
+                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]">✅</span>
+                   </div>
+                   {settings.currency === 'JPY' && (<p className="text-[7px] font-black text-emerald-500 mt-0.5 uppercase italic tracking-tight leading-none">{getJpyBreakdown(loanPaidAmountStr)}</p>)}
+                 </div>
+               </div>
+               <div className="flex items-center justify-between gap-3 md:gap-4 pt-2"><button type="button" onClick={() => setIsLoanModalOpen(false)} className="px-4 py-2 text-slate-400 font-black uppercase text-[8px] hover:text-red-500 transition-colors tracking-widest">HỦY</button><button type="submit" className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-black uppercase text-[9px] rounded-lg shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-95 transition-all tracking-widest border border-indigo-400/20">LƯU</button></div>
             </form>
             <button onClick={() => setIsLoanModalOpen(false)} className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-slate-50 text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-all text-xs">✕</button>
           </div>
@@ -1283,7 +1348,7 @@ const App: React.FC = () => {
 
       {isPayLoanModalOpen && activeLoanForPay && (
         <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] w-full max-w-lg p-8 shadow-2xl relative"><h2 className="text-sm font-black text-slate-800 flex items-center gap-2 uppercase tracking-tighter mb-6">💳 {activeLoanForPay.lenderName.toUpperCase()}</h2><form onSubmit={handleConfirmPayLoan} className="space-y-6"><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Số tiền giao dịch ({settings.currency})</label><input required type="text" value={payLoanAmount} onChange={handlePayLoanAmountChange} placeholder="Nhập số tiền..." className="w-full p-3.5 bg-slate-50 border rounded-xl text-[13px] font-bold outline-none shadow-inner focus:border-indigo-300" />{settings.currency === 'JPY' && (<p className="text-[9px] font-black text-indigo-500 mt-1 uppercase italic">{getJpyBreakdown(payLoanAmount)}</p>)}</div><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Thực hiện qua hũ</label><select value={payLoanJar} onChange={e => setPayLoanJar(e.target.value as JarType)} className="w-full p-3.5 bg-slate-50 border rounded-xl text-[11px] font-bold outline-none h-12 shadow-inner focus:border-indigo-300">{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div><div className="flex items-center justify-between gap-4 pt-4"><button type="button" onClick={() => setIsPayLoanModalOpen(false)} className="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px] hover:text-red-500 transition-colors">Hủy</button><button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black uppercase text-[11px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95">Xác nhận</button></div></form></div>
+          <div className="bg-white rounded-[2rem] w-full max-w-lg p-8 shadow-2xl relative"><h2 className="text-sm font-black text-slate-800 flex items-center gap-2 uppercase tracking-tighter mb-6">💳 {activeLoanForPay.lenderName.toUpperCase()}</h2><form onSubmit={handleConfirmPayLoan} className="space-y-6"><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Số tiền giao dịch ({settings.currency})</label><input required type="text" value={formatNumberForDisplay(payLoanAmount)} onChange={handlePayLoanAmountChange} placeholder="Nhập số tiền..." className="w-full p-3.5 bg-slate-50 border rounded-xl text-[13px] font-bold outline-none shadow-inner focus:border-indigo-300" />{settings.currency === 'JPY' && (<p className="text-[9px] font-black text-indigo-500 mt-1 uppercase italic">{getJpyBreakdown(payLoanAmount)}</p>)}</div><div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Thực hiện qua hũ</label><select value={payLoanJar} onChange={e => setPayLoanJar(e.target.value as JarType | 'AUTO')} className="w-full p-3.5 bg-slate-50 border rounded-xl text-[11px] font-bold outline-none h-12 shadow-inner focus:border-indigo-300"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => (<option key={jt} value={jt}>{t.jars[jt].name}</option>))}</select></div><div className="flex items-center justify-between gap-4 pt-4"><button type="button" onClick={() => setIsPayLoanModalOpen(false)} className="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px] hover:text-red-500 transition-colors">Hủy</button><button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black uppercase text-[11px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95">Xác nhận</button></div></form></div>
         </div>
       )}
 
