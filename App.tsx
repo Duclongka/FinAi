@@ -236,7 +236,7 @@ const TRANSLATIONS = {
 
 const App: React.FC = () => {
   // --- Constants ---
-  const APP_VERSION = "4.5.6";
+  const APP_VERSION = "4.5.5";
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const defaultRatios: Record<JarType, number> = {
@@ -349,13 +349,14 @@ const App: React.FC = () => {
     else localStorage.removeItem('jars_user');
   }, [currentUser]);
 
-  // Logic Thông báo hằng ngày
+  // Logic Thông báo đẩy (Giả lập trong app)
   useEffect(() => {
     if (!settings.notificationsEnabled) return;
     const interval = setInterval(() => {
       const now = new Date();
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      if (currentTime === settings.notificationTime) {
+      if (currentTime === settings.notificationTime && now.getSeconds() < 10) {
+        // Chỉ hiện thông báo một lần trong phút đó
         const lastNotif = localStorage.getItem('last_notif_date');
         const today = now.toDateString();
         if (lastNotif !== today) {
@@ -363,7 +364,7 @@ const App: React.FC = () => {
           localStorage.setItem('last_notif_date', today);
         }
       }
-    }, 30000); // Kiểm tra mỗi 30 giây
+    }, 10000); // Kiểm tra mỗi 10 giây
     return () => clearInterval(interval);
   }, [settings.notificationTime, settings.notificationsEnabled]);
 
@@ -444,10 +445,10 @@ const App: React.FC = () => {
 
       if (nextTrans.type === 'income') {
         if (nextTrans.jarType) nb[nextTrans.jarType] += nextTrans.amount;
-        else Object.values(JarType).forEach(type => { nb[nextTrans.jarType] += nextTrans.amount * ratios[nextTrans.jarType]; });
+        else Object.values(JarType).forEach(type => { nb[type as JarType] += nextTrans.amount * ratios[type as JarType]; });
       } else {
         if (nextTrans.jarType) nb[nextTrans.jarType] -= nextTrans.amount;
-        else Object.values(JarType).forEach(type => { nb[nextTrans.jarType] -= nextTrans.amount * ratios[nextTrans.jarType]; });
+        else Object.values(JarType).forEach(type => { nb[type as JarType] -= nextTrans.amount * ratios[type as JarType]; });
       }
 
       Object.keys(nb).forEach(k => { nb[k as JarType] = Math.round(nb[k as JarType] * 1000) / 1000; });
@@ -927,8 +928,8 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* --- AI INPUT BAR --- */}
-      <div className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-xl border-b border-indigo-100 p-4 shadow-[0_4px_25px_rgba(79,70,229,0.08)]">
+      {/* --- AI INPUT BAR (TĂNG ĐỘ RỘNG & ĐỔ BÓNG) --- */}
+      <div className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-xl border-b border-indigo-100 p-4 shadow-[0_4px_30px_rgba(79,70,229,0.08)]">
         <div className="max-w-4xl mx-auto flex items-center gap-2">
           <form onSubmit={handleProcessInput} className="relative flex-1">
             <input ref={aiInputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t.ai_placeholder} className="w-full bg-slate-100 border-2 border-slate-200 rounded-full px-5 py-2.5 text-[11px] font-bold outline-none focus:border-indigo-400 shadow-inner" />
@@ -985,19 +986,19 @@ const App: React.FC = () => {
           ))}
         </section>
 
-        {/* CHART SECTION (THU GỌN NGẮN HƠN) */}
-        <section className="bg-white p-5 rounded-[2rem] border-2 border-slate-200 shadow-xl h-[320px] flex flex-col w-full overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
+        {/* CHART SECTION */}
+        <section className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 shadow-xl h-[460px] flex flex-col w-full">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📊</span> {t.chart_title}</h3>
-            <div className="flex bg-slate-100 p-1 rounded-xl">{['week', 'month', 'year'].map(period => <button key={period} onClick={() => setChartTab(period as any)} className={`px-3 py-1 text-[8px] font-black uppercase rounded-lg transition-all ${chartTab === period ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>{period === 'week' ? t.chart_week : period === 'month' ? t.chart_month : t.chart_year}</button>)}</div>
+            <div className="flex bg-slate-100 p-1 rounded-xl">{['week', 'month', 'year'].map(period => <button key={period} onClick={() => setChartTab(period as any)} className={`px-3 py-1 text-[9px] font-black uppercase rounded-lg transition-all ${chartTab === period ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>{period === 'week' ? t.chart_week : period === 'month' ? t.chart_month : t.chart_year}</button>)}</div>
           </div>
-          <div className="flex-1"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{ left: -25, bottom: 0, right: 10 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 700 }} /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 700 }} tickFormatter={formatYAxis} /><Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '10px', fontSize: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} /><Bar dataKey="Thu" fill="#10b981" radius={[3, 3, 0, 0]} /><Bar dataKey="Chi" fill="#ef4444" radius={[3, 3, 0, 0]} /></BarChart></ResponsiveContainer></div>
+          <div className="flex-1"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{ left: -25, bottom: 0, right: 10 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700 }} /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700 }} tickFormatter={formatYAxis} /><Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', fontSize: '9px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} /><Bar dataKey="Thu" fill="#10b981" radius={[4, 4, 0, 0]} /><Bar dataKey="Chi" fill="#ef4444" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
         </section>
 
-        {/* MANUAL FORM (SÁT GẦN THÊM) */}
-        <section ref={manualFormRef} className={`bg-white p-5 rounded-[2rem] border-2 shadow-xl transition-all ${editingTransactionId ? 'border-indigo-400 ring-4 ring-indigo-50' : 'border-slate-200'}`}>
+        {/* MANUAL FORM - CHỈNH GẦN NHAU HƠN */}
+        <section ref={manualFormRef} className={`bg-white p-6 rounded-[2rem] border-2 shadow-xl transition-all ${editingTransactionId ? 'border-indigo-400 ring-4 ring-indigo-50' : 'border-slate-200'}`}>
           <div className="flex justify-between items-center mb-4"><h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📝</span> {editingTransactionId ? t.manual_edit : t.manual_title}</h3>{editingTransactionId && <button onClick={() => setEditingTransactionId(null)} className="text-[9px] font-black text-red-500 uppercase">{t.manual_cancel}</button>}</div>
-          <form onSubmit={handleManualSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+          <form onSubmit={handleManualSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="space-y-1">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.manual_type}</label>
               <div className="flex bg-slate-100 p-1 rounded-xl h-10">
@@ -1022,10 +1023,12 @@ const App: React.FC = () => {
                   <select value={manualJar} onChange={e => setManualJar(e.target.value as JarType)} className="flex-1 bg-slate-50 border-2 border-slate-200 rounded-xl px-2 text-[11px] font-bold outline-none shadow-inner focus:border-indigo-300 transition-colors">
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t.jars[type as JarType].name}</option>)}
                   </select>
+                  {/* Nút Chọn Ảnh */}
                   <label className="w-10 bg-slate-100 border-2 border-slate-200 rounded-xl flex items-center justify-center cursor-pointer hover:bg-slate-200 transition-colors shadow-sm" title="Chọn từ máy">
                     <span className="text-sm">🖼️</span>
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                   </label>
+                  {/* Nút Chụp Ảnh Mới */}
                   <label className="w-10 bg-indigo-50 border-2 border-indigo-100 rounded-xl flex items-center justify-center cursor-pointer hover:bg-indigo-100 transition-colors shadow-sm" title="Chụp ảnh mới">
                     <span className="text-sm">📷</span>
                     <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageChange} className="hidden" />
@@ -1219,18 +1222,15 @@ const App: React.FC = () => {
         </section>
       </main>
 
-      {/* --- GLOSSY CENTER FAB --- */}
+      {/* --- GLOSSY CENTER FAB (ĐIỀU CHỈNH VỊ TRÍ) --- */}
       <button onClick={scrollToAi} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[80] w-16 h-16 bg-gradient-to-tr from-indigo-700 to-indigo-400 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all border-4 border-white"><span className="text-4xl">＋</span></button>
 
-      {/* --- UTILITY BAR (FOOTER) --- */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100/50 p-5 shadow-[0_-10px_35px_rgba(79,70,229,0.06)]">
+      {/* --- UTILITY BAR (FOOTER - TĂNG ĐỘ RỘNG & ĐỔ BÓNG MỜ) --- */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100/50 p-5 shadow-[0_-10px_40px_rgba(79,70,229,0.08)]">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4">
           <div className="flex flex-col leading-none"><span className="text-xs font-black text-slate-900 uppercase">FINAI</span><span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest">by Loong Lee</span></div>
           <div className="flex items-center gap-6">
-            <button onClick={() => setIsAuthModalOpen(true)} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-full border border-slate-200 shadow-inner transition-all hover:bg-slate-100">
-              <img src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'} className="w-5 h-5 rounded-full" />
-              <span className="text-[8px] font-black uppercase max-w-[80px] truncate text-indigo-600">{currentUser?.displayName || t.user_label}</span>
-            </button>
+            <button onClick={() => setIsAuthModalOpen(true)} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-full border border-slate-200 shadow-inner transition-all hover:bg-slate-100"><img src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'} className="w-5 h-5 rounded-full" /><span className="text-[8px] font-black uppercase max-w-[80px] truncate text-indigo-600">{currentUser?.displayName || t.user_label}</span></button>
             <button onClick={() => setIsSettingsOpen(true)} className="w-11 h-11 flex flex-col items-center justify-center gap-1 bg-slate-50 text-slate-500 rounded-2xl border border-slate-200 shadow-sm transition-all hover:bg-indigo-50"><div className="w-5 h-0.5 bg-slate-400 rounded-full"></div><div className="w-5 h-0.5 bg-slate-400 rounded-full"></div><div className="w-5 h-0.5 bg-slate-400 rounded-full"></div></button>
           </div>
         </div>
@@ -1239,7 +1239,7 @@ const App: React.FC = () => {
       {/* --- SETTINGS SIDE DRAWER --- */}
       <div className={`fixed inset-0 z-[200] transition-opacity duration-300 ${isSettingsOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)}></div>
-        <div className={`absolute top-0 right-0 h-full w-full max-sm bg-white shadow-2xl transition-transform duration-300 transform flex flex-col ${isSettingsOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`absolute top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl transition-transform duration-300 transform flex flex-col ${isSettingsOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="p-6 border-b-2 border-slate-100 flex items-center justify-between bg-slate-50"><h2 className="text-sm font-black text-slate-800 uppercase">{t.settings_title}</h2><button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 text-xl hover:text-slate-600 transition-colors">✕</button></div>
           <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             {settingsTab === 'app' && (
@@ -1248,8 +1248,7 @@ const App: React.FC = () => {
                 <div className="space-y-6">
                   <div className="space-y-3"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.currency}</label><div className="flex bg-slate-50 p-1.5 rounded-2xl border gap-1">{['VND', 'JPY', 'USD'].map(curr => (<button key={curr} onClick={() => setSettings({...settings, currency: curr as any})} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${settings.currency === curr ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{curr}</button>))}</div></div>
                   <div className="space-y-3"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.language}</label><div className="flex flex-col bg-slate-50 p-2 rounded-2xl border gap-1"><button onClick={() => setSettings({...settings, language: 'vi'})} className={`w-full py-3 text-[10px] font-black rounded-xl transition-all ${settings.language === 'vi' ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{t.lang_vi}</button><button onClick={() => setSettings({...settings, language: 'en'})} className={`w-full py-3 text-[10px] font-black rounded-xl transition-all ${settings.language === 'en' ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{t.lang_en}</button><button onClick={() => setSettings({...settings, language: 'ja'})} className={`w-full py-3 text-[10px] font-black rounded-xl transition-all ${settings.language === 'ja' ? 'bg-white shadow text-indigo-600 border border-slate-100' : 'text-slate-400'}`}>{t.lang_ja}</button></div></div>
-                  
-                  {/* CÀI ĐẶT THÔNG BÁO */}
+                  {/* MỤC MỚI: CÀI ĐẶT GIỜ THÔNG BÁO */}
                   <div className="space-y-3">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ nhắc nhở hằng ngày</label>
                     <div className="flex items-center gap-3">
@@ -1257,16 +1256,16 @@ const App: React.FC = () => {
                         type="time" 
                         value={settings.notificationTime} 
                         onChange={e => setSettings({...settings, notificationTime: e.target.value})} 
-                        className="flex-1 bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-[12px] font-bold outline-none focus:border-indigo-400 shadow-sm"
+                        className="flex-1 bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-[12px] font-bold outline-none focus:border-indigo-400"
                       />
                       <button 
                         onClick={() => setSettings({...settings, notificationsEnabled: !settings.notificationsEnabled})}
-                        className={`p-3 rounded-xl border-2 transition-all ${settings.notificationsEnabled ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-300 border-slate-200'}`}
+                        className={`p-3 rounded-xl border-2 transition-all ${settings.notificationsEnabled ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-300 border-slate-200'}`}
                       >
                         {settings.notificationsEnabled ? '🔔' : '🔕'}
                       </button>
                     </div>
-                    <p className="text-[8px] text-slate-400 font-bold italic uppercase leading-tight">* Hệ thống sẽ gửi thông báo: "Hôm nay bạn có giao dịch nào không?" vào lúc {settings.notificationTime} mỗi ngày.</p>
+                    <p className="text-[8px] text-slate-400 font-bold italic">* Ứng dụng sẽ nhắc bạn vào lúc {settings.notificationTime} mỗi ngày.</p>
                   </div>
                 </div>
               </div>
@@ -1327,7 +1326,7 @@ const App: React.FC = () => {
                   <div className="flex items-start gap-3"><span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 text-[10px] font-black">3</span><p className="text-[11px] font-bold text-slate-700">Vay nợ: Quản lý các khoản nợ phải trả và nợ thu hồi một cách minh bạch.</p></div>
                   <div className="flex items-start gap-3"><span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 text-[10px] font-black">4</span><p className="text-[11px] font-bold text-slate-700">Dữ liệu: Mọi thông tin lưu trên máy bạn. Hãy xuất CSV định kỳ để sao lưu!</p></div>
                 </div>
-                {/* VIDEO TÌM HIỂU QUY TẮC 6 CHIẾC LỌ */}
+                {/* MỤC MỚI THÊM: TÌM HIỂU QUY TẮC 6 CHIẾC LỌ QUA VIDEO */}
                 <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-3">
                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center">Video Tài Liệu Tham Khảo</p>
                   <p className="text-[11px] font-bold text-slate-700">Tìm hiểu chi tiết hơn về quy tắc 6 chiếc lọ để quản lý tài chính cá nhân thông minh qua video sau:</p>
@@ -1395,15 +1394,15 @@ const App: React.FC = () => {
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[2.5rem] w-full max-w-[340px] p-8 shadow-2xl relative border-4 border-indigo-50">
-            {tempUserName.trim().length > 0 && (
+            {tempUserName.length > 0 && (
               <div className="w-16 h-16 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-indigo-200 shadow-xl animate-in fade-in zoom-in duration-300">✨</div>
             )}
             <h2 className="text-lg font-black text-slate-800 mb-2 text-center uppercase tracking-tight">{t.user_label}</h2>
-            <p className="text-[10px] text-slate-400 text-center mb-6 font-bold uppercase tracking-widest">Chào mừng bạn đến với FINAI</p>
+            <p className="text-[10px] text-slate-400 text-center mb-6 font-bold uppercase tracking-widest">Hãy để FINAI đồng hành cùng bạn</p>
             <form onSubmit={(e) => { 
               e.preventDefault(); 
               setCurrentUser({ 
-                id: Date.now().toString(), 
+                id: '1', 
                 email: 'user@finai.app', 
                 displayName: tempUserName || 'User', 
                 gender: tempGender,
@@ -1411,7 +1410,6 @@ const App: React.FC = () => {
                 avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${tempUserName || 'user'}` 
               }); 
               setIsAuthModalOpen(false); 
-              showToast(settings.language === 'vi' ? "Chào mừng bạn!" : "Welcome!");
             }} className="space-y-4">
               <div>
                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Tên hiển thị</label>
@@ -1436,14 +1434,14 @@ const App: React.FC = () => {
                       key={g.id}
                       type="button"
                       onClick={() => setTempGender(g.id as any)}
-                      className={`py-2 text-[10px] font-black uppercase rounded-lg border-2 transition-all ${tempGender === g.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-indigo-200'}`}
+                      className={`py-2 text-[10px] font-black uppercase rounded-lg border-2 transition-all ${tempGender === g.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
                     >
                       {g.label}
                     </button>
                   ))}
                 </div>
               </div>
-              <button type="submit" className="w-full py-4 bg-indigo-600 text-white font-black rounded-xl shadow-indigo-300 shadow-lg uppercase text-[11px] hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all mt-2">
+              <button type="submit" className="w-full py-3.5 bg-indigo-600 text-white font-black rounded-xl shadow-indigo-300 shadow-lg uppercase text-[11px] hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all mt-2">
                 BẮT ĐẦU NGAY
               </button>
             </form>
