@@ -1,94 +1,89 @@
 
 import React, { useState } from 'react';
-import { JarInfo, JarType } from '../types';
+import { JarType, JarInfo } from '../types';
 
 interface JarVisualProps {
   jar: JarInfo;
   balance: number;
   currencySymbol: string;
   convertValue: (v: number) => number;
-  onTransferClick?: (type: JarType) => void;
-  onEditBalance?: (type: JarType) => void;
-  onClick?: () => void;
+  onTransferClick: () => void;
 }
 
-const JarVisual: React.FC<JarVisualProps> = ({ jar, balance, currencySymbol, convertValue, onTransferClick, onEditBalance, onClick }) => {
+const JarVisual: React.FC<JarVisualProps> = ({ 
+  jar, 
+  balance, 
+  currencySymbol, 
+  convertValue,
+  onTransferClick
+}) => {
   const [showInfo, setShowInfo] = useState(false);
-
-  const maxVisualValue = 10000000; // Baseline for visual fill
-  const fillPercentage = Math.min((balance / maxVisualValue) * 100, 100);
-
-  const toggleInfo = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowInfo(!showInfo);
-  };
-
-  const handleTransfer = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onTransferClick) onTransferClick(jar.type);
-  };
-
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onEditBalance) {
-      onEditBalance(jar.type);
-    }
-  };
-
-  const displayVal = convertValue(balance);
-  const formatted = displayVal.toLocaleString(undefined, { 
-    minimumFractionDigits: currencySymbol === '$' ? 2 : 0, 
-    maximumFractionDigits: currencySymbol === '$' ? 2 : 0 
-  });
+  const displayBalance = convertValue(balance);
+  // Assume 10M is full for visualization purposes
+  const fillPercentage = Math.min(Math.max((balance / 10000000) * 100, 5), 95); 
 
   return (
-    <div 
-      onClick={onClick}
-      className="bg-white rounded-[1.5rem] p-4 shadow-lg border-2 border-slate-100 flex flex-col items-center gap-2 transition-all hover:shadow-xl hover:border-indigo-100 cursor-pointer group relative overflow-hidden"
-    >
-      {/* Nút Chuyển hũ - Hiện khi hover */}
-      <button 
-        onClick={handleTransfer}
-        className="absolute top-2 left-2 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-all border border-slate-100 shadow-sm opacity-0 group-hover:opacity-100"
-      >
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-      </button>
+    <div className="bg-white rounded-[2rem] border-2 border-slate-100 p-4 shadow-lg hover:shadow-xl transition-all group relative overflow-hidden flex flex-col items-center min-h-[160px]">
+      {/* Action buttons overlay (visible on hover) */}
+      <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+        <button 
+          onClick={onTransferClick} 
+          className="w-7 h-7 bg-white/90 backdrop-blur shadow-sm rounded-full hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-100 flex items-center justify-center"
+          title="Chuyển tiền"
+        >
+          <span className="text-[10px]">⇄</span>
+        </button>
+        <button 
+          onClick={() => setShowInfo(!showInfo)} 
+          className={`w-7 h-7 flex items-center justify-center backdrop-blur shadow-sm rounded-full transition-colors border border-slate-100 ${showInfo ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white/90 text-slate-400 hover:text-indigo-600'}`}
+          title="Thông tin hũ"
+        >
+          <span className="text-[10px] font-bold">i</span>
+        </button>
+      </div>
 
-      {/* Nút Thông tin - Hiện khi hover */}
-      <button 
-        onClick={toggleInfo}
-        className="absolute top-2 right-2 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-slate-100 shadow-sm opacity-0 group-hover:opacity-100"
-      >
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-      </button>
-
-      {/* Nút Sửa số dư - Hiện khi hover */}
-      <button 
-        onClick={handleEdit}
-        className="absolute bottom-2 right-2 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-slate-50 text-slate-300 hover:text-indigo-500 transition-all hover:scale-110 opacity-0 group-hover:opacity-100"
-      >
-        <span className="text-[11px]">✏️</span>
-      </button>
-
+      {/* Info Overlay */}
       {showInfo && (
-        <div className="absolute inset-0 z-10 bg-white/95 backdrop-blur-sm p-4 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200" onClick={toggleInfo}>
-          <div className="text-2xl mb-2">{jar.icon}</div>
-          <h4 className="font-black text-[10px] uppercase tracking-wider mb-2" style={{ color: jar.color }}>{jar.name}</h4>
-          <p className="text-[9px] font-bold leading-relaxed text-slate-600">{jar.description}</p>
+        <div className="absolute inset-0 bg-indigo-600/95 backdrop-blur-sm z-30 p-5 flex flex-col justify-center animate-in fade-in zoom-in duration-200">
+          <button onClick={() => setShowInfo(false)} className="absolute top-3 right-3 text-white/70 hover:text-white text-xs">✕</button>
+          <h5 className="text-[10px] font-black text-white uppercase mb-2 border-b border-white/20 pb-1">{jar.name}</h5>
+          <p className="text-[9px] font-medium text-indigo-50 leading-relaxed italic">{jar.description}</p>
         </div>
       )}
 
-      <div className="relative w-20 h-28 bg-slate-50 border-2 border-slate-100 rounded-b-3xl rounded-t-lg overflow-hidden shadow-inner">
-        <div className="absolute bottom-0 left-0 w-full transition-all duration-1000 ease-out" style={{ height: `${fillPercentage}%`, backgroundColor: jar.color, opacity: 0.7 }} />
-        <div className="absolute inset-0 flex items-center justify-center text-3xl opacity-60 group-hover:scale-110 transition-transform">{jar.icon}</div>
+      {/* Jar Container */}
+      <div className="relative w-20 h-28 mb-3 mt-2">
+        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-12 h-2 bg-slate-200 rounded-full z-10 border border-slate-300" />
+        <div className="w-full h-full relative rounded-t-xl rounded-b-[2.5rem] border-4 border-slate-200 overflow-hidden bg-slate-50/50 backdrop-blur-sm shadow-inner">
+          <div 
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[200%] transition-all duration-1000 ease-out liquid-wave"
+            style={{ 
+              height: `${fillPercentage}%`, 
+              backgroundColor: jar.color,
+              opacity: 0.6,
+              borderRadius: '35%'
+            }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center text-3xl drop-shadow-sm select-none">
+            {jar.icon}
+          </div>
+        </div>
       </div>
-      
-      <div className="text-center mt-1">
-        <h3 className="font-black text-slate-800 text-[10px] leading-tight uppercase tracking-tighter">{jar.name}</h3>
-        <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-0.5">({(jar.ratio * 100).toFixed(0)}%)</p>
-        <p className="text-[11px] font-black mt-1 py-1 px-3 rounded-full bg-slate-50 inline-block border border-slate-100" style={{ color: jar.color }}>
-          {currencySymbol === '$' ? `${currencySymbol}${formatted}` : `${formatted}${currencySymbol}`}
-        </p>
+
+      <div className="text-center w-full flex flex-col items-center">
+        <div className="flex flex-col items-center mb-1">
+          <h4 className="text-[9px] font-black uppercase tracking-wider text-black leading-tight line-clamp-1">
+            {jar.name}
+          </h4>
+          <span className="text-[8px] font-bold text-slate-300 uppercase tracking-tighter">
+            ({(jar.ratio * 100).toFixed(0)}%)
+          </span>
+        </div>
+        <div className="bg-white/60 backdrop-blur-md rounded-xl border border-white/50 px-2.5 py-1 shadow-sm w-fit max-w-full">
+          <p className="text-[11px] font-black truncate" style={{ color: jar.color }}>
+            {displayBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}{currencySymbol}
+          </p>
+        </div>
       </div>
     </div>
   );

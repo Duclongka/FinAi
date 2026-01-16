@@ -1,158 +1,56 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { JarType, AIAnalysisResult, Transaction, JarBalance, Loan, User } from "../types";
+import { JarType, AIAnalysisResult, JarBalance, User, Transaction } from "../types";
 
-// Helper to get Vietnamese names for Jars
-const getJarName = (type: string) => {
-  const names: Record<string, string> = {
-    'NEC': 'Thiết yếu',
-    'LTS': 'Tiết kiệm dài hạn',
-    'EDU': 'Giáo dục',
-    'PLAY': 'Hưởng thụ',
-    'FFA': 'Đầu tư tự do tài chính',
-    'GIVE': 'Cho đi'
-  };
-  return names[type] || type;
-};
-
-export const analyzeTransactionText = async (
-  text: string, 
-  recentTransactions: Transaction[]
-): Promise<AIAnalysisResult | null> => {
+export const analyzeTransactionText = async (text: string, history: Transaction[]): Promise<AIAnalysisResult | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const context = recentTransactions.slice(0, 10).map(t => 
-      `ID: ${t.id}, Nội dung: "${t.description}", Số tiền: ${t.amount}, Loại: ${t.type}, Lọ: ${t.jarType || 'Tất cả'}`
-    ).join("\n");
-
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Yêu cầu từ người dùng: "${text}"\n\nDanh sách giao dịch gần đây:\n${context}`,
+      contents: `Analyze this Vietnamese/English spending text: "${text}". 
+      Context history: ${JSON.stringify(history.slice(0, 5))}.
+      Return JSON object mapping to the transaction. 
+      Note: if it's income, isExpense is false. jarType should be one of: NEC, LTS, EDU, PLAY, FFA, GIVE.`,
       config: {
-        systemInstruction: `Bạn là một chuyên gia quản lý tài chính. Nhiệm vụ của bạn là phân tích yêu cầu người dùng và trả về JSON.
-        
-        QUY TẮC ĐẶC BIỆT CHO ĐƠN VỊ TIỀN TỆ:
-        - Nếu người dùng nhập "man" hoặc "vạn": 1 man = 10,000. (Ví dụ: "1 man" -> 10000, "2.5 man" -> 25000)
-        - Nếu người dùng nhập "s", "sen", hoặc "nghìn": 1s = 1,000. (Ví dụ: "1s" -> 1000, "5s2" -> 5200)
-        - TUYỆT ĐỐI KHÔNG TỰ QUY ĐỔI SANG VND. Nếu người dùng đang dùng Yên (JPY), hãy giữ nguyên con số theo đơn vị Yên.
-        - Giữ nguyên giá trị số học mà người dùng mong muốn.
-
-        Các loại hành động (action):
-        1. "create": Tạo giao dịch mới.
-        2. "update": Nhận diện yêu cầu sửa.
-        3. "delete": Xóa một giao dịch.
-
-        Quy tắc trả về JSON:
-        - action: "create" | "update" | "delete"
-        - targetId: ID của giao dịch cần sửa/xóa.
-        - amount: Số tiền giao dịch thô (áp dụng man/s/vạn/nghìn).
-        - jarType: NEC, LTS, EDU, PLAY, FFA, GIVE.
-        - description: Mô tả ngắn gọn.
-        - isExpense: true nếu là chi tiêu, false nếu là thu nhập.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             action: { type: Type.STRING, enum: ["create", "update", "delete"] },
-            targetId: { type: Type.STRING },
-            amount: { type: Type.INTEGER },
-            jarType: { type: Type.STRING, enum: Object.values(JarType) },
+            amount: { type: Type.NUMBER },
             description: { type: Type.STRING },
-            isExpense: { type: Type.BOOLEAN },
+            jarType: { type: Type.STRING, enum: Object.values(JarType) },
+            isExpense: { type: Type.BOOLEAN }
           },
-          required: ["action"],
-        },
-      },
+          required: ["action", "amount"]
+        }
+      }
     });
-
-    const jsonStr = response.text?.trim() || "null";
-    return JSON.parse(jsonStr) as AIAnalysisResult;
+    return JSON.parse(response.text || "null");
   } catch (error) {
-    console.error("Error analyzing transaction:", error);
+    console.error("AI Analysis Error:", error);
     return null;
   }
 };
 
-export const getFinancialAdvice = async (
-  balances: JarBalance, 
-  lastActionSummary: string,
-  user: User | null
-): Promise<string> => {
+export const getFinancialAdvice = async (balances: JarBalance, stats: { debt: number, lent: number, net: number }, user: User | null): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
-    const balanceInfo = Object.entries(balances)
-      .map(([type, amt]) => `- Hũ ${getJarName(type)}: ${amt.toLocaleString()}đ`)
-      .join("\n");
-
-    const genderAddress = user?.gender === 'male' ? 'Anh' : user?.gender === 'female' ? 'Chị' : 'Bạn';
-    const userName = user?.displayName || 'bạn';
-
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const prefix = user?.gender === 'male' ? 'Anh' : user?.gender === 'female' ? 'Chị' : '';
+    const name = user?.displayName || 'bạn';
+    
+    const prompt = `You are a personal finance expert using the 6-jar rule. 
+    User: ${prefix} ${name}, Balances: ${JSON.stringify(balances)}. 
+    Stats: Debt ${stats.debt}, Lent ${stats.lent}, Net Asset ${stats.net}.
+    Provide a very short, motivating, and smart financial advice (max 25 words) in Vietnamese.
+    Address the user as "${prefix} ${name}". Be concise and encouraging.`;
+    
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Người dùng: ${userName}, Giới tính/Cách xưng hô: ${genderAddress}.\nSố dư các hũ hiện tại:\n${balanceInfo}\n\nHành động vừa thực hiện: "${lastActionSummary}".`,
-      config: {
-        systemInstruction: `Bạn là chuyên gia tài chính theo quy tắc 6 chiếc lọ. 
-        NHIỆM VỤ: Đưa ra lời khuyên tài chính cực kỳ NGẮN GỌN (1-2 câu).
-        1. Sử dụng đúng cách xưng hô (${genderAddress}) và tên người dùng nếu thấy phù hợp.
-        2. KHÔNG sử dụng các từ viết tắt như NEC, FFA, LTS, EDU, PLAY, GIVE. Hãy gọi tên đầy đủ (Thiết yếu, Đầu tư, Tiết kiệm, Giáo dục, Hưởng thụ, Cho đi).
-        3. KHÔNG liệt kê chi tiết số tiền lại.
-        4. Nhận xét về kỷ luật tài chính dựa trên số dư các hũ.`,
-      },
+      contents: prompt
     });
-
-    return response.text || "Đã cập nhật dữ liệu của bạn.";
+    return response.text || `Chào ${prefix} ${name}, hãy duy trì kỷ luật chi tiêu để sớm đạt tự do tài chính!`;
   } catch (error) {
-    console.error("Error getting advice:", error);
-    return "Dữ liệu đã được cập nhật.";
-  }
-};
-
-export const getDeepFinancialAnalysis = async (
-  balances: JarBalance,
-  transactions: Transaction[],
-  loans: Loan[],
-  user: User | null
-): Promise<string> => {
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const balanceInfo = Object.entries(balances)
-      .map(([type, amt]) => `- Hũ ${getJarName(type)}: ${amt.toLocaleString()}đ`)
-      .join("\n");
-      
-    const recentHistory = transactions.slice(0, 20).map(t => 
-      `${t.type === 'income' ? 'Thu' : 'Chi'} ${t.amount.toLocaleString()}đ cho "${t.description}" (${t.jarType ? getJarName(t.jarType) : 'Phân bổ'})`
-    ).join("\n");
-
-    const loanInfo = loans.length > 0 ? loans.map(l => 
-      `- Nợ ${l.lenderName}: ${l.principal.toLocaleString()}đ (Còn lại ${(l.principal - l.paidAmount).toLocaleString()}đ)`
-    ).join("\n") : "Không có nợ.";
-
-    const genderAddress = user?.gender === 'male' ? 'Anh' : user?.gender === 'female' ? 'Chị' : 'Bạn';
-    const userName = user?.displayName || 'Người dùng';
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: `Thông tin tài chính của ${userName} (${genderAddress}):\n\nSỐ DƯ CÁC HŨ:\n${balanceInfo}\n\nKHOẢN NỢ:\n${loanInfo}\n\nLỊCH SỬ GIAO DỊCH GẦN ĐÂY:\n${recentHistory}`,
-      config: {
-        systemInstruction: `Bạn là Chuyên gia Tài chính Cao cấp. Hãy thực hiện một bản phân tích sức khỏe tài chính chi tiết theo quy tắc 6 chiếc lọ.
-        Hãy xưng hô lịch sự với người dùng là ${genderAddress} ${userName}.
-        Hãy sử dụng tên tiếng Việt đầy đủ cho các hũ (Thiết yếu, Tiết kiệm, Giáo dục, Hưởng thụ, Đầu tư, Cho đi).
-        
-        CẤU TRÚC BÁO CÁO (Markdown):
-        1. **Đánh giá tổng quát**: Nhận xét về tổng tài sản ròng và kỷ luật chi tiêu.
-        2. **Phân tích từng hũ**: Hũ nào đang quá cao hoặc quá thấp?
-        3. **Chiến lược quản lý nợ**: Nếu có nợ, hãy đưa ra lộ trình trả nợ tối ưu.
-        4. **Lời khuyên hành động (Top 3)**: 3 việc cụ thể cần làm ngay.
-        
-        PHONG CÁCH: Chuyên nghiệp, khích lệ nhưng thẳng thắn.`,
-      },
-    });
-
-    return response.text || "Xin lỗi, tôi không thể thực hiện phân tích ngay bây giờ.";
-  } catch (error) {
-    console.error("Deep analysis error:", error);
-    return "Đã xảy ra lỗi khi kết nối với Chuyên gia AI.";
+    return "Hãy tiếp tục duy trì thói quen ghi chép tài chính mỗi ngày nhé!";
   }
 };

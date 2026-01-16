@@ -5,7 +5,7 @@ import { JarType, JarInfo } from './types';
 export const JAR_CONFIG: Record<JarType, JarInfo> = {
   [JarType.NEC]: {
     type: JarType.NEC,
-    name: 'Chi tiêu Thiết yếu',
+    name: 'Thiết yếu',
     description: 'Dành cho các khoản chi tiêu cần thiết hàng tháng như tiền thuê nhà, hóa đơn điện nước, thực phẩm, và các chi phí sinh hoạt khác.',
     ratio: 0.55,
     color: '#ef4444', // Red
