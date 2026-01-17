@@ -5,7 +5,7 @@ import { JarType, JarInfo } from '../types';
 interface JarVisualProps {
   jar: JarInfo;
   balance: number;
-  currencySymbol: string;
+  currency: 'VND' | 'JPY' | 'USD';
   convertValue: (v: number) => number;
   onTransferClick: () => void;
 }
@@ -13,17 +13,20 @@ interface JarVisualProps {
 const JarVisual: React.FC<JarVisualProps> = ({ 
   jar, 
   balance, 
-  currencySymbol, 
+  currency, 
   convertValue,
   onTransferClick
 }) => {
   const [showInfo, setShowInfo] = useState(false);
   const displayBalance = convertValue(balance);
+  const decimals = currency === 'USD' ? 2 : 0;
+  const currencySymbol = currency === 'VND' ? 'đ' : currency === 'JPY' ? '¥' : '$';
+
   // Assume 10M is full for visualization purposes
   const fillPercentage = Math.min(Math.max((balance / 10000000) * 100, 5), 95); 
 
   return (
-    <div className="bg-white rounded-[2rem] border-2 border-slate-100 p-4 shadow-lg hover:shadow-xl transition-all group relative overflow-hidden flex flex-col items-center min-h-[160px]">
+    <div className="bg-white rounded-[2rem] border-2 border-slate-100 p-4 shadow-lg hover:shadow-xl transition-all group relative overflow-hidden flex flex-col items-center min-h-[180px]">
       {/* Action buttons overlay (visible on hover) */}
       <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
         <button 
@@ -51,10 +54,10 @@ const JarVisual: React.FC<JarVisualProps> = ({
         </div>
       )}
 
-      {/* Jar Container */}
-      <div className="relative w-20 h-28 mb-3 mt-2">
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-12 h-2 bg-slate-200 rounded-full z-10 border border-slate-300" />
-        <div className="w-full h-full relative rounded-t-xl rounded-b-[2.5rem] border-4 border-slate-200 overflow-hidden bg-slate-50/50 backdrop-blur-sm shadow-inner">
+      {/* Jar Container - Increased Size */}
+      <div className="relative w-24 h-32 mb-3 mt-2">
+        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-14 h-2 bg-slate-200 rounded-full z-10 border border-slate-300" />
+        <div className="w-full h-full relative rounded-t-2xl rounded-b-2xl border-4 border-slate-200 overflow-hidden bg-slate-50/50 backdrop-blur-sm shadow-inner">
           <div 
             className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[200%] transition-all duration-1000 ease-out liquid-wave"
             style={{ 
@@ -64,7 +67,7 @@ const JarVisual: React.FC<JarVisualProps> = ({
               borderRadius: '35%'
             }}
           />
-          <div className="absolute inset-0 flex items-center justify-center text-3xl drop-shadow-sm select-none">
+          <div className="absolute inset-0 flex items-center justify-center text-4xl drop-shadow-sm select-none">
             {jar.icon}
           </div>
         </div>
@@ -81,7 +84,9 @@ const JarVisual: React.FC<JarVisualProps> = ({
         </div>
         <div className="bg-white/60 backdrop-blur-md rounded-xl border border-white/50 px-2.5 py-1 shadow-sm w-fit max-w-full">
           <p className="text-[11px] font-black truncate" style={{ color: jar.color }}>
-            {displayBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}{currencySymbol}
+            {currency === 'USD' ? currencySymbol : ''}
+            {displayBalance.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
+            {currency !== 'USD' ? currencySymbol : ''}
           </p>
         </div>
       </div>

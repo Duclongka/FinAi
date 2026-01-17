@@ -64,6 +64,7 @@ export interface Loan {
   isUrgent: boolean; 
   purpose?: string; // Mục đích vay/cho vay
   loanJar?: JarType; // Hũ liên quan để hoàn trả chính xác
+  imageUrl?: string; // Ảnh chứng từ
 }
 
 export interface User {
