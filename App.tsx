@@ -137,7 +137,25 @@ const TRANSLATIONS: Record<string, any> = {
     save_loan: "LƯU KHOẢN VAY",
     view_photo: "XEM ẢNH",
     support_email: "EMAIL GÓP Ý",
-    guide_video_btn: "TÌM HIỂU QUY TẮC 6 LỌ"
+    guide_video_btn: "TÌM HIỂU QUY TẮC 6 LỌ",
+    nav_home: "TRANG CHỦ",
+    nav_entry: "NHẬP LIỆU",
+    nav_history: "LỊCH SỬ",
+    nav_overview: "TỔNG QUAN",
+    nav_loans: "KHOẢN VAY",
+    nav_menu: "MENU",
+    jar_nec_name: "Thiết yếu",
+    jar_nec_desc: "Dành cho các khoản chi tiêu cần thiết hàng tháng như tiền thuê nhà, hóa đơn điện nước, thực phẩm, và các chi phí sinh hoạt khác.",
+    jar_lts_name: "Tiết kiệm",
+    jar_lts_desc: "Dùng để tiết kiệm cho các mục tiêu lớn trong tương lai như mua nhà, mua xe hoặc du lịch.",
+    jar_edu_name: "Giáo dục",
+    jar_edu_desc: "Dành cho việc đầu tư vào tri thức và kỹ năng, giúp nâng cao giá trị bản thân và phát triển sự nghiệp.",
+    jar_play_name: "Hưởng thụ",
+    jar_play_desc: "Dùng cho các khoản chi tiêu giải trí như đi du lịch, xem phim, mua sắm, giúp bạn tận hưởng cuộc sống.",
+    jar_ffa_name: "Đầu tư",
+    jar_ffa_desc: "Dành cho các khoản đầu tư nhằm tăng thu nhập, giúp bạn đạt được tự do tài chính trong tương lai.",
+    jar_give_name: "Cho đi",
+    jar_give_desc: "Dùng để ủng hộ các tổ chức từ thiện hoặc giúp đỡ người thân, bạn bè, tạo giá trị cộng đồng.",
   },
   en: {
     appTitle: "FINAI",
@@ -224,7 +242,25 @@ const TRANSLATIONS: Record<string, any> = {
     save_loan: "SAVE LOAN",
     view_photo: "VIEW PHOTO",
     support_email: "FEEDBACK EMAIL",
-    guide_video_btn: "LEARN 6-JARS RULE"
+    guide_video_btn: "LEARN 6-JARS RULE",
+    nav_home: "HOME",
+    nav_entry: "ENTRY",
+    nav_history: "HISTORY",
+    nav_overview: "OVERVIEW",
+    nav_loans: "LOANS",
+    nav_menu: "MENU",
+    jar_nec_name: "Necessities",
+    jar_nec_desc: "For essential monthly expenses like rent, utilities, food, and other living costs.",
+    jar_lts_name: "Savings",
+    jar_lts_desc: "Long-term savings for future big goals like buying a house, car, or travel.",
+    jar_edu_name: "Education",
+    jar_edu_desc: "Investment in knowledge and skills to enhance personal value and career growth.",
+    jar_play_name: "Play",
+    jar_play_desc: "For entertainment expenses like travel, movies, shopping to enjoy life.",
+    jar_ffa_name: "Invest",
+    jar_ffa_desc: "For investments aimed at increasing income and achieving financial freedom.",
+    jar_give_name: "Give",
+    jar_give_desc: "To support charities or help relatives and friends, creating community value.",
   },
   ja: {
     appTitle: "FINAI",
@@ -311,7 +347,25 @@ const TRANSLATIONS: Record<string, any> = {
     save_loan: "ローンを保存",
     view_photo: "写真を見る",
     support_email: "フィードバックメール",
-    guide_video_btn: "6つの瓶のルールを学ぶ"
+    guide_video_btn: "6つの瓶のルールを学ぶ",
+    nav_home: "ホーム",
+    nav_entry: "入力",
+    nav_history: "履歴",
+    nav_overview: "分析",
+    nav_loans: "ローン",
+    nav_menu: "メニュー",
+    jar_nec_name: "生活費",
+    jar_nec_desc: "家賃、光熱費、食費などの生活に必要な毎月の支出。",
+    jar_lts_name: "貯蓄",
+    jar_lts_desc: "住宅、車、旅行などの将来の大きな目標のための長期貯蓄。",
+    jar_edu_name: "教育",
+    jar_edu_desc: "自己価値を高め、キャリアを発展させるための知識やスキルへの投資。",
+    jar_play_name: "娯楽",
+    jar_play_desc: "旅行、映画、ショッピングなどの娯楽支出（人生を楽しむため）。",
+    jar_ffa_name: "投資",
+    jar_ffa_desc: "将来の経済的自由を達成するための、収入を増やすための投資。",
+    jar_give_name: "寄付",
+    jar_give_desc: "慈善団体への寄付や親戚・友人への援助（社会価値の創造）。",
   }
 };
 
@@ -757,11 +811,11 @@ const App: React.FC = () => {
 
   const pieData = useMemo(() => {
     return Object.entries(balances).map(([type, amount]) => ({
-      name: `${JAR_CONFIG[type as JarType].name} (${formatAmountUnits(amount, settings.currency)})`,
+      name: `${t[`jar_${type.toLowerCase()}_name`]} (${formatAmountUnits(amount, settings.currency)})`,
       value: Math.max(0, amount),
       color: JAR_CONFIG[type as JarType].color
     })).filter(d => d.value > 0);
-  }, [balances, settings.currency]);
+  }, [balances, settings.currency, t]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx => {
@@ -877,7 +931,18 @@ const App: React.FC = () => {
 
             <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {Object.values(JarType).map(type => (
-                <JarVisual key={type} jar={JAR_CONFIG[type]} balance={balances[type]} currency={settings.currency} convertValue={convertValue} onTransferClick={() => { setTransferFrom(type); setIsTransferModalOpen(true); }} />
+                <JarVisual 
+                  key={type} 
+                  jar={{
+                    ...JAR_CONFIG[type],
+                    name: t[`jar_${type.toLowerCase()}_name`],
+                    description: t[`jar_${type.toLowerCase()}_desc`]
+                  }} 
+                  balance={balances[type]} 
+                  currency={settings.currency} 
+                  convertValue={convertValue} 
+                  onTransferClick={() => { setTransferFrom(type); setIsTransferModalOpen(true); }} 
+                />
               ))}
             </section>
           </>
@@ -901,7 +966,7 @@ const App: React.FC = () => {
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <select value={manualJar} onChange={e => setManualJar(e.target.value as any)} className="bg-slate-50 border-2 border-slate-200 rounded-xl px-4 text-[11px] font-bold outline-none h-12">
                     <option value="AUTO">{t.manual_auto}</option>
-                    {Object.values(JarType).map(type => <option key={type} value={type}>{JAR_CONFIG[type].name}</option>)}
+                    {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
                  </select>
                  <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="bg-slate-50 border-2 border-slate-200 rounded-xl px-4 text-xs font-bold h-12" />
                </div>
@@ -934,7 +999,7 @@ const App: React.FC = () => {
                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_jar}</label>
                    <select value={historyJarFilter} onChange={e => setHistoryJarFilter(e.target.value as any)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[9px] font-bold outline-none h-8">
                       <option value="all">{t.history_all}</option>
-                      {Object.values(JarType).map(jt => <option key={jt} value={jt}>{JAR_CONFIG[jt].name}</option>)}
+                      {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
                    </select>
                 </div>
                 <div className="space-y-0.5">
@@ -956,7 +1021,7 @@ const App: React.FC = () => {
                           <p className="text-[11px] font-black text-slate-800 line-clamp-1 leading-tight">{tx.description}</p>
                           <div className="flex items-center gap-1.5 mt-1">
                             <span className="text-[7px] font-black text-slate-400 uppercase">{new Date(tx.timestamp).toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US')}</span>
-                            {tx.jarType && <span className="text-[6px] font-black bg-indigo-50 px-1.5 py-0.5 rounded text-indigo-500 uppercase">{JAR_CONFIG[tx.jarType].name}</span>}
+                            {tx.jarType && <span className="text-[6px] font-black bg-indigo-50 px-1.5 py-0.5 rounded text-indigo-500 uppercase">{t[`jar_${tx.jarType.toLowerCase()}_name`]}</span>}
                           </div>
                         </div>
                       </div>
@@ -1080,15 +1145,15 @@ const App: React.FC = () => {
           <div className="flex items-center gap-1 md:gap-4 flex-1 justify-start">
             <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'home' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
               <span className="text-xl">🏠</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">Home</span>
+              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_home}</span>
             </button>
             <button onClick={() => setActiveTab('entry')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'entry' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
               <span className="text-xl">📝</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">Entry</span>
+              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_entry}</span>
             </button>
             <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
               <span className="text-xl">📜</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">History</span>
+              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_history}</span>
             </button>
           </div>
 
@@ -1099,15 +1164,15 @@ const App: React.FC = () => {
           <div className="flex items-center gap-1 md:gap-4 flex-1 justify-end">
             <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'overview' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
               <span className="text-xl">📊</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">Overview</span>
+              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_overview}</span>
             </button>
             <button onClick={() => setActiveTab('loans')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'loans' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
               <span className="text-xl">🏦</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">Loans</span>
+              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_loans}</span>
             </button>
             <button onClick={() => setIsSettingsOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-2xl text-slate-400 hover:bg-slate-50 transition-all">
               <span className="text-xl">⚙️</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">Menu</span>
+              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_menu}</span>
             </button>
           </div>
         </div>
@@ -1233,7 +1298,7 @@ const App: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label><input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[11px] font-bold outline-none" placeholder="..." /></div>
-                <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label><select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as any})} className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[11px] font-bold outline-none"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => <option key={jt} value={jt}>{JAR_CONFIG[jt].name}</option>)}</select></div>
+                <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label><select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as any})} className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[11px] font-bold outline-none"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}</select></div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -1283,9 +1348,9 @@ const App: React.FC = () => {
             <h2 className="text-[14px] font-black text-slate-800 uppercase text-center mb-8 tracking-widest">{t.transfer_title}</h2>
             <form onSubmit={handleTransferSubmit} className="space-y-6">
               <div className="flex items-center gap-4 bg-slate-50 p-5 rounded-[2rem] border-2 border-slate-100">
-                 <div className="flex-1 text-center"><p className="text-[8px] font-black text-slate-400 uppercase mb-2">{t.transfer_from}</p><div className="text-3xl mb-1">{JAR_CONFIG[transferFrom].icon}</div><p className="text-[10px] font-black text-slate-800 uppercase">{JAR_CONFIG[transferFrom].name}</p></div>
+                 <div className="flex-1 text-center"><p className="text-[8px] font-black text-slate-400 uppercase mb-2">{t.transfer_from}</p><div className="text-3xl mb-1">{JAR_CONFIG[transferFrom].icon}</div><p className="text-[10px] font-black text-slate-800 uppercase">{t[`jar_${transferFrom.toLowerCase()}_name`]}</p></div>
                  <div className="text-indigo-400 text-2xl font-bold animate-pulse">➔</div>
-                 <div className="flex-1 text-center"><p className="text-[8px] font-black text-slate-400 uppercase mb-2">{t.transfer_to}</p><select value={transferTo} onChange={e => setTransferTo(e.target.value as JarType)} className="w-full bg-white border-2 border-slate-100 rounded-xl py-2 text-[10px] font-black outline-none text-center shadow-sm">{Object.values(JarType).filter(t => t !== transferFrom).map(t => <option key={t} value={t}>{JAR_CONFIG[t].name}</option>)}</select></div>
+                 <div className="flex-1 text-center"><p className="text-[8px] font-black text-slate-400 uppercase mb-2">{t.transfer_to}</p><select value={transferTo} onChange={e => setTransferTo(e.target.value as JarType)} className="w-full bg-white border-2 border-slate-100 rounded-xl py-2 text-[10px] font-black outline-none text-center shadow-sm">{Object.values(JarType).filter(t => t !== transferFrom).map(t => <option key={t} value={t}>{t[`jar_${t.toLowerCase()}_name`]}</option>)}</select></div>
               </div>
               <div className="space-y-2"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">{t.transfer_amount}</label><div className="relative"><input required type="text" value={transferAmount} onChange={e => setTransferAmount(formatDots(e.target.value))} className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[16px] font-black outline-none text-center focus:border-indigo-400" placeholder="0" /><p className="absolute bottom-2 right-4 text-[8px] font-bold text-slate-400">{formatAmountUnits(parseFormattedNumber(transferAmount) * EXCHANGE_RATES[settings.currency], settings.currency)}</p></div></div>
               <div className="flex gap-3 pt-2">
