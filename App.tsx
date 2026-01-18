@@ -1092,7 +1092,7 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          <button onClick={() => aiInputRef.current?.focus()} className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-full flex items-center justify-center shadow-xl hover:shadow-indigo-200 hover:scale-110 active:scale-95 transition-all -translate-y-5 ring-4 ring-white flex-shrink-0 mx-2">
+          <button onClick={() => setActiveTab('entry')} className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-full flex items-center justify-center shadow-xl hover:shadow-indigo-200 hover:scale-110 active:scale-95 transition-all -translate-y-5 ring-4 ring-white flex-shrink-0 mx-2">
             <span className="text-3xl font-light">＋</span>
           </button>
 
