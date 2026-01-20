@@ -53,7 +53,7 @@ const formatDots = (val: string) => {
 
 const TRANSLATIONS: Record<string, any> = {
   vi: {
-    appTitle: "FINAI",
+    appTitle: "FINAI 6 LỌ",
     stats_jars: "Tiền hũ",
     stats_debt: "Nợ phải trả",
     stats_lent: "Đang cho vay",
@@ -83,6 +83,8 @@ const TRANSLATIONS: Record<string, any> = {
     history_type: "Loại",
     history_jar: "Hũ",
     history_date: "Ngày",
+    history_from: "Từ ngày",
+    history_to: "Đến ngày",
     history_all: "TẤT CẢ",
     history_inc_only: "Chỉ Thu",
     history_exp_only: "Chỉ Chi",
@@ -158,7 +160,7 @@ const TRANSLATIONS: Record<string, any> = {
     jar_give_desc: "Dùng để ủng hộ các tổ chức từ thiện hoặc giúp đỡ người thân, bạn bè, tạo giá trị cộng đồng.",
   },
   en: {
-    appTitle: "FINAI",
+    appTitle: "FINAI 6 JARS",
     stats_jars: "Jar Balance",
     stats_debt: "Debts to Pay",
     stats_lent: "Money Lent",
@@ -188,6 +190,8 @@ const TRANSLATIONS: Record<string, any> = {
     history_type: "Type",
     history_jar: "Jar",
     history_date: "Date",
+    history_from: "From",
+    history_to: "To",
     history_all: "ALL",
     history_inc_only: "Income",
     history_exp_only: "Expense",
@@ -261,118 +265,13 @@ const TRANSLATIONS: Record<string, any> = {
     jar_ffa_desc: "For investments aimed at increasing income and achieving financial freedom.",
     jar_give_name: "Give",
     jar_give_desc: "To support charities or help relatives and friends, creating community value.",
-  },
-  ja: {
-    appTitle: "FINAI",
-    stats_jars: "残高",
-    stats_debt: "借金",
-    stats_lent: "貸付金",
-    stats_net: "純資産",
-    advice_title: "AIアドバイス",
-    chart_title: "収支チャート",
-    pie_title: "資産配分",
-    chart_week: "週",
-    chart_month: "月",
-    chart_year: "年",
-    manual_title: "手動入力",
-    manual_edit: "取引を編集",
-    manual_cancel: "キャンセル",
-    manual_type: "取引タイプ",
-    manual_expense: "支出",
-    manual_income: "収入",
-    manual_amount: "金額",
-    manual_desc: "内容",
-    manual_jar_img: "配分と画像",
-    manual_allocation_only: "配分",
-    manual_date_label: "日付",
-    manual_auto: "✨ 6つの瓶に自動分配",
-    manual_save: "保存",
-    manual_update: "変更を保存",
-    history_title: "取引履歴",
-    history_filter: "フィルター",
-    history_type: "タイプ",
-    history_jar: "瓶",
-    history_date: "日付",
-    history_all: "すべて",
-    history_inc_only: "収入のみ",
-    history_exp_only: "支出のみ",
-    history_more: "もっと見る ↓",
-    history_empty: "履歴なし",
-    loan_title: "ローン管理",
-    loan_new: "新規ローン登録",
-    loan_edit: "ローン編集",
-    loan_pay: "支払う",
-    loan_recover: "回収する",
-    loan_i_owe: "私の借金",
-    loan_owes_me: "貸している金",
-    loan_rem: "残高",
-    loan_paid: "支払済",
-    loan_partner: "相手",
-    loan_principal: "元金",
-    loan_paid_label: "返済額",
-    loan_jar_label: "関連する瓶",
-    loan_date_label: "実行日",
-    loan_img_label: "証拠写真",
-    loan_add_img: "写真追加",
-    settings_title: "設定",
-    settings_data: "データ",
-    settings_data_export: "CSVエクスポート",
-    settings_data_import: "AIインポート",
-    settings_data_reset: "データ初期化",
-    settings_info: "情報",
-    settings_connect: "サポート",
-    settings_policy: "ポリシー",
-    settings_guide: "ガイド",
-    settings_app: "アプリ設定",
-    currency: "通貨",
-    language: "言語",
-    lang_vi: "ベトナム語",
-    lang_en: "英語",
-    lang_ja: "日本語",
-    user_label: "設定",
-    ai_placeholder: "AI入力（例：昼食 1000円 生活費）...",
-    onboarding_welcome: "FINAIへようこそ",
-    onboarding_desc: "自由な未来のために, あなたの情報を教えてください。",
-    onboarding_name: "お名前",
-    onboarding_gender: "性別",
-    onboarding_male: "男性",
-    onboarding_female: "女性",
-    onboarding_start: "はじめる",
-    transfer_title: "瓶の間の資金移動",
-    transfer_from: "元",
-    transfer_to: "先",
-    transfer_amount: "移動金額",
-    transfer_cancel: "キャンセル",
-    transfer_confirm: "移動を確定",
-    save_loan: "ローンを保存",
-    view_photo: "写真を見る",
-    support_email: "フィードバックメール",
-    guide_video_btn: "6つの瓶のルールを学ぶ",
-    nav_home: "ホーム",
-    nav_entry: "入力",
-    nav_history: "履歴",
-    nav_overview: "分析",
-    nav_loans: "ローン",
-    nav_menu: "メニュー",
-    jar_nec_name: "生活費",
-    jar_nec_desc: "家賃、光熱費、食費などの生活に必要な毎月の支出。",
-    jar_lts_name: "貯蓄",
-    jar_lts_desc: "住宅、車、旅行などの将来の大きな目標のための長期貯蓄。",
-    jar_edu_name: "教育",
-    jar_edu_desc: "自己価値を高め、キャリアを発展させるための知識やスキルへの投資。",
-    jar_play_name: "娯楽",
-    jar_play_desc: "旅行、映画、ショッピングなどの娯楽支出（人生を楽しむため）。",
-    jar_ffa_name: "投資",
-    jar_ffa_desc: "将来の経済的自由を達成するための、収入を増やすための投資。",
-    jar_give_name: "寄付",
-    jar_give_desc: "慈善団体への寄付や親戚・友人への援助（社会価値の創造）。",
   }
 };
 
-type AppTab = 'home' | 'entry' | 'history' | 'overview' | 'loans';
+type AppTab = 'home' | 'history' | 'overview' | 'loans';
 
 const App: React.FC = () => {
-  const APP_VERSION = "v4.6.3";
+  const APP_VERSION = "v5.4.0";
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const defaultRatios: Record<JarType, number> = {
@@ -418,12 +317,14 @@ const App: React.FC = () => {
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'info' | 'danger'} | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'export' | 'info' | 'connect' | 'policy' | 'guide' | 'app'>('app');
   
   const [historyFilter, setHistoryFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [historyJarFilter, setHistoryJarFilter] = useState<JarType | 'all'>('all');
-  const [historyDateFilter, setHistoryDateFilter] = useState<string>(''); 
+  const [historyFromDateFilter, setHistoryFromDateFilter] = useState<string>(''); 
+  const [historyToDateFilter, setHistoryToDateFilter] = useState<string>(''); 
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -479,7 +380,7 @@ const App: React.FC = () => {
   const stats = useMemo(() => {
     const debt = loans.filter(l => l.type === LoanType.BORROW).reduce((a, l) => a + (l.principal - l.paidAmount), 0);
     const lent = loans.filter(l => l.type === LoanType.LEND).reduce((a, l) => a + (l.principal - l.paidAmount), 0);
-    const net = Object.values(balances).reduce((a, b) => a + b, 0) + lent - debt;
+    const net = (Object.values(balances) as number[]).reduce((a: number, b: number) => a + b, 0) + lent - debt;
     return { debt, lent, net };
   }, [balances, loans]);
 
@@ -559,8 +460,9 @@ const App: React.FC = () => {
     setManualDesc(''); 
     setManualJar(manualType === 'expense' ? JarType.NEC : 'AUTO');
     setManualDate(getTodayString());
+    setIsEntryModalOpen(false);
     setActiveTab('history');
-    showToast("Success!");
+    showToast("Thành công!");
   };
 
   const handleProcessInput = async (e: React.FormEvent) => {
@@ -580,28 +482,29 @@ const App: React.FC = () => {
         };
         setTransactions(prev => [newTrans, ...prev]);
         updateBalances(null, newTrans);
-        showToast("Added via AI!");
-      } else showToast("Failed to recognize transaction.", "info");
-    } catch (e) { showToast("AI Error.", "danger"); }
+        setActiveTab('history');
+        showToast("Đã thêm qua AI!");
+      } else showToast("Không nhận diện được giao dịch.", "info");
+    } catch (e) { showToast("Lỗi AI.", "danger"); }
     finally { setIsLoading(false); setInput(''); }
   };
 
   const handleTransferSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const amountInVnd = parseFormattedNumber(transferAmount);
-    if (amountInVnd <= 0 || amountInVnd > balances[transferFrom]) return showToast("Insufficient balance.", "danger");
+    if (amountInVnd <= 0 || amountInVnd > balances[transferFrom]) return showToast("Số dư không đủ.", "danger");
     setBalances(prev => {
       const nb = { ...prev };
       nb[transferFrom] -= amountInVnd;
       nb[transferTo] += amountInVnd;
       return nb;
     });
-    const tx1: Transaction = { id: Date.now().toString(), type: 'expense', amount: amountInVnd, description: `Transfer: ${JAR_CONFIG[transferFrom].name} ➔ ${JAR_CONFIG[transferTo].name}`, jarType: transferFrom, timestamp: Date.now() };
-    const tx2: Transaction = { id: (Date.now()+1).toString(), type: 'income', amount: amountInVnd, description: `Received: ${JAR_CONFIG[transferFrom].name} ➔ ${JAR_CONFIG[transferTo].name}`, jarType: transferTo, timestamp: Date.now() };
+    const tx1: Transaction = { id: Date.now().toString(), type: 'expense', amount: amountInVnd, description: `Chuyển: ${JAR_CONFIG[transferFrom].name} ➔ ${JAR_CONFIG[transferTo].name}`, jarType: transferFrom, timestamp: Date.now() };
+    const tx2: Transaction = { id: (Date.now()+1).toString(), type: 'income', amount: amountInVnd, description: `Nhận: ${JAR_CONFIG[transferFrom].name} ➔ ${JAR_CONFIG[transferTo].name}`, jarType: transferTo, timestamp: Date.now() };
     setTransactions(p => [tx1, tx2, ...p]);
     setIsTransferModalOpen(false);
     setTransferAmount('');
-    showToast("Transferred!");
+    showToast("Đã chuyển!");
   };
 
   const handleSaveLoan = (e: React.FormEvent) => {
@@ -629,7 +532,7 @@ const App: React.FC = () => {
                 id: `pay_${Date.now()}`,
                 type: txType,
                 amount: payDelta,
-                description: `${isIncreasing ? 'Pay/Recover' : 'Correct'} loan: ${oldLoan.lenderName}`,
+                description: `${isIncreasing ? 'Trả/Thu' : 'Chỉnh sửa'} khoản vay: ${oldLoan.lenderName}`,
                 jarType: finalLoanJar,
                 timestamp: Date.now(),
                 loanId: loanId
@@ -643,7 +546,7 @@ const App: React.FC = () => {
         id: `loan_${loanId}`,
         type: loanForm.type === LoanType.BORROW ? 'income' : 'expense',
         amount: principalVnd,
-        description: `${loanForm.type === LoanType.BORROW ? 'Borrowed from' : 'Lent to'}: ${loanForm.lenderName}`,
+        description: `${loanForm.type === LoanType.BORROW ? 'Vay từ' : 'Cho vay'}: ${loanForm.lenderName}`,
         jarType: finalLoanJar,
         timestamp: Date.now(),
         loanId: loanId
@@ -652,17 +555,17 @@ const App: React.FC = () => {
     if (editingLoanId) {
        const oldLoan = loans.find(l => l.id === editingLoanId);
        if (oldLoan) {
-          const oldSyntheticTx: Transaction = { id: `loan_${oldLoan.id}`, type: oldLoan.type === LoanType.BORROW ? 'income' : 'expense', amount: oldLoan.principal, description: `Reverse impact`, jarType: oldLoan.loanJar, timestamp: Date.now(), loanId: oldLoan.id };
+          const oldSyntheticTx: Transaction = { id: `loan_${oldLoan.id}`, type: oldLoan.type === LoanType.BORROW ? 'income' : 'expense', amount: oldLoan.principal, description: `Đảo ngược tác động`, jarType: oldLoan.loanJar, timestamp: Date.now(), loanId: oldLoan.id };
           updateBalances(oldSyntheticTx, syntheticTx);
        }
        setLoans(p => p.map(l => l.id === editingLoanId ? { ...l, ...loanForm, principal: principalVnd, paidAmount: paidAmountVnd, loanJar: finalLoanJar } as Loan : l));
        setEditingLoanId(null);
-       showToast("Loan updated!");
+       showToast("Cập nhật thành công!");
     } else {
        const newLoan: Loan = { ...loanForm as Loan, id: loanId, principal: principalVnd, paidAmount: paidAmountVnd, loanJar: finalLoanJar };
        setLoans(p => [newLoan, ...p]);
        updateBalances(null, syntheticTx);
-       showToast("Loan saved!");
+       showToast("Đã lưu khoản vay!");
     }
     setIsLoanModalOpen(false);
     setLoanPrincipalStr('');
@@ -673,11 +576,11 @@ const App: React.FC = () => {
   const handleLoanPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) return showToast("Image too large (>2MB)", "danger");
+      if (file.size > 2 * 1024 * 1024) return showToast("Ảnh quá lớn (>2MB)", "danger");
       const reader = new FileReader();
       reader.onloadend = () => {
         setLoanForm(prev => ({ ...prev, imageUrl: reader.result as string }));
-        showToast("Photo added!");
+        showToast("Đã thêm ảnh!");
       };
       reader.readAsDataURL(file);
     }
@@ -688,7 +591,7 @@ const App: React.FC = () => {
     if (tx) {
       updateBalances(tx, null);
       setTransactions(p => p.filter(t => t.id !== id));
-      showToast("Transaction deleted.");
+      showToast("Đã xóa giao dịch.");
     }
   };
 
@@ -699,7 +602,7 @@ const App: React.FC = () => {
     setManualDesc(tx.description);
     setManualJar(tx.jarType || 'AUTO');
     setManualDate(new Date(tx.timestamp).toISOString().split('T')[0]);
-    setActiveTab('entry');
+    setIsEntryModalOpen(true);
   };
 
   const handleEditLoan = (loan: Loan) => {
@@ -719,7 +622,7 @@ const App: React.FC = () => {
                 id: `loan_revert_${Date.now()}`,
                 type: loan.type === LoanType.BORROW ? 'expense' : 'income',
                 amount: netImpactOnJars,
-                description: `Revert deletion of loan with ${loan.lenderName}`,
+                description: `Hoàn tác xóa khoản nợ với ${loan.lenderName}`,
                 jarType: loan.loanJar,
                 timestamp: Date.now()
             };
@@ -727,7 +630,7 @@ const App: React.FC = () => {
         }
         setLoans(p => p.filter(l => l.id !== id));
         setTransactions(p => p.filter(t => t.loanId !== id && t.id !== `loan_${id}`));
-        showToast("Loan and data restored.");
+        showToast("Đã xóa khoản nợ.");
     }
   };
 
@@ -740,7 +643,7 @@ const App: React.FC = () => {
   };
 
   const exportToCSV = () => {
-    if (transactions.length === 0) return showToast("No data to export.");
+    if (transactions.length === 0) return showToast("Không có dữ liệu.");
     const header = "ID,Type,Amount (VND),Description,Jar,Date\n";
     const rows = transactions.map(tx => {
       const date = new Date(tx.timestamp).toLocaleDateString();
@@ -756,16 +659,16 @@ const App: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast("Exported CSV!");
+    showToast("Đã xuất CSV!");
   };
 
   const handleResetData = () => {
-    if (window.confirm("ARE YOU SURE YOU WANT TO RESET ALL DATA? THIS CANNOT BE UNDONE.")) {
+    if (window.confirm("BẠN CÓ CHẮC CHẮN MUỐN XÓA TẤT CẢ?")) {
       setTransactions([]);
       setBalances({ [JarType.NEC]: 0, [JarType.LTS]: 0, [JarType.EDU]: 0, [JarType.PLAY]: 0, [JarType.FFA]: 0, [JarType.GIVE]: 0 });
       setLoans([]);
       localStorage.clear();
-      showToast("Data reset.");
+      showToast("Dữ liệu đã xóa.");
     }
   };
 
@@ -791,8 +694,8 @@ const App: React.FC = () => {
             });
             data.push({
                 name: label,
-                Thu: convertValue(monthT.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)),
-                Chi: convertValue(monthT.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)),
+                Thu: convertValue(monthT.filter(t => t.type === 'income').reduce((s: number, t: Transaction) => s + t.amount, 0)),
+                Chi: convertValue(monthT.filter(t => t.type === 'expense').reduce((s: number, t: Transaction) => s + t.amount, 0)),
             });
         }
     } else {
@@ -801,8 +704,8 @@ const App: React.FC = () => {
             const dayT = transactions.filter(tx => new Date(tx.timestamp).toDateString() === d.toDateString());
             data.push({
                 name: d.toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US', { day: '2-digit', month: '2-digit' }),
-                Thu: convertValue(dayT.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)),
-                Chi: convertValue(dayT.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)),
+                Thu: convertValue(dayT.filter(t => t.type === 'income').reduce((s: number, t: Transaction) => s + t.amount, 0)),
+                Chi: convertValue(dayT.filter(t => t.type === 'expense').reduce((s: number, t: Transaction) => s + t.amount, 0)),
             });
         }
     }
@@ -811,7 +714,7 @@ const App: React.FC = () => {
 
   const pieData = useMemo(() => {
     return Object.entries(balances).map(([type, amount]) => ({
-      name: `${t[`jar_${type.toLowerCase()}_name`]} (${formatAmountUnits(amount, settings.currency)})`,
+      name: t[`jar_${type.toLowerCase()}_name`],
       value: Math.max(0, amount),
       color: JAR_CONFIG[type as JarType].color
     })).filter(d => d.value > 0);
@@ -823,15 +726,17 @@ const App: React.FC = () => {
       if (isLoanRelated) return false;
       const matchType = historyFilter === 'all' || tx.type === historyFilter;
       const matchJar = historyJarFilter === 'all' || tx.jarType === historyJarFilter;
-      const matchDate = !historyDateFilter || new Date(tx.timestamp).toISOString().split('T')[0] === historyDateFilter;
-      return matchType && matchJar && matchDate;
+      const txDateStr = new Date(tx.timestamp).toISOString().split('T')[0];
+      const matchFromDate = !historyFromDateFilter || txDateStr >= historyFromDateFilter;
+      const matchToDate = !historyToDateFilter || txDateStr <= historyToDateFilter;
+      return matchType && matchJar && matchFromDate && matchToDate;
     }).slice(0, 50);
-  }, [transactions, historyFilter, historyJarFilter, historyDateFilter]);
+  }, [transactions, historyFilter, historyJarFilter, historyFromDateFilter, historyToDateFilter]);
 
   const [onboardingForm, setOnboardingForm] = useState({ name: '', gender: 'male' as 'male' | 'female' });
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 pt-36 pb-32 font-sans flex flex-col items-center">
+    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 pt-36 pb-32 font-sans flex flex-col items-center overflow-x-hidden">
       {toast && (
         <div className={`fixed top-12 left-1/2 -translate-x-1/2 z-[100] ${toast.type === 'success' ? 'bg-indigo-600' : 'bg-slate-800'} text-white px-5 py-2 rounded-full text-[10px] font-black uppercase shadow-2xl animate-in slide-in-from-top-4`}>
           {toast.msg}
@@ -842,7 +747,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/90 backdrop-blur-2xl p-4">
           <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-[3rem] w-full max-md:max-w-md p-10 shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="flex flex-col items-center text-center space-y-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-[2rem] flex items-center justify-center text-4xl shadow-2xl shadow-indigo-200">✨</div>
+              <img src="https://files.oaiusercontent.com/file-D3AAb2vYvXF5Z8V5Z5Z5Z5" className="w-20 h-20 rounded-[2rem] shadow-2xl shadow-indigo-200" alt="Logo FINAI" />
               <div className="space-y-2">
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t.onboarding_welcome}</h1>
                 <p className="text-[11px] font-semibold text-slate-500">{t.onboarding_desc}</p>
@@ -860,7 +765,11 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <button onClick={() => onboardingForm.name.trim() && setCurrentUser({ id: Date.now().toString(), displayName: onboardingForm.name, gender: onboardingForm.gender, email: '', provider: 'local' })} disabled={!onboardingForm.name.trim()} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] hover:bg-black active:scale-95 transition-all disabled:opacity-50 shadow-2xl">
+              <button 
+                onClick={() => onboardingForm.name.trim() && setCurrentUser({ id: Date.now().toString(), displayName: onboardingForm.name, gender: onboardingForm.gender, email: '', provider: 'local' })} 
+                disabled={!onboardingForm.name.trim()} 
+                className="w-full py-5 bg-blue-600 text-white rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 shadow-xl shadow-blue-500/30 ring-4 ring-blue-50"
+              >
                 {t.onboarding_start}
               </button>
             </div>
@@ -868,26 +777,36 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Header with AI Input */}
       <div className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-xl border-b border-indigo-100 p-3 shadow-sm">
         <div className="max-w-5xl mx-auto flex flex-col gap-1.5">
           <div className="flex items-center justify-between w-full">
-            <div className="flex flex-col">
-              <div className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
-                <span className="opacity-40">👋</span> HI, <span className="text-slate-900 underline decoration-indigo-200 decoration-2 underline-offset-2">{currentUser?.displayName || 'YOU'}</span>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                  <span className="opacity-50">📅</span> {currentTime.toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US', { day: '2-digit', month: '2-digit' })}
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsSettingsOpen(true)} 
+                className="p-2 -ml-2 text-slate-500 hover:text-indigo-600 transition-colors"
+                aria-label="Menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div className="flex flex-col">
+                <div className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
+                  <span className="opacity-40">👋</span> HI, <span className="text-slate-900 underline decoration-indigo-200 decoration-2 underline-offset-2">{currentUser?.displayName || 'YOU'}</span>
                 </div>
-                <div className="w-[1px] h-2 bg-slate-200"></div>
-                <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                  <span className="opacity-50">⏰</span> {currentTime.toLocaleTimeString(settings.language === 'vi' ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                    <span className="opacity-50">📅</span> {currentTime.toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US', { day: '2-digit', month: '2-digit' })}
+                  </div>
+                  <div className="w-[1px] h-2 bg-slate-200"></div>
+                  <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                    <span className="opacity-50">⏰</span> {currentTime.toLocaleTimeString(settings.language === 'vi' ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </div>
                 </div>
               </div>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-[12px] font-black text-slate-900 uppercase leading-none tracking-tighter">FINAI</span>
+              <span className="text-[12px] font-black text-slate-900 uppercase leading-none tracking-tighter">{t.appTitle}</span>
               <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">{APP_VERSION}</span>
             </div>
           </div>
@@ -901,12 +820,11 @@ const App: React.FC = () => {
       </div>
 
       <main className="max-w-5xl w-full mx-auto px-4 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-        
         {activeTab === 'home' && (
           <>
             <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in zoom-in-95 duration-300">
               {[
-                { label: t.stats_jars, val: Object.values(balances).reduce((a, b) => a + b, 0), icon: '💰', colorClass: 'text-slate-900' }, 
+                { label: t.stats_jars, val: (Object.values(balances) as number[]).reduce((a: number, b: number) => a + b, 0), icon: '💰', colorClass: 'text-slate-900' }, 
                 { label: t.stats_debt, val: stats.debt, icon: '📉', colorClass: 'text-blue-600' }, 
                 { label: t.stats_lent, val: stats.lent, icon: '🤝', colorClass: 'text-red-600' }, 
                 { label: t.stats_net, val: stats.net, icon: '💎', dark: true, colorClass: 'text-white' }
@@ -917,7 +835,6 @@ const App: React.FC = () => {
                 </div>
               ))}
             </section>
-
             <section className="bg-white p-5 rounded-[2.5rem] border-2 border-indigo-50 shadow-xl shadow-indigo-100/50 flex items-center gap-5 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full -mr-12 -mt-12 opacity-50 group-hover:scale-110 transition-transform"></div>
               <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-lg shadow-indigo-200 z-10">
@@ -928,7 +845,6 @@ const App: React.FC = () => {
                 <p className="text-[12px] font-bold text-slate-700 italic leading-relaxed">"{aiAdvice}"</p>
               </div>
             </section>
-
             <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {Object.values(JarType).map(type => (
                 <JarVisual 
@@ -947,46 +863,13 @@ const App: React.FC = () => {
             </section>
           </>
         )}
-
-        {activeTab === 'entry' && (
-          <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-100 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">📝 {t.manual_title}</h3>
-            <form onSubmit={handleManualSubmit} className="space-y-4">
-               <div className="flex bg-slate-100 p-1 rounded-2xl h-12 border-2 border-slate-200">
-                  <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[10px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-white shadow-sm text-red-600' : 'text-slate-400'}`}>{t.manual_expense}</button>
-                  <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[10px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400'}`}>{t.manual_income}</button>
-               </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="relative h-12">
-                    <input required type="text" value={manualAmount} onChange={e => setManualAmount(formatDots(e.target.value))} placeholder={`${t.manual_amount} (${settings.currency})`} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2 text-xs font-bold outline-none h-full pr-24" />
-                    <p className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-400 pointer-events-none">{formatAmountUnits(parseFormattedNumber(manualAmount) * EXCHANGE_RATES[settings.currency], settings.currency)}</p>
-                 </div>
-                 <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2 text-xs font-bold outline-none h-12" />
-               </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <select value={manualJar} onChange={e => setManualJar(e.target.value as any)} className="bg-slate-50 border-2 border-slate-200 rounded-xl px-4 text-[11px] font-bold outline-none h-12">
-                    <option value="AUTO">{t.manual_auto}</option>
-                    {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
-                 </select>
-                 <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="bg-slate-50 border-2 border-slate-200 rounded-xl px-4 text-xs font-bold h-12" />
-               </div>
-               <div className="flex gap-2 pt-2">
-                  <button type="submit" className="flex-1 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-xl h-12 hover:bg-indigo-700 shadow-lg active:scale-95 transition-all">{editingTransactionId ? t.manual_update : t.manual_save}</button>
-                  {editingTransactionId && (
-                     <button type="button" onClick={() => { setEditingTransactionId(null); setManualAmount(''); setManualDesc(''); }} className="px-6 bg-slate-200 text-slate-500 text-[11px] font-black uppercase rounded-xl h-12">{t.manual_cancel}</button>
-                  )}
-               </div>
-            </form>
-          </section>
-        )}
-
         {activeTab === 'history' && (
           <section className="bg-white p-5 rounded-[2.5rem] border-2 border-slate-200 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
              <div className="flex items-center gap-2 mb-4">
                 <span className="text-xl">📜</span>
                 <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">{t.history_title}</h3>
              </div>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4 pb-4 border-b border-slate-100">
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 pb-4 border-b border-slate-100">
                 <div className="space-y-0.5">
                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_type}</label>
                    <select value={historyFilter} onChange={e => setHistoryFilter(e.target.value as any)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[9px] font-bold outline-none h-8">
@@ -1003,11 +886,15 @@ const App: React.FC = () => {
                    </select>
                 </div>
                 <div className="space-y-0.5">
-                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_date}</label>
-                   <input type="date" value={historyDateFilter} onChange={e => setHistoryDateFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[9px] font-bold outline-none h-8" />
+                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_from}</label>
+                   <input type="date" value={historyFromDateFilter} onChange={e => setHistoryFromDateFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[9px] font-bold outline-none h-8" />
+                </div>
+                <div className="space-y-0.5">
+                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_to}</label>
+                   <input type="date" value={historyToDateFilter} onChange={e => setHistoryToDateFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[9px] font-bold outline-none h-8" />
                 </div>
              </div>
-             <div className="space-y-2 max-h-[450px] overflow-y-auto custom-scrollbar pr-1">
+             <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
                 {filteredTransactions.length === 0 ? (
                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-100">
                      <p className="text-[10px] font-bold text-slate-400 italic">{t.history_empty}</p>
@@ -1038,7 +925,6 @@ const App: React.FC = () => {
              </div>
           </section>
         )}
-
         {activeTab === 'overview' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl min-h-[350px]">
@@ -1054,7 +940,7 @@ const App: React.FC = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ left: -10 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#64748b' }} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontStretch: 'condensed', fontWeight: 700, fill: '#64748b' }} />
                     <YAxis axisLine={false} tickLine={false} tickFormatter={formatYAxis} tick={{ fontSize: 9, fontWeight: 700, fill: '#64748b' }} />
                     <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px' }} />
                     <Bar dataKey="Thu" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -1063,30 +949,22 @@ const App: React.FC = () => {
                 </ResponsiveContainer>
               </div>
             </section>
-
-            <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl min-h-[400px]">
-              <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">⭕ {t.pie_title}</h3>
-              <div className="h-[300px] flex flex-col items-center">
-                {pieData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" labelLine={false}>
-                        {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                      </Pie>
-                      <Tooltip />
-                      <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', paddingTop: '20px' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center">
-                    <p className="text-[10px] font-bold text-slate-300 italic">{t.history_empty}</p>
-                  </div>
-                )}
+            <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl min-h-[350px]">
+              <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">🍕 {t.pie_title}</h3>
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="45%" innerRadius={60} outerRadius={85} paddingAngle={5} dataKey="value">
+                      {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px' }} />
+                    <Legend verticalAlign="bottom" align="center" layout="horizontal" wrapperStyle={{ fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', paddingTop: '10px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </section>
           </div>
         )}
-
         {activeTab === 'loans' && (
           <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl min-h-[160px] flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between mb-6 border-b border-slate-50 pb-3">
@@ -1111,22 +989,18 @@ const App: React.FC = () => {
                                <p className="text-[11px] font-black text-slate-800 uppercase leading-tight">{loan.lenderName}</p>
                                <div className="flex items-center gap-2 mt-0.5">
                                  <p className="text-[8px] font-bold text-slate-400">{loan.startDate}</p>
-                                 {loan.imageUrl && (
-                                   <button onClick={() => setViewingImageUrl(loan.imageUrl!)} className="w-4 h-4 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center text-[7px] hover:bg-indigo-600 hover:text-white transition-all shadow-sm">📷</button>
-                                 )}
+                                 {loan.imageUrl && <button onClick={() => setViewingImageUrl(loan.imageUrl!)} className="w-4 h-4 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center text-[7px] hover:bg-indigo-600 hover:text-white transition-all shadow-sm">📷</button>}
                                </div>
                              </div>
                           </div>
                           <div className="flex flex-col items-end">
-                             {!isCompleted && (
-                                <button onClick={() => handlePayLoan(loan)} className={`px-2 py-1 text-[7px] font-black uppercase rounded-lg shadow-sm mb-1 ${loan.type === LoanType.BORROW ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}>{loan.type === LoanType.BORROW ? t.loan_pay : t.loan_recover}</button>
-                             )}
-                             <p className={`text-[11px] font-black ${isCompleted ? 'text-slate-400 line-through' : (loan.type === LoanType.BORROW ? 'text-rose-500' : 'text-emerald-600')}`}>{formatCurrency(loan.principal - loan.paidAmount)}</p>
+                             {!isCompleted && <button onClick={() => handlePayLoan(loan)} className={`px-2 py-1 text-[7px] font-black uppercase rounded-lg shadow-sm mb-1 ${loan.type === LoanType.BORROW ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}>{loan.type === LoanType.BORROW ? t.loan_pay : t.loan_recover}</button>}
+                             <p className="text-[11px] font-black">{formatCurrency(loan.principal - loan.paidAmount)}</p>
                              <p className="text-[8px] font-bold text-slate-400 mt-0.5">{t.loan_paid}: {formatCurrency(loan.paidAmount)}</p>
                           </div>
                         </div>
                         <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden mt-2"><div className={`h-full transition-all duration-1000 ${isCompleted ? 'bg-indigo-500' : (loan.type === LoanType.BORROW ? 'bg-rose-400' : 'bg-emerald-400')}`} style={{ width: `${progress}%` }} /></div>
-                        <div className="flex justify-between mt-2 px-1"><span className="text-[8px] font-bold text-slate-400 uppercase">{t.manual_allocation_only}: {progress.toFixed(0)}%</span><span className="text-[8px] font-bold text-slate-400 uppercase">{isCompleted ? 'Done' : `${t.loan_rem}: ${formatCurrency(loan.principal - loan.paidAmount)}`}</span></div>
+                        <div className="flex justify-between mt-2 px-1"><span className="text-[8px] font-bold text-slate-400 uppercase">{t.manual_allocation_only}: {progress.toFixed(0)}%</span><span className="text-[8px] font-bold text-slate-400 uppercase">{isCompleted ? 'Hoàn tất' : `${t.loan_rem}: ${formatCurrency(loan.principal - loan.paidAmount)}`}</span></div>
                         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-all z-20">
                            {!isCompleted && <button onClick={() => handleEditLoan(loan)} className="w-7 h-7 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white shadow-md border border-indigo-100 text-[10px]">✏️</button>}
                            <button onDoubleClick={() => handleDeleteLoan(loan.id)} className="w-7 h-7 bg-white text-rose-600 rounded-full flex items-center justify-center hover:bg-rose-600 hover:text-white shadow-md border border-rose-100 text-[10px]">🗑️</button>
@@ -1140,43 +1014,65 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100/50 p-2 shadow-2xl">
-        <div className="max-w-5xl mx-auto flex items-center justify-between px-1 md:px-4">
-          <div className="flex items-center gap-1 md:gap-4 flex-1 justify-start">
-            <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'home' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100/50 p-2 shadow-2xl safe-area-bottom">
+        <div className="max-w-5xl mx-auto flex items-center justify-center px-1 md:px-4">
+          <div className="flex items-center justify-around w-full max-w-2xl relative">
+            <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-w-[70px] ${activeTab === 'home' ? 'bg-indigo-50 text-indigo-600 scale-105' : 'text-slate-400 hover:bg-slate-50'}`}>
               <span className="text-xl">🏠</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_home}</span>
+              <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_home}</span>
             </button>
-            <button onClick={() => setActiveTab('entry')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'entry' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
-              <span className="text-xl">📝</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_entry}</span>
-            </button>
-            <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
+            <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-w-[70px] ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-600 scale-105' : 'text-slate-400 hover:bg-slate-50'}`}>
               <span className="text-xl">📜</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_history}</span>
+              <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_history}</span>
             </button>
-          </div>
-
-          <button onClick={() => setActiveTab('entry')} className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-full flex items-center justify-center shadow-xl hover:shadow-indigo-200 hover:scale-110 active:scale-95 transition-all -translate-y-5 ring-4 ring-white flex-shrink-0 mx-2">
-            <span className="text-3xl font-light">＋</span>
-          </button>
-
-          <div className="flex items-center gap-1 md:gap-4 flex-1 justify-end">
-            <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'overview' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
+            <div className="relative flex items-center justify-center px-4 -mt-2">
+              <button onClick={() => setIsEntryModalOpen(true)} className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-full flex items-center justify-center shadow-2xl hover:shadow-indigo-200 hover:scale-110 active:scale-95 transition-all -translate-y-5 ring-4 ring-white">
+                <span className="text-3xl font-light">＋</span>
+              </button>
+            </div>
+            <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-w-[70px] ${activeTab === 'overview' ? 'bg-indigo-50 text-indigo-600 scale-105' : 'text-slate-400 hover:bg-slate-50'}`}>
               <span className="text-xl">📊</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_overview}</span>
+              <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_overview}</span>
             </button>
-            <button onClick={() => setActiveTab('loans')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${activeTab === 'loans' ? 'bg-indigo-50 text-indigo-600 scale-110' : 'text-slate-400 hover:bg-slate-50'}`}>
+            <button onClick={() => setActiveTab('loans')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-w-[70px] ${activeTab === 'loans' ? 'bg-indigo-50 text-indigo-600 scale-105' : 'text-slate-400 hover:bg-slate-50'}`}>
               <span className="text-xl">🏦</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_loans}</span>
-            </button>
-            <button onClick={() => setIsSettingsOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-2xl text-slate-400 hover:bg-slate-50 transition-all">
-              <span className="text-xl">⚙️</span>
-              <span className="text-[7px] font-black uppercase tracking-tighter">{t.nav_menu}</span>
+              <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_loans}</span>
             </button>
           </div>
         </div>
       </div>
+
+      {isEntryModalOpen && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-8 shadow-2xl relative animate-in zoom-in-95">
+            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-8 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg">📝</span> {editingTransactionId ? t.manual_edit : t.manual_title}</h2>
+            <form onSubmit={handleManualSubmit} className="space-y-6">
+               <div className="flex bg-slate-100 p-1.5 rounded-2xl h-14 border-2 border-slate-200">
+                  <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-white shadow-sm text-red-600' : 'text-slate-400'}`}>{t.manual_expense}</button>
+                  <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400'}`}>{t.manual_income}</button>
+               </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="relative h-14">
+                    <input required type="text" value={manualAmount} onChange={e => setManualAmount(formatDots(e.target.value))} placeholder={`${t.manual_amount} (${settings.currency})`} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-full pr-24" />
+                    <p className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-400 pointer-events-none">{formatAmountUnits(parseFormattedNumber(manualAmount) * EXCHANGE_RATES[settings.currency], settings.currency)}</p>
+                 </div>
+                 <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
+               </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <select value={manualJar} onChange={e => setManualJar(e.target.value as any)} className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14">
+                    <option value="AUTO">{t.manual_auto}</option>
+                    {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
+                 </select>
+                 <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold h-14" />
+               </div>
+               <div className="flex gap-4 pt-4">
+                  <button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); setManualAmount(''); setManualDesc(''); }} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl tracking-widest">{t.manual_cancel}</button>
+                  <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{editingTransactionId ? t.manual_update : t.manual_save}</button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[200] flex">
@@ -1186,7 +1082,7 @@ const App: React.FC = () => {
               <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">{t.settings_title}</h2>
               <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors">✕</button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-6">
               {settingsTab === 'app' && (
                 <div className="space-y-10">
                    <div className="space-y-4">
@@ -1250,7 +1146,9 @@ const App: React.FC = () => {
               )}
               {settingsTab === 'info' && (
                 <div className="flex flex-col items-center py-10 space-y-4">
-                   <div className="w-20 h-20 bg-indigo-600 text-white rounded-3xl flex items-center justify-center text-3xl shadow-xl">✨</div>
+                   <div className="w-20 h-20 bg-indigo-600 text-white rounded-3xl flex items-center justify-center text-3xl shadow-xl overflow-hidden">
+                      <img src="https://files.oaiusercontent.com/file-D3AAb2vYvXF5Z8V5Z5Z5Z5" className="w-full h-full object-cover" alt="FINAI Logo" />
+                   </div>
                    <div className="text-center">
                       <h2 className="text-xl font-black text-slate-800 tracking-tighter">FINAI</h2>
                       <p className="text-[10px] font-bold text-slate-500 mt-1">Dựa trên nguyên tắc quản lý tài chính 6 lọ của T. Harv Eker</p>
@@ -1300,7 +1198,6 @@ const App: React.FC = () => {
                 <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label><input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[11px] font-bold outline-none" placeholder="..." /></div>
                 <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label><select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as any})} className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[11px] font-bold outline-none"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}</select></div>
               </div>
-              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_date_label}</label>
@@ -1321,7 +1218,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_principal}</label><div className="relative"><input required type="text" value={loanPrincipalStr} onChange={e => setLoanPrincipalStr(formatDots(e.target.value))} className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[11px] font-bold outline-none" placeholder="0" /><p className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-400">{formatAmountUnits(parseFormattedNumber(loanPrincipalStr) * EXCHANGE_RATES[settings.currency], settings.currency)}</p></div></div>
                 <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_paid_label}</label><div className="relative"><input type="text" value={loanPaidAmountStr} onChange={e => setLoanPaidAmountStr(formatDots(e.target.value))} className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[11px] font-bold outline-none" placeholder="0" /><p className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-400">{formatAmountUnits(parseFormattedNumber(loanPaidAmountStr) * EXCHANGE_RATES[settings.currency], settings.currency)}</p></div></div>
