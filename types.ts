@@ -28,6 +28,7 @@ export interface Transaction {
   note?: string;
   imageUrl?: string;
   loanId?: string; // Liên kết với khoản vay/nợ
+  transferGroupId?: string; // Liên kết cặp giao dịch chuyển tiền
 }
 
 export type JarBalance = Record<JarType, number>;
@@ -65,6 +66,28 @@ export interface Loan {
   purpose?: string; // Mục đích vay/cho vay
   loanJar?: JarType; // Hũ liên quan để hoàn trả chính xác
   imageUrl?: string; // Ảnh chứng từ
+}
+
+export type SubscriptionType = '1d' | '3d' | '1w' | '1m' | '3m' | '6m' | '1y' | '3y';
+
+export interface RecurringTemplate {
+  id: string;
+  amount: number;
+  description: string;
+  jarType: JarType | 'AUTO';
+  type: 'income' | 'expense';
+  subscriptionType: SubscriptionType;
+  startDate: string; // YYYY-MM-DD
+  endDate: string;   // YYYY-MM-DD
+  lastRunDate?: string; // YYYY-MM-DD
+  isActive: boolean;
+}
+
+export interface EventGroup {
+  id: string;
+  name: string;
+  date: string;
+  transactions: Transaction[];
 }
 
 export interface User {

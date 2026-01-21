@@ -27,23 +27,21 @@ const JarVisual: React.FC<JarVisualProps> = ({
 
   return (
     <div className="bg-white rounded-[2rem] border-2 border-slate-100 p-4 shadow-lg hover:shadow-xl transition-all group relative overflow-hidden flex flex-col items-center min-h-[180px]">
-      {/* Action buttons overlay (visible on hover) */}
-      <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-        <button 
-          onClick={onTransferClick} 
-          className="w-7 h-7 bg-white/90 backdrop-blur shadow-sm rounded-full hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition-colors border border-slate-100 flex items-center justify-center"
-          title="Chuyển tiền"
-        >
-          <span className="text-[10px]">⇄</span>
-        </button>
-        <button 
-          onClick={() => setShowInfo(!showInfo)} 
-          className={`w-7 h-7 flex items-center justify-center backdrop-blur shadow-sm rounded-full transition-colors border border-slate-100 ${showInfo ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white/90 text-slate-400 hover:text-indigo-600'}`}
-          title="Thông tin hũ"
-        >
-          <span className="text-[10px] font-bold">i</span>
-        </button>
-      </div>
+      {/* Action buttons overlay */}
+      <button 
+        onClick={onTransferClick} 
+        className="absolute top-2 left-2 w-7 h-7 bg-white/90 backdrop-blur shadow-sm rounded-full hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition-opacity z-20 border border-slate-100 flex items-center justify-center opacity-0 group-hover:opacity-100"
+        title="Chuyển tiền"
+      >
+        <span className="text-[10px]">⇄</span>
+      </button>
+      <button 
+        onClick={() => setShowInfo(!showInfo)} 
+        className={`absolute top-2 right-2 w-7 h-7 flex items-center justify-center backdrop-blur shadow-sm rounded-full transition-all z-20 border border-slate-100 ${showInfo ? 'bg-indigo-600 text-white border-indigo-600 opacity-100' : 'bg-white/90 text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100'}`}
+        title="Thông tin hũ"
+      >
+        <span className="text-[10px] font-bold">i</span>
+      </button>
 
       {/* Info Overlay */}
       {showInfo && (
