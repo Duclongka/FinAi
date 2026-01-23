@@ -1,10 +1,15 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { JarType, Transaction, JarBalance, Loan, LoanCategory, LoanType, User, AppSettings, RecurringTemplate, EventGroup, SubscriptionType } from './types';
 import { JAR_CONFIG } from './constants';
 import { analyzeTransactionText, getFinancialAdvice } from './services/geminiService';
 import JarVisual from './components/JarVisual';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+
+type AppTab = 'home' | 'history' | 'overview' | 'loans';
+
+const SUBSCRIPTION_DURATIONS: Record<SubscriptionType, number> = {
+  '1d': 1, '3d': 3, '1w': 7, '1m': 30, '3m': 90, '6m': 180, '1y': 365, '3y': 1095
+};
 
 const EXCHANGE_RATES = {
   VND: 1,
@@ -72,6 +77,7 @@ const TRANSLATIONS: Record<string, any> = {
     manual_income: "THU NHẬP",
     manual_amount: "Số tiền",
     manual_desc: "Nội dung",
+    manual_note: "Ghi chú",
     manual_jar_img: "Phân bổ & Hình ảnh",
     manual_allocation_only: "Phân bổ",
     manual_date_label: "Ngày tháng",
@@ -116,6 +122,8 @@ const TRANSLATIONS: Record<string, any> = {
     settings_policy: "PHÁP LÝ",
     settings_guide: "HDSD",
     settings_app: "CÀI ĐẶT",
+    settings_notification: "HẸN GIỜ THÔNG BÁO",
+    settings_notification_desc: "Nhắc nhở ghi chép chi tiêu hằng ngày",
     currency: "TIỀN TỆ",
     language: "NGÔN NGỮ",
     lang_vi: "Tiếng Việt",
@@ -164,128 +172,12 @@ const TRANSLATIONS: Record<string, any> = {
     event_add: "+Tạo SK mới",
     event_save_history: "Lưu lịch sử chung",
     event_delete: "Xóa sự kiện",
-    event_entry_title: "Nhập liệu sự kiện"
-  },
-  en: {
-    appTitle: "FinAi",
-    stats_jars: "Jar Balance",
-    stats_debt: "Debts to Pay",
-    stats_lent: "Money Lent",
-    stats_net: "Net Assets",
-    advice_title: "AI Financial Advice",
-    chart_title: "INCOME & EXPENSE CHART",
-    pie_title: "JAR ALLOCATION",
-    chart_week: "Week",
-    chart_month: "Month",
-    chart_year: "Year",
-    manual_title: "MANUAL ENTRY",
-    manual_edit: "EDITING TRANSACTION",
-    manual_cancel: "CANCEL",
-    manual_type: "Transaction Type",
-    manual_expense: "EXPENSE",
-    manual_income: "INCOME",
-    manual_amount: "Amount",
-    manual_desc: "Description",
-    manual_jar_img: "Allocation & Images",
-    manual_allocation_only: "Allocation",
-    manual_date_label: "Date",
-    manual_auto: "✨ Auto-split 6 Jars",
-    manual_save: "SAVE TRANSACTION",
-    manual_update: "SAVE CHANGES",
-    history_title: "TRANSACTION HISTORY",
-    history_filter: "FILTER",
-    history_type: "Type",
-    history_jar: "Jar",
-    history_date: "Date",
-    history_from: "From",
-    history_to: "To",
-    history_all: "ALL",
-    history_inc_only: "Income",
-    history_exp_only: "Expense",
-    history_more: "Load more ↓",
-    history_empty: "No transactions",
-    loan_title: "LOAN MANAGEMENT",
-    loan_new: "ADD NEW LOAN",
-    loan_edit: "EDIT LOAN",
-    loan_pay: "PAY",
-    loan_recover: "RECOVER",
-    loan_i_owe: "I OWE",
-    loan_owes_me: "OWES ME",
-    loan_rem: "Rem",
-    loan_paid: "Paid",
-    loan_partner: "PARTNER",
-    loan_principal: "PRINCIPAL",
-    loan_paid_label: "PAID AMOUNT",
-    loan_jar_label: "RELATED JAR",
-    loan_date_label: "EXECUTION DATE",
-    loan_img_label: "PHOTO",
-    loan_add_img: "ADD PHOTO",
-    settings_title: "APP SETTINGS",
-    settings_data: "DATA",
-    settings_data_export: "EXPORT CSV",
-    settings_data_import: "IMPORT DATA (AI)",
-    settings_data_reset: "RESET ALL DATA",
-    settings_info: "INFO & SUPPORT",
-    settings_connect: "SUPPORT",
-    settings_policy: "LEGAL",
-    settings_guide: "GUIDE",
-    settings_app: "CONFIG",
-    currency: "CURRENCY",
-    language: "LANGUAGE",
-    lang_vi: "Vietnamese",
-    lang_en: "English",
-    lang_ja: "Japanese",
-    user_label: "Settings",
-    ai_placeholder: "Enter transaction (e.g., Dinner 20$ NEC jar)...",
-    onboarding_welcome: "Welcome to FINAI",
-    onboarding_desc: "Please provide your info to start your financial freedom journey.",
-    onboarding_name: "Your full name",
-    onboarding_gender: "Gender",
-    onboarding_male: "MALE",
-    onboarding_female: "FEMALE",
-    onboarding_start: "START NOW",
-    transfer_title: "TRANSFER BETWEEN JARS",
-    transfer_from: "From Jar",
-    transfer_to: "To Jar",
-    transfer_amount: "TRANSFER AMOUNT",
-    transfer_cancel: "CANCEL",
-    transfer_confirm: "CONFIRM TRANSFER",
-    save_loan: "SAVE LOAN",
-    view_photo: "VIEW PHOTO",
-    support_email: "FEEDBACK EMAIL",
-    guide_video_btn: "LEARN 6-JARS RULE",
-    nav_home: "HOME",
-    nav_entry: "ENTRY",
-    nav_history: "HISTORY",
-    nav_overview: "OVERVIEW",
-    nav_loans: "OTHER",
-    nav_menu: "MENU",
-    jar_nec_name: "Necessities",
-    jar_nec_desc: "For essential monthly expenses like rent, utilities, food, and other living costs.",
-    jar_lts_name: "Savings",
-    jar_lts_desc: "Long-term savings for future big goals like buying a house, car, or travel.",
-    jar_edu_name: "Education",
-    jar_edu_desc: "Investment in knowledge and skills to enhance personal value and career growth.",
-    jar_play_name: "Play",
-    jar_play_desc: "For entertainment expenses like travel, movies, shopping to enjoy life.",
-    jar_ffa_name: "Invest",
-    jar_ffa_desc: "For investments aimed at increasing income and achieving financial freedom.",
-    jar_give_name: "Give",
-    jar_give_desc: "To support charities or help relatives and friends, creating community value.",
-    recurring_title: "GIAO DỊCH ĐỊNH KỲ",
-    recurring_add: "THÊM ĐỊNH KỲ",
-    event_title: "GD THEO SỰ KIỆN",
-    event_add: "+Tạo SK mới",
-    event_save_history: "Save to History",
-    event_delete: "Delete Event",
-    event_entry_title: "Event Entry"
+    event_entry_title: "Nhập liệu sự kiện",
+    history_detail_title: "CHI TIẾT GIAO DỊCH",
+    confirm_delete_title: "XÁC NHẬN XÓA",
+    confirm_delete_msg: "Bạn có chắc chắn muốn xóa vĩnh viễn giao dịch này?",
+    loan_detail_title: "CHI TIẾT GIAO DỊCH VAY NỢ"
   }
-};
-
-type AppTab = 'home' | 'history' | 'overview' | 'loans';
-
-const SUBSCRIPTION_DURATIONS: Record<SubscriptionType, number> = {
-  '1d': 1, '3d': 3, '1w': 7, '1m': 30, '3m': 90, '6m': 180, '1y': 365, '3y': 1095
 };
 
 const App: React.FC = () => {
@@ -349,6 +241,11 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'export' | 'info' | 'policy' | 'guide' | 'app'>('app');
   
+  // History States
+  const [isHistoryFilterModalOpen, setIsHistoryFilterModalOpen] = useState(false);
+  const [isHistoryDetailModalOpen, setIsHistoryDetailModalOpen] = useState(false);
+  const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [historyFilter, setHistoryFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [historyJarFilter, setHistoryJarFilter] = useState<JarType | 'all'>('all');
   const [historyFromDateFilter, setHistoryFromDateFilter] = useState<string>(''); 
@@ -358,18 +255,26 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [manualAmount, setManualAmount] = useState('');
   const [manualDesc, setManualDesc] = useState('');
+  const [manualNote, setManualNote] = useState('');
   const [manualType, setManualType] = useState<'income' | 'expense'>('expense');
   const [manualJar, setManualJar] = useState<JarType | 'AUTO'>(JarType.NEC);
   const [manualDate, setManualDate] = useState(getTodayString());
+  const [manualImage, setManualImage] = useState<string>('');
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
 
+  // Loan & Payment States
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
+  const [isLoanDetailModalOpen, setIsLoanDetailModalOpen] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+  const [isLoanPaymentModalOpen, setIsLoanPaymentModalOpen] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({ amountStr: '', date: getTodayString(), jar: JarType.NEC as JarType | 'AUTO', note: '', imageUrl: '' });
+  const [paymentLoanId, setPaymentLoanId] = useState<string | null>(null);
   const [editingLoanId, setEditingLoanId] = useState<string | null>(null);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
   const [loanPrincipalStr, setLoanPrincipalStr] = useState('');
   const [loanPaidAmountStr, setLoanPaidAmountStr] = useState('');
   const [loanForm, setLoanForm] = useState<Omit<Partial<Loan>, 'loanJar'> & { loanJar: JarType | 'AUTO' }>({
-    type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO', imageUrl: ''
+    type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO', imageUrl: '', purpose: ''
   });
 
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
@@ -390,6 +295,7 @@ const App: React.FC = () => {
   const [transferAmount, setTransferAmount] = useState('');
 
   const [deleteClickData, setDeleteClickData] = useState({ id: '', count: 0 });
+  const deleteResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [aiAdvice, setAiAdvice] = useState<string>('');
@@ -399,6 +305,8 @@ const App: React.FC = () => {
   const aiInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loanPhotoInputRef = useRef<HTMLInputElement>(null);
+  const paymentPhotoInputRef = useRef<HTMLInputElement>(null);
+  const manualPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS.vi;
 
@@ -422,7 +330,6 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Logic kiểm tra Giao dịch định kỳ khi khởi động
   useEffect(() => {
     const checkRecurring = () => {
       const today = getTodayString();
@@ -543,8 +450,10 @@ const App: React.FC = () => {
     const newTrans: Transaction = {
       id: editingTransactionId || Date.now().toString(), type: manualType,
       amount: amountInVnd, description: manualDesc, 
+      note: manualNote,
       jarType: manualJar === 'AUTO' ? undefined : manualJar as JarType,
       timestamp: new Date(manualDate).getTime(),
+      imageUrl: manualImage
     };
     if (editingTransactionId) {
       const old = transactions.find(item => item.id === editingTransactionId) || null;
@@ -557,6 +466,8 @@ const App: React.FC = () => {
     }
     setManualAmount(''); 
     setManualDesc(''); 
+    setManualNote('');
+    setManualImage('');
     setManualJar(manualType === 'expense' ? JarType.NEC : 'AUTO');
     setManualDate(getTodayString());
     setIsEntryModalOpen(false);
@@ -689,7 +600,47 @@ const App: React.FC = () => {
     setIsLoanModalOpen(false);
     setLoanPrincipalStr('');
     setLoanPaidAmountStr('');
-    setLoanForm({ type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO', imageUrl: '' });
+    setLoanForm({ type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO', imageUrl: '', purpose: '' });
+  };
+
+  const handleOpenNewLoan = () => {
+    setEditingLoanId(null);
+    setLoanForm({ type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO', imageUrl: '', purpose: '' });
+    setLoanPrincipalStr('');
+    setLoanPaidAmountStr('');
+    setIsLoanModalOpen(true);
+  };
+
+  const handlePaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentLoanId || !paymentForm.amountStr) return;
+    const amountVnd = parseFormattedNumber(paymentForm.amountStr);
+    const targetLoan = loans.find(l => l.id === paymentLoanId);
+    if (!targetLoan || amountVnd <= 0) return;
+
+    const finalJar = paymentForm.jar === 'AUTO' ? targetLoan.loanJar : paymentForm.jar as JarType;
+    const txType = targetLoan.type === LoanType.BORROW ? 'expense' : 'income';
+    const txLabel = targetLoan.type === LoanType.BORROW ? 'Thanh toán khoản vay' : 'Thu hồi khoản vay';
+
+    const payTx: Transaction = {
+      id: `pay_${Date.now()}`,
+      type: txType,
+      amount: amountVnd,
+      description: `[${txLabel}] ${targetLoan.lenderName}${paymentForm.note ? ': ' + paymentForm.note : ''}`,
+      jarType: finalJar,
+      timestamp: new Date(paymentForm.date).getTime(),
+      loanId: paymentLoanId,
+      imageUrl: paymentForm.imageUrl
+    };
+
+    setTransactions(p => [payTx, ...p]);
+    updateBalances(null, payTx);
+    setLoans(p => p.map(l => l.id === paymentLoanId ? { ...l, paidAmount: l.paidAmount + amountVnd } : l));
+    
+    setIsLoanPaymentModalOpen(false);
+    setPaymentForm({ amountStr: '', date: getTodayString(), jar: JarType.NEC, note: '', imageUrl: '' });
+    setPaymentLoanId(null);
+    showToast("Thành công!");
   };
 
   const handleSaveRecurring = (e: React.FormEvent) => {
@@ -712,6 +663,7 @@ const App: React.FC = () => {
     setRecurringTemplates(p => [...p, newTpl]);
     setRecurringAmountStr('');
     setRecurringForm(prev => ({ ...prev, description: '' })); 
+    setIsRecurringModalOpen(false);
     showToast("Đã thêm định kỳ!");
   };
 
@@ -777,7 +729,6 @@ const App: React.FC = () => {
     const tx = transactions.find(t => t.id === id);
     if (tx) {
       if (tx.transferGroupId) {
-        // Hoàn tác cả cặp giao dịch chuyển tiền
         const group = transactions.filter(t => t.transferGroupId === tx.transferGroupId);
         group.forEach(g => updateBalances(g, null));
         setTransactions(p => p.filter(t => t.transferGroupId !== tx.transferGroupId));
@@ -788,9 +739,14 @@ const App: React.FC = () => {
         showToast("Đã xóa giao dịch.");
       }
     }
+    setIsHistoryDetailModalOpen(false);
+    setIsDeleteConfirmModalOpen(false);
+    setSelectedTx(null);
   };
 
   const handleTripleDelete = (id: string) => {
+    if (deleteResetTimer.current) clearTimeout(deleteResetTimer.current);
+    
     if (deleteClickData.id === id) {
       const nextCount = deleteClickData.count + 1;
       if (nextCount >= 3) {
@@ -798,9 +754,15 @@ const App: React.FC = () => {
         setDeleteClickData({ id: '', count: 0 });
       } else {
         setDeleteClickData({ id, count: nextCount });
+        deleteResetTimer.current = setTimeout(() => {
+          setDeleteClickData({ id: '', count: 0 });
+        }, 1500); // 1.5 giây để nhấn tiếp
       }
     } else {
       setDeleteClickData({ id, count: 1 });
+      deleteResetTimer.current = setTimeout(() => {
+        setDeleteClickData({ id: '', count: 0 });
+      }, 1500);
     }
   };
 
@@ -809,9 +771,12 @@ const App: React.FC = () => {
     setManualType(tx.type);
     setManualAmount(formatDots((tx.amount * EXCHANGE_RATES[settings.currency]).toString()));
     setManualDesc(tx.description);
+    setManualNote(tx.note || '');
     setManualJar(tx.jarType || 'AUTO');
+    setManualImage(tx.imageUrl || '');
     setManualDate(new Date(tx.timestamp).toISOString().split('T')[0]);
     setIsEntryModalOpen(true);
+    setIsHistoryDetailModalOpen(false);
   };
 
   const handleEditLoan = (loan: Loan) => {
@@ -844,11 +809,9 @@ const App: React.FC = () => {
   };
 
   const handlePayLoan = (loan: Loan) => {
-     setLoanForm({ ...loan, loanJar: loan.loanJar || 'AUTO' });
-     setLoanPrincipalStr(formatDots((loan.principal * EXCHANGE_RATES[settings.currency]).toString()));
-     setLoanPaidAmountStr(formatDots((loan.paidAmount * EXCHANGE_RATES[settings.currency]).toString()));
-     setEditingLoanId(loan.id);
-     setIsLoanModalOpen(true);
+     setPaymentLoanId(loan.id);
+     setPaymentForm({ amountStr: '', date: getTodayString(), jar: loan.loanJar || JarType.NEC, note: '', imageUrl: '' });
+     setIsLoanPaymentModalOpen(true);
   };
 
   const handleLoanPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -857,6 +820,28 @@ const App: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setLoanForm(prev => ({ ...prev, imageUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePaymentPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPaymentForm(prev => ({ ...prev, imageUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleManualPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setManualImage(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -956,9 +941,9 @@ const App: React.FC = () => {
   const [onboardingForm, setOnboardingForm] = useState({ name: '', gender: 'male' as 'male' | 'female' });
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 pt-36 pb-32 font-sans flex flex-col items-center overflow-x-hidden">
+    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans flex flex-col items-center overflow-x-hidden pt-[calc(var(--sat,0px)+120px)] pb-[calc(var(--sab,0px)+100px)]">
       {toast && (
-        <div className={`fixed top-12 left-1/2 -translate-x-1/2 z-[100] ${toast.type === 'success' ? 'bg-indigo-600' : 'bg-slate-800'} text-white px-5 py-2 rounded-full text-[10px] font-black uppercase shadow-2xl animate-in slide-in-from-top-4`}>
+        <div className={`fixed left-1/2 -translate-x-1/2 z-[100] ${toast.type === 'success' ? 'bg-indigo-600' : 'bg-slate-800'} text-white px-5 py-2 rounded-full text-[10px] font-black uppercase shadow-2xl animate-in slide-in-from-top-4`} style={{ top: 'calc(var(--sat, 0px) + 12px)' }}>
           {toast.msg}
         </div>
       )}
@@ -967,7 +952,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/90 backdrop-blur-2xl p-4">
           <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-[3rem] w-full max-md:max-w-md p-10 shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="flex flex-col items-center text-center space-y-6">
-              <img src="https://files.oaiusercontent.com/file-D3AAb2vYvXF5Z8V5Z5Z5Z5" className="w-20 h-20 rounded-[2rem] shadow-2xl shadow-indigo-200" alt="Logo FinAi" />
+              <img src="FinAi_icon.png" className="w-20 h-20 rounded-[2rem] shadow-2xl shadow-indigo-200" alt="Logo FinAi" />
               <div className="space-y-2">
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t.onboarding_welcome}</h1>
                 <p className="text-[11px] font-semibold text-slate-500">{t.onboarding_desc}</p>
@@ -997,8 +982,8 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <div className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-xl border-b border-indigo-100 p-3 shadow-sm">
-        <div className="max-w-5xl mx-auto flex flex-col gap-1.5">
+      <div className="fixed top-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-xl border-b border-indigo-100 shadow-sm" style={{ paddingTop: 'var(--sat, 0px)' }}>
+        <div className="max-w-5xl mx-auto flex flex-col gap-1.5 p-3">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               <button 
@@ -1084,44 +1069,32 @@ const App: React.FC = () => {
           </>
         )}
         {activeTab === 'history' && (
-          <section className="bg-white p-5 rounded-[2.5rem] border-2 border-slate-200 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
-             <div className="flex items-center gap-2 mb-4">
-                <span className="text-xl">📜</span>
-                <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">{t.history_title}</h3>
+          <section className="bg-white p-5 rounded-[2.5rem] border-2 border-slate-200 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300 min-h-[500px]">
+             <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                   <span className="text-xl">📜</span>
+                   <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">{t.history_title}</h3>
+                </div>
+                <button 
+                  onClick={() => setIsHistoryFilterModalOpen(true)}
+                  className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-90"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                </button>
              </div>
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 pb-4 border-b border-slate-100">
-                <div className="space-y-0.5">
-                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_type}</label>
-                   <select value={historyFilter} onChange={e => setHistoryFilter(e.target.value as any)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[9px] font-bold outline-none h-8">
-                      <option value="all">{t.history_all}</option>
-                      <option value="income">{t.history_inc_only}</option>
-                      <option value="expense">{t.history_exp_only}</option>
-                   </select>
-                </div>
-                <div className="space-y-0.5">
-                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_jar}</label>
-                   <select value={historyJarFilter} onChange={e => setHistoryJarFilter(e.target.value as any)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[9px] font-bold outline-none h-8">
-                      <option value="all">{t.history_all}</option>
-                      {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
-                   </select>
-                </div>
-                <div className="space-y-0.5">
-                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_from}</label>
-                   <input type="date" value={historyFromDateFilter} onChange={e => setHistoryFromDateFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[9px] font-bold outline-none h-8" />
-                </div>
-                <div className="space-y-0.5">
-                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_to}</label>
-                   <input type="date" value={historyToDateFilter} onChange={e => setHistoryToDateFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[9px] font-bold outline-none h-8" />
-                </div>
-             </div>
-             <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
+             
+             <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                 {filteredTransactions.length === 0 ? (
                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-100">
                      <p className="text-[10px] font-bold text-slate-400 italic">{t.history_empty}</p>
                    </div>
                 ) : (
                   filteredTransactions.map(tx => (
-                    <div key={tx.id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all cursor-default flex items-center justify-between group relative overflow-hidden select-none hover:border-indigo-200 hover:bg-white">
+                    <div 
+                      key={tx.id} 
+                      onDoubleClick={() => { setSelectedTx(tx); setIsHistoryDetailModalOpen(true); }}
+                      className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all cursor-default flex items-center justify-between group relative overflow-hidden select-none hover:border-indigo-200 hover:bg-white active:bg-slate-100"
+                    >
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{tx.type === 'income' ? '↑' : '↓'}</div>
                         <div>
@@ -1135,8 +1108,13 @@ const App: React.FC = () => {
                       <div className="flex items-center gap-2">
                          <p className={`text-[11px] font-black ${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}</p>
                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-1">
-                            <button onClick={() => handleEditTransaction(tx)} className="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm text-[10px]">✏️</button>
-                            <button onClick={() => handleTripleDelete(tx.id)} className="w-7 h-7 bg-red-50 text-red-600 rounded-full flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm text-[10px]">🗑️</button>
+                            <button onClick={(e) => { e.stopPropagation(); handleEditTransaction(tx); }} className="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm text-[10px]">✏️</button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleTripleDelete(tx.id); }} 
+                              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-sm text-[10px] ${deleteClickData.id === tx.id ? 'bg-red-600 text-white scale-110' : 'bg-red-50 text-red-600'}`}
+                            >
+                              {deleteClickData.id === tx.id ? '❓' : '🗑️'}
+                            </button>
                          </div>
                       </div>
                     </div>
@@ -1187,11 +1165,10 @@ const App: React.FC = () => {
         )}
         {activeTab === 'loans' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 pb-20">
-            {/* VAY NỢ */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl">
               <div className="flex items-center justify-between mb-6 border-b border-slate-50 pb-3">
                 <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📉</span> {t.loan_title}</h3>
-                <button onClick={() => { setEditingLoanId(null); setIsLoanModalOpen(true); }} className="px-4 py-2 bg-indigo-600 text-white text-[9px] font-black uppercase rounded-full shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">＋ {t.loan_new}</button>
+                <button onClick={handleOpenNewLoan} className="px-4 py-2 bg-indigo-600 text-white text-[9px] font-black uppercase rounded-full shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">＋ {t.loan_new}</button>
               </div>
               {loans.length === 0 ? (
                 <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 bg-slate-50/30 text-slate-400 italic text-[10px] font-bold">{t.history_empty}</div>
@@ -1201,7 +1178,11 @@ const App: React.FC = () => {
                     const isCompleted = loan.paidAmount >= loan.principal;
                     const progress = Math.min(100, (loan.paidAmount / loan.principal) * 100);
                     return (
-                      <div key={loan.id} className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4 group relative transition-all hover:border-indigo-400 hover:bg-white select-none overflow-hidden pb-10">
+                      <div 
+                        key={loan.id} 
+                        onDoubleClick={() => { setSelectedLoan(loan); setIsLoanDetailModalOpen(true); }}
+                        className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4 group relative transition-all active:bg-white select-none overflow-hidden pb-10"
+                      >
                          <div className="flex items-center justify-between mb-3">
                            <div className="flex items-center gap-3">
                               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm ${loan.type === LoanType.BORROW ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>{loan.type === LoanType.BORROW ? '💸' : '🤝'}</div>
@@ -1209,21 +1190,22 @@ const App: React.FC = () => {
                                 <p className="text-[11px] font-black text-slate-800 uppercase leading-tight">{loan.lenderName}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
                                   <p className="text-[8px] font-bold text-slate-400">{loan.startDate}</p>
-                                  {loan.imageUrl && <button onClick={() => setViewingImageUrl(loan.imageUrl!)} className="w-4 h-4 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center text-[7px] hover:bg-indigo-600 hover:text-white transition-all shadow-sm">📷</button>}
+                                  {loan.imageUrl && <button onClick={(e) => { e.stopPropagation(); setViewingImageUrl(loan.imageUrl!); }} className="w-4 h-4 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center text-[7px] hover:bg-indigo-600 hover:text-white transition-all shadow-sm">📷</button>}
                                 </div>
                               </div>
                            </div>
                            <div className="flex flex-col items-end">
-                              {!isCompleted && <button onClick={() => handlePayLoan(loan)} className={`px-2 py-1 text-[7px] font-black uppercase rounded-lg shadow-sm mb-1 ${loan.type === LoanType.BORROW ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}>{loan.type === LoanType.BORROW ? t.loan_pay : t.loan_recover}</button>}
+                              {!isCompleted && <button onClick={(e) => { e.stopPropagation(); handlePayLoan(loan); }} className={`px-2 py-1 text-[7px] font-black uppercase rounded-lg shadow-sm mb-1 ${loan.type === LoanType.BORROW ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}>{loan.type === LoanType.BORROW ? t.loan_pay : t.loan_recover}</button>}
                               <p className="text-[11px] font-black">{formatCurrency(loan.principal - loan.paidAmount)}</p>
                               <p className="text-[8px] font-bold text-slate-400 mt-0.5">{t.loan_paid}: {formatCurrency(loan.paidAmount)}</p>
                            </div>
                          </div>
                          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden mt-2"><div className={`h-full transition-all duration-1000 ${isCompleted ? 'bg-indigo-500' : (loan.type === LoanType.BORROW ? 'bg-rose-400' : 'bg-emerald-400')}`} style={{ width: `${progress}%` }} /></div>
                          <div className="flex justify-between mt-2 px-1"><span className="text-[8px] font-bold text-slate-400 uppercase">{t.manual_allocation_only}: {progress.toFixed(0)}%</span><span className="text-[8px] font-bold text-slate-400 uppercase">{isCompleted ? 'Hoàn tất' : `${t.loan_rem}: ${formatCurrency(loan.principal - loan.paidAmount)}`}</span></div>
+                         {loan.purpose && <p className="text-[8px] font-bold text-slate-400 mt-2 italic line-clamp-1 border-t border-slate-100 pt-1 tracking-tight">{t.manual_note}: {loan.purpose}</p>}
                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-all z-20">
-                            {!isCompleted && <button onClick={() => handleEditLoan(loan)} className="w-7 h-7 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white shadow-md border border-indigo-100 text-[10px]">✏️</button>}
-                            <button onDoubleClick={() => handleDeleteLoan(loan.id)} className="w-7 h-7 bg-white text-rose-600 rounded-full flex items-center justify-center hover:bg-rose-600 hover:text-white shadow-md border border-rose-100 text-[10px]">🗑️</button>
+                            {!isCompleted && <button onClick={(e) => { e.stopPropagation(); handleEditLoan(loan); }} className="w-7 h-7 bg-white text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white shadow-md border border-indigo-100 text-[10px]">✏️</button>}
+                            <button onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); handleDeleteLoan(loan.id); }} className="w-7 h-7 bg-white text-rose-600 rounded-full flex items-center justify-center hover:bg-rose-600 hover:text-white shadow-md border border-rose-100 text-[10px]">🗑️</button>
                          </div>
                       </div>
                     );
@@ -1232,7 +1214,6 @@ const App: React.FC = () => {
               )}
             </section>
 
-            {/* GIAO DỊCH ĐỊNH KỲ */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl">
               <div className="flex items-center justify-between mb-6 border-b border-slate-50 pb-3">
                 <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📅</span> {t.recurring_title}</h3>
@@ -1249,7 +1230,7 @@ const App: React.FC = () => {
                     const isNearEnd = diff <= 3 && diff >= 0;
 
                     return (
-                      <div key={tpl.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white relative">
+                      <div key={tpl.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all active:bg-white relative">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px]">🔄</div>
                           <div>
@@ -1271,7 +1252,6 @@ const App: React.FC = () => {
               )}
             </section>
 
-            {/* GIAO DỊCH THEO SỰ KIỆN */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl mb-10">
               <div className="flex items-center justify-between mb-6 border-b border-slate-50 pb-3">
                 <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🎊</span> {t.event_title}</h3>
@@ -1289,7 +1269,7 @@ const App: React.FC = () => {
                     const netBalance = totalIncome - totalExpense;
                     
                     return (
-                      <div key={ev.id} className="bg-slate-50/50 rounded-2xl border border-slate-100 p-5 space-y-4 transition-all hover:border-rose-200">
+                      <div key={ev.id} className="bg-slate-50/50 rounded-2xl border border-slate-100 p-5 space-y-4 transition-all hover:border-rose-200 active:bg-slate-100">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <h4 className="text-[12px] font-black text-slate-800 uppercase">{ev.name}</h4>
@@ -1313,9 +1293,9 @@ const App: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                           <button onClick={() => { setActiveEventId(ev.id); setIsEventEntryModalOpen(true); }} className="flex-1 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[8px] font-black uppercase hover:bg-indigo-100 transition-all">Nhập liệu</button>
-                           <button onClick={() => handlePushEventToHistory(ev)} className="flex-1 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[8px] font-black uppercase hover:bg-emerald-100 transition-all">{t.event_save_history}</button>
-                           <button onDoubleClick={() => setEvents(p => p.filter(x => x.id !== ev.id))} className="w-8 h-8 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-[10px] hover:bg-rose-100 transition-all shadow-sm">🗑️</button>
+                           <button onClick={() => { setActiveEventId(ev.id); setIsEventEntryModalOpen(true); }} className="flex-1 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[8px] font-black uppercase active:scale-95 transition-all">Nhập liệu</button>
+                           <button onClick={() => handlePushEventToHistory(ev)} className="flex-1 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[8px] font-black uppercase active:scale-95 transition-all">{t.event_save_history}</button>
+                           <button onDoubleClick={() => setEvents(p => p.filter(x => x.id !== ev.id))} className="w-8 h-8 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-[10px] hover:bg-rose-100 transition-all shadow-sm active:scale-95">🗑️</button>
                         </div>
                         {displayedTxs.length > 0 && (
                           <div className="pt-2 border-t border-slate-200/50 space-y-1.5 max-h-32 overflow-y-auto pr-1">
@@ -1345,61 +1325,241 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* NAVIGATION */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100/50 p-2 shadow-2xl safe-area-bottom">
-        <div className="max-w-5xl mx-auto flex items-center justify-center px-1 md:px-4">
-          <div className="flex items-center justify-around w-full max-w-2xl relative">
-            <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-w-[70px] ${activeTab === 'home' ? 'bg-indigo-50 text-indigo-600 scale-105' : 'text-slate-400 hover:bg-slate-50'}`}>
-              <span className="text-xl">🏠</span>
-              <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_home}</span>
-            </button>
-            <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-w-[70px] ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-600 scale-105' : 'text-slate-400 hover:bg-slate-50'}`}>
-              <span className="text-xl">📜</span>
-              <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_history}</span>
-            </button>
-            <div className="relative flex items-center justify-center px-4 -mt-2">
-              <button onClick={() => setIsEntryModalOpen(true)} className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-full flex items-center justify-center shadow-2xl hover:shadow-indigo-200 hover:scale-110 active:scale-95 transition-all -translate-y-5 ring-4 ring-white">
-                <span className="text-3xl font-light">＋</span>
-              </button>
-            </div>
-            <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-w-[70px] ${activeTab === 'overview' ? 'bg-indigo-50 text-indigo-600 scale-105' : 'text-slate-400 hover:bg-slate-50'}`}>
-              <span className="text-xl">📊</span>
-              <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_overview}</span>
-            </button>
-            <button onClick={() => setActiveTab('loans')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all min-w-[70px] ${activeTab === 'loans' ? 'bg-indigo-50 text-indigo-600 scale-105' : 'text-slate-400 hover:bg-slate-50'}`}>
-              <span className="text-xl">🏦</span>
-              <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_loans}</span>
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100/50 p-2 shadow-2xl" style={{ paddingBottom: 'calc(var(--sab, 0px) + 12px)' }}>
+        <div className="max-w-5xl mx-auto flex items-center justify-around">
+          <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] ${activeTab === 'home' ? 'text-indigo-600 scale-105' : 'text-slate-400'}`}>
+            <span className="text-xl">🏠</span>
+            <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_home}</span>
+          </button>
+          <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] ${activeTab === 'history' ? 'text-indigo-600 scale-105' : 'text-slate-400'}`}>
+            <span className="text-xl">📜</span>
+            <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_history}</span>
+          </button>
+          <div className="relative flex items-center justify-center px-4 -mt-2">
+            <button onClick={() => setIsEntryModalOpen(true)} className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all -translate-y-5 ring-4 ring-white">
+              <span className="text-3xl font-light">＋</span>
             </button>
           </div>
+          <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] ${activeTab === 'overview' ? 'text-indigo-600 scale-105' : 'text-slate-400'}`}>
+            <span className="text-xl">📊</span>
+            <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_overview}</span>
+          </button>
+          <button onClick={() => setActiveTab('loans')} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] ${activeTab === 'loans' ? 'text-indigo-600 scale-105' : 'text-slate-400'}`}>
+            <span className="text-xl">🏦</span>
+            <span className="text-[8px] font-black uppercase whitespace-nowrap tracking-tight">{t.nav_loans}</span>
+          </button>
         </div>
       </div>
 
       {/* MODALS */}
+      {/* TRANSACTION DETAIL MODAL */}
+      {isHistoryDetailModalOpen && selectedTx && (
+        <div className="fixed inset-0 z-[290] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+             <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6 border-b pb-4"><span>📄</span> {t.history_detail_title}</h2>
+             <div className="space-y-4 text-[11px] font-bold text-slate-600">
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Nội dung:</span><span className="text-slate-900 font-black">{selectedTx.description}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Số tiền:</span><span className={`font-black ${selectedTx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{selectedTx.type === 'income' ? '+' : '-'}{formatCurrency(selectedTx.amount)}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Ngày:</span><span className="text-slate-900">{new Date(selectedTx.timestamp).toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US')}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Hũ:</span><span className="text-indigo-600 uppercase">{selectedTx.jarType ? t[`jar_${selectedTx.jarType.toLowerCase()}_name`] : t.manual_auto}</span></div>
+                {selectedTx.note && <div className="border-b border-slate-50 pb-2 flex flex-col gap-1"><span>Ghi chú:</span><p className="text-slate-900 italic">{selectedTx.note}</p></div>}
+                {selectedTx.imageUrl && (
+                  <div className="pt-2">
+                    <span className="block mb-2">Ảnh chứng từ:</span>
+                    <img src={selectedTx.imageUrl} className="w-full h-40 object-cover rounded-2xl shadow-md cursor-pointer" onClick={() => setViewingImageUrl(selectedTx.imageUrl!)} alt="Proof" />
+                  </div>
+                )}
+             </div>
+             <div className="grid grid-cols-3 gap-3 mt-8">
+                <button onClick={() => setIsHistoryDetailModalOpen(false)} className="py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95 transition-all">{t.manual_cancel}</button>
+                <button onClick={() => setIsDeleteConfirmModalOpen(true)} className="py-3 bg-red-50 text-red-600 font-black uppercase text-[9px] rounded-xl active:scale-95 transition-all">Xóa</button>
+                <button onClick={() => handleEditTransaction(selectedTx)} className="py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg active:scale-95 transition-all">Sửa</button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOAN DETAIL MODAL */}
+      {isLoanDetailModalOpen && selectedLoan && (
+        <div className="fixed inset-0 z-[290] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+             <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6 border-b pb-4"><span>🏦</span> {t.loan_detail_title}</h2>
+             <div className="space-y-4 text-[11px] font-bold text-slate-600">
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Đối tác:</span><span className="text-slate-900 font-black uppercase">{selectedLoan.lenderName}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Loại:</span><span className={selectedLoan.type === LoanType.BORROW ? 'text-rose-600' : 'text-emerald-600'}>{selectedLoan.type === LoanType.BORROW ? t.loan_i_owe : t.loan_owes_me}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Tiền gốc:</span><span className="text-slate-900 font-black">{formatCurrency(selectedLoan.principal)}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Đã trả/thu:</span><span className="text-emerald-600">{formatCurrency(selectedLoan.paidAmount)}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Còn lại:</span><span className="text-rose-600 font-black">{formatCurrency(selectedLoan.principal - selectedLoan.paidAmount)}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Ngày bắt đầu:</span><span className="text-slate-900">{selectedLoan.startDate}</span></div>
+                {selectedLoan.purpose && <div className="border-b border-slate-50 pb-2 flex flex-col gap-1"><span>Mục đích/Ghi chú:</span><p className="text-slate-900 italic">{selectedLoan.purpose}</p></div>}
+                {selectedLoan.imageUrl && (
+                  <div className="pt-2">
+                    <span className="block mb-2">Ảnh chứng từ:</span>
+                    <img src={selectedLoan.imageUrl} className="w-full h-40 object-cover rounded-2xl shadow-md cursor-pointer" onClick={() => setViewingImageUrl(selectedLoan.imageUrl!)} alt="Loan Proof" />
+                  </div>
+                )}
+             </div>
+             <div className="grid grid-cols-2 gap-3 mt-8">
+                <button onClick={() => setIsLoanDetailModalOpen(false)} className="py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95 transition-all">Đóng</button>
+                <button onClick={() => { setIsLoanDetailModalOpen(false); handlePayLoan(selectedLoan); }} className="py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg active:scale-95 transition-all">{selectedLoan.type === LoanType.BORROW ? t.loan_pay : t.loan_recover}</button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRM MODAL */}
+      {isDeleteConfirmModalOpen && selectedTx && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-xs p-8 shadow-2xl text-center animate-in zoom-in-95">
+             <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-sm">⚠️</div>
+             <h3 className="text-sm font-black text-slate-800 uppercase mb-4 tracking-tighter">{t.confirm_delete_title}</h3>
+             <p className="text-[10px] font-bold text-slate-500 mb-8 leading-relaxed">{t.confirm_delete_msg}</p>
+             <div className="flex gap-3">
+                <button onClick={() => setIsDeleteConfirmModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl active:scale-95">{t.manual_cancel}</button>
+                <button onClick={() => handleDeleteTransaction(selectedTx.id)} className="flex-1 py-4 bg-red-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-xl shadow-red-200 active:scale-95">Xác nhận</button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* HISTORY FILTER MODAL */}
+      {isHistoryFilterModalOpen && (
+        <div className="fixed inset-0 z-[270] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+             <div className="flex items-center justify-between mb-8 border-b pb-4">
+                <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2"><span>🔍</span> {t.history_filter}</h2>
+                <button onClick={() => setIsHistoryFilterModalOpen(false)} className="text-slate-400 p-1">✕</button>
+             </div>
+             <div className="space-y-5">
+                <div className="space-y-1.5">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_type}</label>
+                   <select value={historyFilter} onChange={e => setHistoryFilter(e.target.value as any)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none">
+                      <option value="all">{t.history_all}</option>
+                      <option value="income">{t.history_inc_only}</option>
+                      <option value="expense">{t.history_exp_only}</option>
+                   </select>
+                </div>
+                <div className="space-y-1.5">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_jar}</label>
+                   <select value={historyJarFilter} onChange={e => setHistoryJarFilter(e.target.value as any)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none">
+                      <option value="all">{t.history_all}</option>
+                      {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
+                   </select>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                   <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_from}</label>
+                      <input type="date" value={historyFromDateFilter} onChange={e => setHistoryFromDateFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none" />
+                   </div>
+                   <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_to}</label>
+                      <input type="date" value={historyToDateFilter} onChange={e => setHistoryToDateFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none" />
+                   </div>
+                </div>
+             </div>
+             <button onClick={() => setIsHistoryFilterModalOpen(false)} className="w-full py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl mt-8 active:scale-95 transition-all">Áp dụng bộ lọc</button>
+          </div>
+        </div>
+      )}
+
+      {/* LOAN PAYMENT MODAL */}
+      {isLoanPaymentModalOpen && paymentLoanId && (
+        <div className="fixed inset-0 z-[280] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+             {(() => {
+                const l = loans.find(x => x.id === paymentLoanId);
+                const title = l?.type === LoanType.BORROW ? t.loan_pay : t.loan_recover;
+                const icon = l?.type === LoanType.BORROW ? '💸' : '🤝';
+                return (
+                  <>
+                    <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4">
+                      <span className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg text-white ${l?.type === LoanType.BORROW ? 'bg-rose-600' : 'bg-emerald-600'}`}>{icon}</span> {title}
+                    </h2>
+                    <form onSubmit={handlePaymentSubmit} className="space-y-5">
+                       <div className="space-y-1.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
+                          <input required type="text" inputMode="numeric" value={paymentForm.amountStr} onChange={e => setPaymentForm({...paymentForm, amountStr: formatDots(e.target.value)})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-sm font-black outline-none focus:border-indigo-400" placeholder="0" />
+                          <p className="text-[8px] font-bold text-slate-400 ml-1 italic">{formatAmountUnits(parseFormattedNumber(paymentForm.amountStr) * EXCHANGE_RATES[settings.currency], settings.currency)}</p>
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_date_label}</label>
+                          <input required type="date" value={paymentForm.date} onChange={e => setPaymentForm({...paymentForm, date: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-sm font-bold outline-none" />
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label>
+                          <select value={paymentForm.jar} onChange={e => setPaymentForm({...paymentForm, jar: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-sm font-bold outline-none">
+                             <option value="AUTO">{t.manual_auto}</option>
+                             {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
+                          </select>
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_img_label}</label>
+                          <div className="relative">
+                            <input type="file" hidden ref={paymentPhotoInputRef} accept="image/*" onChange={handlePaymentPhotoChange} />
+                            <button type="button" onClick={() => paymentPhotoInputRef.current?.click()} className="w-full h-12 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black uppercase text-indigo-600 flex items-center justify-center gap-2 transition-all">
+                              {paymentForm.imageUrl ? '✅ Đã thêm' : '📷 Thêm ảnh'}
+                            </button>
+                          </div>
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
+                          <textarea value={paymentForm.note} onChange={e => setPaymentForm({...paymentForm, note: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 h-20 text-sm font-bold outline-none resize-none" placeholder="..." />
+                       </div>
+                       <div className="flex gap-4 pt-2">
+                          <button type="button" onClick={() => { setIsLoanPaymentModalOpen(false); setPaymentLoanId(null); }} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.manual_cancel}</button>
+                          <button type="submit" className={`flex-[2] py-4 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95 ${l?.type === LoanType.BORROW ? 'bg-rose-600' : 'bg-emerald-600'}`}>Lưu giao dịch</button>
+                       </div>
+                    </form>
+                  </>
+                );
+             })()}
+          </div>
+        </div>
+      )}
+
       {isEntryModalOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-8 shadow-2xl relative animate-in zoom-in-95">
-            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-8 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg">📝</span> {editingTransactionId ? t.manual_edit : t.manual_title}</h2>
-            <form onSubmit={handleManualSubmit} className="space-y-6">
-               <div className="flex bg-slate-100 p-1.5 rounded-2xl h-14 border-2 border-slate-200">
+        <div className="fixed inset-0 z-[250] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] w-full max-xl:max-w-xl p-6 sm:p-8 shadow-2xl relative animate-in slide-in-from-bottom-10 duration-300">
+            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg">📝</span> {editingTransactionId ? t.manual_edit : t.manual_title}</h2>
+            <form onSubmit={handleManualSubmit} className="space-y-4 sm:space-y-6">
+               <div className="flex bg-slate-100 p-1.5 rounded-2xl h-12 border-2 border-slate-200">
                   <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-white shadow-sm text-red-600' : 'text-slate-400'}`}>{t.manual_expense}</button>
                   <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400'}`}>{t.manual_income}</button>
                </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="relative h-14">
-                    <input required type="text" value={manualAmount} onChange={e => setManualAmount(formatDots(e.target.value))} placeholder={`${t.manual_amount} (${settings.currency})`} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-full pr-24" />
-                    <p className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-400 pointer-events-none">{formatAmountUnits(parseFormattedNumber(manualAmount) * EXCHANGE_RATES[settings.currency], settings.currency)}</p>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="relative h-12 sm:h-14">
+                    <input required type="text" inputMode="numeric" value={manualAmount} onChange={e => setManualAmount(formatDots(e.target.value))} placeholder={`${t.manual_amount} (${settings.currency})`} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-full pr-24" />
+                    <p className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-400 pointer-events-none uppercase tracking-tighter">{formatAmountUnits(parseFormattedNumber(manualAmount) * EXCHANGE_RATES[settings.currency], settings.currency)}</p>
                  </div>
-                 <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
+                 <div className="flex gap-2 h-12 sm:h-14">
+                    <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder={t.manual_desc} className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none" />
+                    <div className="relative">
+                      <input type="file" hidden ref={manualPhotoInputRef} accept="image/*" onChange={handleManualPhotoChange} />
+                      <button type="button" onClick={() => manualPhotoInputRef.current?.click()} className={`w-12 sm:w-14 h-full rounded-2xl flex items-center justify-center transition-all ${manualImage ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 border-2 border-slate-200 hover:border-indigo-300'}`}>
+                        <span className="text-xl">📷</span>
+                      </button>
+                    </div>
+                 </div>
                </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <select value={manualJar} onChange={e => setManualJar(e.target.value as any)} className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <select value={manualJar} onChange={e => setManualJar(e.target.value as any)} className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-12 sm:h-14">
                     <option value="AUTO">{t.manual_auto}</option>
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
                  </select>
-                 <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold h-14" />
+                 <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold h-12 sm:h-14" />
                </div>
-               <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); setManualAmount(''); setManualDesc(''); }} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl tracking-widest">{t.manual_cancel}</button>
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
+                 <textarea value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder="..." className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-sm font-bold outline-none h-20 resize-none" />
+               </div>
+               {manualImage && (
+                 <div className="relative w-20 h-20 group">
+                    <img src={manualImage} className="w-full h-full object-cover rounded-xl shadow-sm" />
+                    <button onClick={() => setManualImage('')} className="absolute -top-2 -right-2 bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-md">✕</button>
+                 </div>
+               )}
+               <div className="flex gap-4 pt-2">
+                  <button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); setManualAmount(''); setManualDesc(''); setManualNote(''); setManualImage(''); }} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl tracking-widest active:scale-95 transition-all">{t.manual_cancel}</button>
                   <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{editingTransactionId ? t.manual_update : t.manual_save}</button>
                </div>
             </form>
@@ -1408,11 +1568,11 @@ const App: React.FC = () => {
       )}
 
       {isRecurringModalOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
             <h2 className="text-[13px] font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-9 h-9 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-lg text-[14px]">🔄</span> {t.recurring_add}</h2>
-            <form onSubmit={handleSaveRecurring} className="space-y-4">
-               <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSaveRecurring} className="space-y-6">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div className="space-y-1">
                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Tháng bắt đầu</label>
                    <input type="date" value={recurringForm.startDate} onChange={e => setRecurringForm({...recurringForm, startDate: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold h-11" />
@@ -1431,13 +1591,13 @@ const App: React.FC = () => {
                    </select>
                  </div>
                </div>
-               <div className="grid grid-cols-2 gap-3">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div className="relative h-11">
-                    <input required type="text" value={recurringAmountStr} onChange={e => setRecurringAmountStr(formatDots(e.target.value))} placeholder={`${t.manual_amount} (${settings.currency})`} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold outline-none h-full" />
+                    <input required type="text" inputMode="numeric" value={recurringAmountStr} onChange={e => setRecurringAmountStr(formatDots(e.target.value))} placeholder={`${t.manual_amount} (${settings.currency})`} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold outline-none h-full" />
                  </div>
                  <input required type="text" value={recurringForm.description} onChange={e => setRecurringForm({...recurringForm, description: e.target.value})} placeholder={t.manual_desc} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold outline-none h-11" />
                </div>
-               <div className="grid grid-cols-2 gap-3">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <select value={recurringForm.jarType} onChange={e => setRecurringForm({...recurringForm, jarType: e.target.value as any})} className="bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold outline-none h-11">
                     <option value="AUTO">{t.manual_auto}</option>
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
@@ -1448,7 +1608,7 @@ const App: React.FC = () => {
                  </select>
                </div>
                <div className="flex gap-3 pt-3">
-                  <button type="button" onClick={() => setIsRecurringModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl tracking-widest transition-colors">Hủy bỏ</button>
+                  <button type="button" onClick={() => setIsRecurringModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl tracking-widest transition-colors active:scale-95">Hủy bỏ</button>
                   <button type="submit" className="flex-[2] py-3 bg-emerald-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg hover:bg-emerald-700 active:scale-95 transition-all tracking-widest">Lưu mẫu</button>
                </div>
             </form>
@@ -1456,14 +1616,83 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {isLoanModalOpen && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
+            <h2 className="text-[13px] font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg text-[14px]">🏦</span> {editingLoanId ? t.loan_edit : t.loan_new}</h2>
+            <form onSubmit={handleSaveLoan} className="space-y-5">
+              <div className="flex bg-slate-100 p-1 rounded-xl gap-1 border border-slate-200">
+                <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.BORROW})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all active:scale-95 ${loanForm.type === LoanType.BORROW ? 'bg-white shadow text-rose-600' : 'text-slate-400'}`}>💸 {t.loan_i_owe}</button>
+                <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.LEND})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all active:scale-95 ${loanForm.type === LoanType.LEND ? 'bg-white shadow text-emerald-600' : 'text-slate-400'}`}>🤝 {t.loan_owes_me}</button>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label>
+                  <input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="..." />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label>
+                  <select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as any})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none">
+                    <option value="AUTO">{t.manual_auto}</option>
+                    {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_date_label}</label>
+                  <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold" />
+                </div>
+                <div className="space-y-1">
+                  <div className="relative">
+                    <input type="file" hidden ref={loanPhotoInputRef} accept="image/*" onChange={handleLoanPhotoChange} />
+                    <button type="button" onClick={() => loanPhotoInputRef.current?.click()} className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl text-[9px] font-black uppercase text-indigo-600 flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-95">
+                      {loanForm.imageUrl ? '✅' : '📷'} {t.loan_add_img}
+                    </button>
+                    {loanForm.imageUrl && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-100 rounded-full border border-white overflow-hidden shadow-sm flex items-center justify-center pointer-events-none">
+                        <img src={loanForm.imageUrl} className="w-full h-full object-cover" alt="Proof thumbnail" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_principal}</label>
+                  <input required type="text" inputMode="numeric" value={loanPrincipalStr} onChange={e => setLoanPrincipalStr(formatDots(e.target.value))} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="0" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_paid_label}</label>
+                  <input type="text" inputMode="numeric" value={loanPaidAmountStr} onChange={e => setLoanPaidAmountStr(formatDots(e.target.value))} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="0" />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
+                <textarea value={loanForm.purpose} onChange={e => setLoanForm({...loanForm, purpose: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none h-16 resize-none" placeholder="..." />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => { setIsLoanModalOpen(false); setEditingLoanId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl tracking-widest transition-colors active:scale-95">Hủy bỏ</button>
+                <button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{t.save_loan}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {isEventModalOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95">
             <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-rose-600 text-white rounded-xl flex items-center justify-center shadow-lg">🎉</span> {t.event_add}</h2>
             <form onSubmit={handleSaveEvent} className="space-y-6">
                <input required type="text" value={eventName} onChange={e => setEventName(e.target.value)} placeholder="Tên sự kiện (Vd: Sinh nhật Tèo)" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
                <div className="flex gap-3">
-                  <button type="button" onClick={() => setIsEventModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl tracking-widest">{t.manual_cancel}</button>
+                  <button type="button" onClick={() => setIsEventModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl tracking-widest active:scale-95">{t.manual_cancel}</button>
                   <button type="submit" className="flex-[2] py-4 bg-rose-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl hover:bg-rose-700 active:scale-95 transition-all tracking-widest">Tạo ngay</button>
                </div>
             </form>
@@ -1472,7 +1701,7 @@ const App: React.FC = () => {
       )}
 
       {isEventEntryModalOpen && (
-        <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95">
             <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4">📝 {t.event_entry_title}</h2>
             <form onSubmit={handleEventEntrySubmit} className="space-y-4">
@@ -1480,11 +1709,11 @@ const App: React.FC = () => {
                   <button type="button" onClick={() => setEventManualType('expense')} className={`flex-1 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'expense' ? 'bg-white shadow text-rose-600' : 'text-slate-400'}`}>CHI TIÊU</button>
                   <button type="button" onClick={() => setEventManualType('income')} className={`flex-1 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'income' ? 'bg-white shadow text-emerald-600' : 'text-slate-400'}`}>THU NHẬP</button>
                </div>
-               <input required type="text" value={eventManualAmount} onChange={e => setEventManualAmount(formatDots(e.target.value))} placeholder={`Số tiền (${settings.currency})`} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
+               <input required type="text" inputMode="numeric" value={eventManualAmount} onChange={e => setEventManualAmount(formatDots(e.target.value))} placeholder={`Số tiền (${settings.currency})`} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
                <input required type="text" value={eventManualDesc} onChange={e => setEventManualDesc(e.target.value)} placeholder="Nội dung" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
                <div className="flex gap-3">
-                  <button type="button" onClick={() => { setIsEventEntryModalOpen(false); setActiveEventId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl">Hủy</button>
-                  <button type="submit" className="flex-[2] py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-lg">Thêm</button>
+                  <button type="button" onClick={() => { setIsEventEntryModalOpen(false); setActiveEventId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl active:scale-95">Hủy</button>
+                  <button type="submit" className="flex-[2] py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-lg active:scale-95">Thêm</button>
                </div>
             </form>
           </div>
@@ -1494,10 +1723,10 @@ const App: React.FC = () => {
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[200] flex">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)}></div>
-          <div className="relative ml-auto h-full w-full max-sm:max-w-full max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+          <div className="relative ml-auto h-full w-full max-sm:max-w-full max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300" style={{ paddingTop: 'var(--sat, 0px)' }}>
             <div className="p-5 border-b flex items-center justify-between bg-slate-50/50">
               <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest">{t.settings_title}</h2>
-              <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors">✕</button>
+              <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors p-2">✕</button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
               {settingsTab === 'app' && (
@@ -1505,18 +1734,29 @@ const App: React.FC = () => {
                    <div className="space-y-4">
                       <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.currency}</label>
                       <div className="bg-slate-50 p-1 rounded-2xl border-2 border-slate-200 flex gap-1">
-                        {['VND', 'JPY', 'USD'].map(curr => <button key={curr} onClick={() => setSettings({...settings, currency: curr as any})} className={`flex-1 py-2.5 text-[9px] font-black rounded-xl transition-all ${settings.currency === curr ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>{curr}</button>)}
+                        {['VND', 'JPY', 'USD'].map(curr => <button key={curr} onClick={() => setSettings({...settings, currency: curr as any})} className={`flex-1 py-2.5 text-[9px] font-black rounded-xl transition-all active:scale-95 ${settings.currency === curr ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>{curr}</button>)}
                       </div>
                    </div>
                    <div className="space-y-4">
                       <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.language}</label>
                       <div className="bg-slate-50 p-1.5 rounded-2xl border-2 border-slate-200 flex flex-col gap-1">
-                        {['Tiếng Việt', 'Tiếng Anh', 'Tiếng Nhật'].map((lang, idx) => {
-                          const code = ['vi', 'en', 'ja'][idx] as 'vi' | 'en' | 'ja';
+                        {['vi', 'en', 'ja'].map((code) => {
                           const display = code === 'vi' ? t.lang_vi : code === 'en' ? t.lang_en : t.lang_ja;
-                          return <button key={lang} onClick={() => setSettings({...settings, language: code})} className={`w-full py-3 text-[9px] font-bold rounded-xl transition-all text-center ${settings.language === code ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>{display}</button>;
+                          return <button key={code} onClick={() => setSettings({...settings, language: code as any})} className={`w-full py-3 text-[9px] font-bold rounded-xl transition-all text-center active:scale-95 ${settings.language === code ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>{display}</button>;
                         })}
                       </div>
+                   </div>
+                   <div className="space-y-4 pt-4 border-t border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">{t.settings_notification}</label>
+                        <input type="checkbox" checked={settings.notificationsEnabled} onChange={e => setSettings({...settings, notificationsEnabled: e.target.checked})} className="w-5 h-5 accent-indigo-600" />
+                      </div>
+                      <p className="text-[8px] font-bold text-slate-400 leading-tight">{t.settings_notification_desc}</p>
+                      {settings.notificationsEnabled && (
+                        <div className="bg-slate-50 p-3 rounded-2xl border-2 border-slate-100 animate-in fade-in duration-300">
+                          <input type="time" value={settings.notificationTime} onChange={e => setSettings({...settings, notificationTime: e.target.value})} className="w-full bg-transparent text-sm font-black text-center outline-none text-slate-700" />
+                        </div>
+                      )}
                    </div>
                 </div>
               )}
@@ -1528,10 +1768,6 @@ const App: React.FC = () => {
                     <p><strong>2. An toàn mạng:</strong> Chúng tôi tuân thủ nghiêm ngặt Luật An toàn thông tin mạng và Luật An ninh mạng Việt Nam. Vì dữ liệu không được tải lên mạng, nguy cơ rò rỉ dữ liệu cá nhân từ hệ thống là bằng 0.</p>
                     <p><strong>3. Trách nhiệm người dùng:</strong> Do đặc thù lưu trữ tại chỗ, người dùng có trách nhiệm tự bảo mật thiết bị truy cập và sao lưu dữ liệu (qua tính năng Export CSV).</p>
                     <p><strong>4. Miễn trừ trách nhiệm:</strong> FinAi không chịu trách nhiệm cho bất kỳ mất mát dữ liệu nào do lỗi thiết bị, xóa bộ nhớ trình duyệt, hoặc hành vi xâm nhập trái phép vào thiết bị của người dùng.</p>
-                    <div className="h-[1px] bg-red-200 my-4"></div>
-                    <p className="text-red-500 font-black italic text-center text-[10px]">
-                      * DỰA TRÊN LUẬT AN NINH MẠNG VIỆT NAM 2018 VÀ NGHỊ ĐỊNH 13/2023/NĐ-CP VỀ BẢO VỆ DỮ LIỆU CÁ NHÂN.
-                    </p>
                   </div>
                 </div>
               )}
@@ -1539,33 +1775,29 @@ const App: React.FC = () => {
                 <div className="animate-in fade-in slide-in-from-bottom-4 space-y-8">
                   <h3 className="text-[14px] font-black text-indigo-600 uppercase text-center">HƯỚNG DẪN SỬ DỤNG</h3>
                   <div className="bg-indigo-50/50 p-6 rounded-[2.5rem] space-y-6">
-                    <div className="flex gap-4 items-start">
+                    <p className="text-[11px] font-bold text-slate-700 leading-relaxed italic text-center">Chào mừng đến với hành trình tự do tài chính cùng FINAI!</p>
+                    <div className="space-y-4">
+                      <div className="flex gap-4 items-start">
                         <span className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[12px] font-black flex-shrink-0">1</span>
-                        <p className="text-[11px] font-bold text-slate-700 leading-relaxed">Sử dụng AI: Nhập nhanh giao dịch tại thanh tìm kiếm trên cùng. (Ví dụ: "Sáng ăn phở 50k hũ thiết yếu")</p>
-                    </div>
-                    <div className="flex gap-4 items-start">
+                        <p className="text-[11px] font-bold text-slate-700 leading-relaxed">Nhập liệu nhanh bằng AI tại thanh tìm kiếm trên cùng. (Vd: "Cơm trưa 35k")</p>
+                      </div>
+                      <div className="flex gap-4 items-start">
                         <span className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[12px] font-black flex-shrink-0">2</span>
-                        <p className="text-[11px] font-bold text-slate-700 leading-relaxed">Quy tắc 6 Hũ: Hệ thống tự động chia thu nhập của bạn theo tỉ lệ (55%, 10%, 10%, 10%, 10%, 5%).</p>
-                    </div>
-                    <div className="flex gap-4 items-start">
+                        <p className="text-[11px] font-bold text-slate-700 leading-relaxed">Tỉ lệ hũ (55, 10, 10, 10, 10, 5) giúp bạn cân bằng cuộc sống.</p>
+                      </div>
+                      <div className="flex gap-4 items-start">
                         <span className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[12px] font-black flex-shrink-0">3</span>
-                        <p className="text-[11px] font-bold text-slate-700 leading-relaxed">Vay nợ: Quản lý các khoản nợ phải trả và nợ thu hồi một cách minh bạch.</p>
+                        <p className="text-[11px] font-bold text-slate-700 leading-relaxed">Hãy nhớ sao lưu dữ liệu định kỳ bằng tính năng Xuất CSV trong tab Dữ liệu.</p>
+                      </div>
                     </div>
-                    <div className="flex gap-4 items-start">
-                        <span className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[12px] font-black flex-shrink-0">4</span>
-                        <p className="text-[11px] font-bold text-slate-700 leading-relaxed">Dữ liệu: Mọi thông tin lưu trên máy bạn. Hãy xuất CSV định kỳ để sao lưu!</p>
-                    </div>
-                    <a href="https://fb.watch/EFXzA_Mhre/" target="_blank" rel="noopener noreferrer" className="block w-full py-4 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-2xl text-center shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all mt-4 tracking-widest">
-                       {t.guide_video_btn}
-                    </a>
                   </div>
                 </div>
               )}
               {settingsTab === 'info' && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                   <div className="flex flex-col items-center py-10 space-y-4">
-                     <div className="w-20 h-20 bg-indigo-600 text-white rounded-3xl flex items-center justify-center text-3xl shadow-xl overflow-hidden">
-                        <img src="https://files.oaiusercontent.com/file-D3AAb2vYvXF5Z8V5Z5Z5Z5" className="w-full h-full object-cover" alt="FinAi Logo" />
+                     <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-xl overflow-hidden border border-slate-100 p-1">
+                        <img src="FinAi_icon.png" className="w-full h-full object-cover rounded-2xl" alt="FinAi Logo" />
                      </div>
                      <div className="text-center">
                         <h2 className="text-xl font-black text-slate-800 tracking-tighter">FinAi</h2>
@@ -1576,24 +1808,24 @@ const App: React.FC = () => {
                   </div>
                   <div className="space-y-4 border-t pt-8">
                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t.settings_connect}</h3>
-                     <a href="https://www.facebook.com/duclongka" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 group transition-all hover:bg-blue-100/50"><div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center text-lg font-black">f</div><span className="text-[10px] font-black text-blue-800 uppercase tracking-widest">FACEBOOK</span></a>
+                     <a href="https://www.facebook.com/duclongka" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 group transition-all hover:bg-blue-100/50 active:scale-95"><div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center text-lg font-black">f</div><span className="text-[10px] font-black text-blue-800 uppercase tracking-widest">FACEBOOK</span></a>
                      <div className="flex items-center gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100"><div className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-lg">💬</div><div className="flex flex-col"><span className="text-[7px] font-black text-slate-400 uppercase">ZALO</span><span className="text-[10px] font-black text-emerald-800 uppercase">0964.855.899</span></div></div>
-                     <a href="mailto:longld@itsupro.org" className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 group transition-all hover:bg-indigo-100/50"><div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-lg">✉️</div><div className="flex flex-col"><span className="text-[7px] font-black text-slate-400 uppercase">{t.support_email}</span><span className="text-[10px] font-black text-indigo-800 uppercase truncate">longld@itsupro.org</span></div></a>
+                     <a href="mailto:longld@itsupro.org" className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 group transition-all hover:bg-indigo-100/50 active:scale-95"><div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-lg">✉️</div><div className="flex flex-col"><span className="text-[7px] font-black text-slate-400 uppercase">{t.support_email}</span><span className="text-[10px] font-black text-indigo-800 uppercase truncate">longld@itsupro.org</span></div></a>
                   </div>
                 </div>
               )}
               {settingsTab === 'export' && (
                 <div className="space-y-6 pt-5">
-                   <button onClick={exportToCSV} className="w-full py-5 bg-emerald-600 text-white text-[11px] font-black uppercase rounded-3xl shadow-lg flex items-center justify-center gap-2"><span>📤</span> {t.settings_data_export}</button>
-                   <button onClick={() => fileInputRef.current?.click()} className="w-full py-5 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-3xl shadow-lg flex items-center justify-center gap-2"><span>📥</span> {t.settings_data_import}</button>
+                   <button onClick={exportToCSV} className="w-full py-5 bg-emerald-600 text-white text-[11px] font-black uppercase rounded-3xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"><span>📤</span> {t.settings_data_export}</button>
+                   <button onClick={() => fileInputRef.current?.click()} className="w-full py-5 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-3xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"><span>📥</span> {t.settings_data_import}</button>
                    <input type="file" hidden ref={fileInputRef} />
-                   <button onClick={handleResetData} className="w-full py-5 bg-red-600 text-white text-[11px] font-black uppercase rounded-3xl shadow-lg flex items-center justify-center gap-2"><span>⚠️</span> {t.settings_data_reset}</button>
+                   <button onClick={handleResetData} className="w-full py-5 bg-red-600 text-white text-[11px] font-black uppercase rounded-3xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"><span>⚠️</span> {t.settings_data_reset}</button>
                 </div>
               )}
             </div>
-            <div className="p-3 border-t grid grid-cols-5 items-center justify-around bg-slate-50">
+            <div className="p-3 border-t grid grid-cols-5 items-center justify-around bg-slate-50" style={{ paddingBottom: 'calc(var(--sab, 0px) + 12px)' }}>
               {[ { id: 'app', icon: '⚙️', label: t.settings_app }, { id: 'export', icon: '📁', label: t.settings_data }, { id: 'info', icon: 'ℹ️', label: t.settings_info }, { id: 'policy', icon: '🛡️', label: t.settings_policy }, { id: 'guide', icon: '📖', label: t.settings_guide } ].map(tab => (
-                <button key={tab.id} onClick={() => setSettingsTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-1 py-1 rounded-xl transition-all ${settingsTab === tab.id ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>
+                <button key={tab.id} onClick={() => setSettingsTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-1 py-1 rounded-xl transition-all active:scale-95 ${settingsTab === tab.id ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>
                   <span className="text-base">{tab.icon}</span>
                   <span className="text-[6px] font-black uppercase text-center leading-none">{tab.label}</span>
                 </button>
@@ -1603,99 +1835,9 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {isLoanModalOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
-            <h2 className="text-[13px] font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg text-[14px]">🏦</span> {editingLoanId ? t.loan_edit : t.loan_new}</h2>
-            <form onSubmit={handleSaveLoan} className="space-y-4">
-              <div className="flex bg-slate-100 p-1 rounded-xl gap-1 border border-slate-200">
-                <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.BORROW})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${loanForm.type === LoanType.BORROW ? 'bg-white shadow text-rose-600' : 'text-slate-400'}`}>💸 {t.loan_i_owe}</button>
-                <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.LEND})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${loanForm.type === LoanType.LEND ? 'bg-white shadow text-emerald-600' : 'text-slate-400'}`}>🤝 {t.loan_owes_me}</button>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label><input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="..." /></div>
-                <div className="space-y-1"><label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label><select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as any})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}</select></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_date_label}</label>
-                  <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_img_label}</label>
-                  <div className="relative">
-                    <input type="file" hidden ref={loanPhotoInputRef} accept="image/*" onChange={handleLoanPhotoChange} />
-                    <button type="button" onClick={() => loanPhotoInputRef.current?.click()} className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl text-[9px] font-black uppercase text-indigo-600 flex items-center justify-center gap-2 hover:bg-white transition-all">
-                      {loanForm.imageUrl ? '✅' : '📷'} {t.loan_add_img}
-                    </button>
-                    {loanForm.imageUrl && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-100 rounded-full border border-white overflow-hidden shadow-sm flex items-center justify-center pointer-events-none">
-                        <img src={loanForm.imageUrl} className="w-full h-full object-cover" alt="Proof thumbnail" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_principal}</label><div className="relative"><input required type="text" value={loanPrincipalStr} onChange={e => setLoanPrincipalStr(formatDots(e.target.value))} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="0" /></div></div>
-                <div className="space-y-1"><label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_paid_label}</label><div className="relative"><input type="text" value={loanPaidAmountStr} onChange={e => setLoanPaidAmountStr(formatDots(e.target.value))} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="0" /></div></div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => { setIsLoanModalOpen(false); setEditingLoanId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl tracking-widest transition-colors">Hủy bỏ</button>
-                <button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{t.save_loan}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {isTransferModalOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl animate-in zoom-in duration-200 border border-slate-100">
-            <h2 className="text-[12px] font-black text-slate-800 uppercase text-center mb-6 tracking-widest">{t.transfer_title}</h2>
-            <form onSubmit={handleTransferSubmit} className="space-y-4">
-              <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-3xl border border-slate-100">
-                 <div className="flex-1 text-center">
-                    <p className="text-[7px] font-black text-slate-400 uppercase mb-1">{t.transfer_from}</p>
-                    <div className="text-2xl mb-1">{JAR_CONFIG[transferFrom].icon}</div>
-                    <p className="text-[9px] font-black text-slate-800 uppercase leading-tight">{t[`jar_${transferFrom.toLowerCase()}_name`]}</p>
-                    <p className="text-[8px] font-bold text-indigo-600 mt-1">{formatCurrency(balances[transferFrom])}</p>
-                 </div>
-                 <div className="text-indigo-400 text-xl font-bold animate-pulse">➔</div>
-                 <div className="flex-1 text-center">
-                    <p className="text-[7px] font-black text-slate-400 uppercase mb-1">{t.transfer_to}</p>
-                    <select 
-                      value={transferTo} 
-                      onChange={e => setTransferTo(e.target.value as JarType)} 
-                      className="w-full bg-white border border-slate-200 rounded-lg py-1.5 text-[9px] font-black outline-none text-center shadow-sm text-black"
-                    >
-                      {Object.values(JarType).filter(t => t !== transferFrom).map(jt => (
-                        <option key={jt} value={jt} className="text-black">
-                          {t[`jar_${jt.toLowerCase()}_name`]}
-                        </option>
-                      ))}
-                    </select>
-                 </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block">{t.transfer_amount}</label>
-                <div className="relative">
-                  <input required type="text" value={transferAmount} onChange={e => setTransferAmount(formatDots(e.target.value))} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-[14px] font-black outline-none text-center focus:border-indigo-400" placeholder="0" />
-                  <p className="absolute bottom-1 right-3 text-[7px] font-bold text-slate-400">{formatAmountUnits(parseFormattedNumber(transferAmount) * EXCHANGE_RATES[settings.currency], settings.currency)}</p>
-                </div>
-              </div>
-              <div className="flex gap-2 pt-2">
-                 <button type="button" onClick={() => setIsTransferModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-400 text-[10px] font-black uppercase rounded-2xl">Hủy</button>
-                 <button type="submit" className="flex-[2] py-3 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-2xl shadow-xl hover:bg-indigo-700">{t.transfer_confirm}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {viewingImageUrl && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4" onClick={() => setViewingImageUrl(null)}>
-          <button onClick={() => setViewingImageUrl(null)} className="absolute top-8 right-8 text-white bg-white/10 hover:bg-white/20 w-12 h-12 rounded-full flex items-center justify-center transition-all z-10">✕</button>
+          <button onClick={() => setViewingImageUrl(null)} className="absolute top-8 right-8 text-white bg-white/10 hover:bg-white/20 w-12 h-12 rounded-full flex items-center justify-center transition-all z-10 active:scale-90">✕</button>
           <img src={viewingImageUrl} className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300" alt="Receipt Preview" />
         </div>
       )}
