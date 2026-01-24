@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { JarType, Transaction, JarBalance, Loan, LoanCategory, LoanType, User, AppSettings, RecurringTemplate, EventGroup, SubscriptionType } from './types';
 import { JAR_CONFIG } from './constants';
@@ -56,6 +57,17 @@ const formatDots = (val: string) => {
   return parts.join(".");
 };
 
+const evaluateMath = (expr: string): string => {
+  try {
+    const sanitized = expr.replace(/[^0-9+\-*/.%()]/g, '');
+    const withPercent = sanitized.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+    const result = new Function(`return ${withPercent}`)();
+    return isFinite(result) ? result.toString() : "";
+  } catch {
+    return "";
+  }
+};
+
 const TRANSLATIONS: Record<string, any> = {
   vi: {
     appTitle: "FinAi",
@@ -69,7 +81,7 @@ const TRANSLATIONS: Record<string, any> = {
     chart_week: "Tuần",
     chart_month: "Tháng",
     chart_year: "Năm",
-    manual_title: "GHI CHÉP THỦ CÔNG",
+    manual_title: "THÊM GIAO DỊCH",
     manual_edit: "ĐANG SỬA GIAO DỊCH",
     manual_cancel: "HỦY",
     manual_type: "Loại giao dịch",
@@ -173,7 +185,7 @@ const TRANSLATIONS: Record<string, any> = {
     event_save_history: "Lưu lịch sử chung",
     event_delete: "Xóa sự kiện",
     event_entry_title: "Nhập liệu sự kiện",
-    history_detail_title: "CHI TIẾT GIAO DỊCH",
+    history_detail_title: "CHI TIÊU CHI TIẾT",
     confirm_delete_title: "XÁC NHẬN XÓA",
     confirm_delete_msg: "Bạn có chắc chắn muốn xóa vĩnh viễn giao dịch này?",
     loan_detail_title: "CHI TIẾT GIAO DỊCH VAY NỢ"
@@ -181,7 +193,7 @@ const TRANSLATIONS: Record<string, any> = {
 };
 
 const App: React.FC = () => {
-  const APP_VERSION = "v5.6.0";
+  const APP_VERSION = "v5.6.1";
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const defaultRatios: Record<JarType, number> = {
@@ -250,6 +262,7 @@ const App: React.FC = () => {
   const [historyJarFilter, setHistoryJarFilter] = useState<JarType | 'all'>('all');
   const [historyFromDateFilter, setHistoryFromDateFilter] = useState<string>(''); 
   const [historyToDateFilter, setHistoryToDateFilter] = useState<string>(''); 
+  const [visibleTxCount, setVisibleTxCount] = useState(15);
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -259,8 +272,12 @@ const App: React.FC = () => {
   const [manualType, setManualType] = useState<'income' | 'expense'>('expense');
   const [manualJar, setManualJar] = useState<JarType | 'AUTO'>(JarType.NEC);
   const [manualDate, setManualDate] = useState(getTodayString());
-  const [manualImage, setManualImage] = useState<string>('');
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+
+  // Calculator State
+  const [isCalcOpen, setIsCalcOpen] = useState(false);
+  const [calcExpr, setCalcExpr] = useState('');
+  const [calcTarget, setCalcTarget] = useState<'manual' | 'loan' | 'payment' | 'recurring' | 'event'>('manual');
 
   // Loan & Payment States
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
@@ -272,7 +289,6 @@ const App: React.FC = () => {
   const [editingLoanId, setEditingLoanId] = useState<string | null>(null);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
   const [loanPrincipalStr, setLoanPrincipalStr] = useState('');
-  const [loanPaidAmountStr, setLoanPaidAmountStr] = useState('');
   const [loanForm, setLoanForm] = useState<Omit<Partial<Loan>, 'loanJar'> & { loanJar: JarType | 'AUTO' }>({
     type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO', imageUrl: '', purpose: ''
   });
@@ -306,7 +322,6 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loanPhotoInputRef = useRef<HTMLInputElement>(null);
   const paymentPhotoInputRef = useRef<HTMLInputElement>(null);
-  const manualPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS.vi;
 
@@ -453,7 +468,6 @@ const App: React.FC = () => {
       note: manualNote,
       jarType: manualJar === 'AUTO' ? undefined : manualJar as JarType,
       timestamp: new Date(manualDate).getTime(),
-      imageUrl: manualImage
     };
     if (editingTransactionId) {
       const old = transactions.find(item => item.id === editingTransactionId) || null;
@@ -467,7 +481,6 @@ const App: React.FC = () => {
     setManualAmount(''); 
     setManualDesc(''); 
     setManualNote('');
-    setManualImage('');
     setManualJar(manualType === 'expense' ? JarType.NEC : 'AUTO');
     setManualDate(getTodayString());
     setIsEntryModalOpen(false);
@@ -541,37 +554,9 @@ const App: React.FC = () => {
     e.preventDefault();
     if (!loanForm.lenderName || !loanPrincipalStr) return;
     const principalVnd = parseFormattedNumber(loanPrincipalStr);
-    const paidAmountVnd = parseFormattedNumber(loanPaidAmountStr || '0');
     const finalLoanJar = loanForm.loanJar === 'AUTO' ? undefined : (loanForm.loanJar as JarType);
     const loanId = editingLoanId || Date.now().toString();
     
-    if (editingLoanId) {
-        const oldLoan = loans.find(l => l.id === editingLoanId);
-        if (oldLoan && paidAmountVnd !== oldLoan.paidAmount) {
-            const payDelta = Math.abs(paidAmountVnd - oldLoan.paidAmount);
-            const isIncreasing = paidAmountVnd > oldLoan.paidAmount;
-            
-            let txType: 'income' | 'expense';
-            if (oldLoan.type === LoanType.BORROW) {
-                txType = isIncreasing ? 'expense' : 'income';
-            } else {
-                txType = isIncreasing ? 'income' : 'expense';
-            }
-
-            const payTx: Transaction = {
-                id: `pay_${Date.now()}`,
-                type: txType,
-                amount: payDelta,
-                description: `${isIncreasing ? 'Trả/Thu' : 'Chỉnh sửa'} khoản vay: ${oldLoan.lenderName}`,
-                jarType: finalLoanJar,
-                timestamp: Date.now(),
-                loanId: loanId
-            };
-            setTransactions(p => [payTx, ...p]);
-            updateBalances(null, payTx);
-        }
-    }
-
     const syntheticTx: Transaction = {
         id: `loan_${loanId}`,
         type: loanForm.type === LoanType.BORROW ? 'income' : 'expense',
@@ -588,18 +573,17 @@ const App: React.FC = () => {
           const oldSyntheticTx: Transaction = { id: `loan_${oldLoan.id}`, type: oldLoan.type === LoanType.BORROW ? 'income' : 'expense', amount: oldLoan.principal, description: `Đảo ngược tác động`, jarType: oldLoan.loanJar, timestamp: Date.now(), loanId: oldLoan.id };
           updateBalances(oldSyntheticTx, syntheticTx);
        }
-       setLoans(p => p.map(l => l.id === editingLoanId ? { ...l, ...loanForm, principal: principalVnd, paidAmount: paidAmountVnd, loanJar: finalLoanJar } as Loan : l));
+       setLoans(p => p.map(l => l.id === editingLoanId ? { ...l, ...loanForm, principal: principalVnd, loanJar: finalLoanJar } as Loan : l));
        setEditingLoanId(null);
        showToast("Cập nhật thành công!");
     } else {
-       const newLoan: Loan = { ...loanForm as Loan, id: loanId, principal: principalVnd, paidAmount: paidAmountVnd, loanJar: finalLoanJar };
+       const newLoan: Loan = { ...loanForm as Loan, id: loanId, principal: principalVnd, paidAmount: 0, loanJar: finalLoanJar };
        setLoans(p => [newLoan, ...p]);
        updateBalances(null, syntheticTx);
        showToast("Đã lưu khoản vay!");
     }
     setIsLoanModalOpen(false);
     setLoanPrincipalStr('');
-    setLoanPaidAmountStr('');
     setLoanForm({ type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO', imageUrl: '', purpose: '' });
   };
 
@@ -607,7 +591,6 @@ const App: React.FC = () => {
     setEditingLoanId(null);
     setLoanForm({ type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO', imageUrl: '', purpose: '' });
     setLoanPrincipalStr('');
-    setLoanPaidAmountStr('');
     setIsLoanModalOpen(true);
   };
 
@@ -716,7 +699,7 @@ const App: React.FC = () => {
       type: mainType,
       amount: netAmount,
       description: `[Sự kiện] ${event.name}`,
-      jarType: JarType.PLAY, // Mặc định hũ hưởng thụ cho sự kiện
+      jarType: JarType.PLAY, 
       timestamp: Date.now()
     };
     setTransactions(p => [mainTx, ...p]);
@@ -756,7 +739,7 @@ const App: React.FC = () => {
         setDeleteClickData({ id, count: nextCount });
         deleteResetTimer.current = setTimeout(() => {
           setDeleteClickData({ id: '', count: 0 });
-        }, 1500); // 1.5 giây để nhấn tiếp
+        }, 1500);
       }
     } else {
       setDeleteClickData({ id, count: 1 });
@@ -773,7 +756,6 @@ const App: React.FC = () => {
     setManualDesc(tx.description);
     setManualNote(tx.note || '');
     setManualJar(tx.jarType || 'AUTO');
-    setManualImage(tx.imageUrl || '');
     setManualDate(new Date(tx.timestamp).toISOString().split('T')[0]);
     setIsEntryModalOpen(true);
     setIsHistoryDetailModalOpen(false);
@@ -783,7 +765,6 @@ const App: React.FC = () => {
      setEditingLoanId(loan.id);
      setLoanForm({ ...loan, loanJar: loan.loanJar || 'AUTO' });
      setLoanPrincipalStr(formatDots((loan.principal * EXCHANGE_RATES[settings.currency]).toString()));
-     setLoanPaidAmountStr(formatDots((loan.paidAmount * EXCHANGE_RATES[settings.currency]).toString()));
      setIsLoanModalOpen(true);
   };
 
@@ -836,15 +817,28 @@ const App: React.FC = () => {
     }
   };
 
-  const handleManualPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setManualImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const openCalculator = (target: 'manual' | 'loan' | 'payment' | 'recurring' | 'event') => {
+    setCalcTarget(target);
+    setCalcExpr('');
+    setIsCalcOpen(true);
+  };
+
+  const onCalcPress = (val: string) => {
+    if (val === 'C') return setCalcExpr('');
+    if (val === '=') {
+      const res = evaluateMath(calcExpr);
+      if (res) {
+        const formatted = formatDots(res);
+        if (calcTarget === 'manual') setManualAmount(formatted);
+        else if (calcTarget === 'loan') setLoanPrincipalStr(formatted);
+        else if (calcTarget === 'payment') setPaymentForm(p => ({...p, amountStr: formatted}));
+        else if (calcTarget === 'recurring') setRecurringAmountStr(formatted);
+        else if (calcTarget === 'event') setEventManualAmount(formatted);
+        setIsCalcOpen(false);
+      }
+      return;
     }
+    setCalcExpr(prev => prev + val);
   };
 
   const exportToCSV = () => {
@@ -868,7 +862,7 @@ const App: React.FC = () => {
   };
 
   const handleResetData = () => {
-    if (window.confirm("BẠN CÓ CHẮC CHẮN MUỐN XÓA TẤT CẢ?")) {
+    if (window.confirm("BẠN CÓ CHỨC CHẮN MUỐN XÓA TẤT CẢ?")) {
       setTransactions([]);
       setBalances({ [JarType.NEC]: 0, [JarType.LTS]: 0, [JarType.EDU]: 0, [JarType.PLAY]: 0, [JarType.FFA]: 0, [JarType.GIVE]: 0 });
       setLoans([]);
@@ -919,6 +913,38 @@ const App: React.FC = () => {
     return data;
   }, [transactions, settings.currency, settings.language, chartRange]);
 
+  const rangeTotalsVnd = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    const count = chartRange === 'week' ? 7 : chartRange === 'month' ? 30 : 12;
+    
+    if (chartRange === 'year') {
+        const d = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const checkD = new Date(); checkD.setMonth(d.getMonth() - i);
+            transactions.forEach(tx => {
+                const txD = new Date(tx.timestamp);
+                if (txD.getMonth() === checkD.getMonth() && txD.getFullYear() === checkD.getFullYear()) {
+                    if (tx.type === 'income') income += tx.amount;
+                    else expense += tx.amount;
+                }
+            });
+        }
+    } else {
+        const d = new Date();
+        for (let i = count - 1; i >= 0; i--) {
+            const checkD = new Date(); checkD.setDate(d.getDate() - i);
+            transactions.forEach(tx => {
+                if (new Date(tx.timestamp).toDateString() === checkD.toDateString()) {
+                    if (tx.type === 'income') income += tx.amount;
+                    else expense += tx.amount;
+                }
+            });
+        }
+    }
+    return { income, expense };
+  }, [transactions, chartRange]);
+
   const pieData = useMemo(() => {
     return Object.entries(balances).map(([type, amount]) => ({
       name: t[`jar_${type.toLowerCase()}_name`],
@@ -935,8 +961,12 @@ const App: React.FC = () => {
       const matchFromDate = !historyFromDateFilter || txDateStr >= historyFromDateFilter;
       const matchToDate = !historyToDateFilter || txDateStr <= historyToDateFilter;
       return matchType && matchJar && matchFromDate && matchToDate;
-    }).slice(0, 50);
+    });
   }, [transactions, historyFilter, historyJarFilter, historyFromDateFilter, historyToDateFilter]);
+
+  const displayedTransactions = useMemo(() => {
+    return filteredTransactions.slice(0, visibleTxCount);
+  }, [filteredTransactions, visibleTxCount]);
 
   const [onboardingForm, setOnboardingForm] = useState({ name: '', gender: 'male' as 'male' | 'female' });
 
@@ -952,7 +982,6 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/90 backdrop-blur-2xl p-4">
           <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-[3rem] w-full max-md:max-w-md p-10 shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="flex flex-col items-center text-center space-y-6">
-              <img src="FinAi_icon.png" className="w-20 h-20 rounded-[2rem] shadow-2xl shadow-indigo-200" alt="Logo FinAi" />
               <div className="space-y-2">
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t.onboarding_welcome}</h1>
                 <p className="text-[11px] font-semibold text-slate-500">{t.onboarding_desc}</p>
@@ -1029,10 +1058,10 @@ const App: React.FC = () => {
           <>
             <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in zoom-in-95 duration-300">
               {[
-                { label: t.stats_jars, val: (Object.values(balances) as number[]).reduce((a: number, b: number) => a + b, 0), icon: '💰', colorClass: 'text-slate-900' }, 
-                { label: t.stats_debt, val: stats.debt, icon: '📉', colorClass: 'text-blue-600' }, 
-                { label: t.stats_lent, val: stats.lent, icon: '🤝', colorClass: 'text-red-600' }, 
-                { label: t.stats_net, val: stats.net, icon: '💎', dark: true, colorClass: 'text-white' }
+                { label: t.stats_jars, icon: '💰', val: (Object.values(balances) as number[]).reduce((a: number, b: number) => a + b, 0), colorClass: 'text-slate-900' }, 
+                { label: t.stats_debt, icon: '📉', val: stats.debt, colorClass: 'text-blue-600' }, 
+                { label: t.stats_lent, icon: '🤝', val: stats.lent, colorClass: 'text-red-600' }, 
+                { label: t.stats_net, icon: '💎', val: stats.net, dark: true, colorClass: 'text-white' }
               ].map((s, i) => (
                 <div key={i} className={`${s.dark ? 'bg-indigo-600 text-white' : 'bg-white'} p-4 rounded-2xl border-2 border-slate-100 shadow-md`}>
                   <p className="text-[8px] font-black uppercase opacity-60 mb-1">{s.label}</p>
@@ -1084,41 +1113,51 @@ const App: React.FC = () => {
              </div>
              
              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-                {filteredTransactions.length === 0 ? (
+                {displayedTransactions.length === 0 ? (
                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-100">
                      <p className="text-[10px] font-bold text-slate-400 italic">{t.history_empty}</p>
                    </div>
                 ) : (
-                  filteredTransactions.map(tx => (
-                    <div 
-                      key={tx.id} 
-                      onDoubleClick={() => { setSelectedTx(tx); setIsHistoryDetailModalOpen(true); }}
-                      className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all cursor-default flex items-center justify-between group relative overflow-hidden select-none hover:border-indigo-200 hover:bg-white active:bg-slate-100"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{tx.type === 'income' ? '↑' : '↓'}</div>
-                        <div>
-                          <p className="text-[11px] font-black text-slate-800 line-clamp-1 leading-tight">{tx.description}</p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-[7px] font-black text-slate-400 uppercase">{new Date(tx.timestamp).toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US')}</span>
-                            {tx.jarType && <span className="text-[6px] font-black bg-indigo-50 px-1.5 py-0.5 rounded text-indigo-500 uppercase">{t[`jar_${tx.jarType.toLowerCase()}_name`]}</span>}
+                  <>
+                    {displayedTransactions.map(tx => (
+                      <div 
+                        key={tx.id} 
+                        onDoubleClick={() => { setSelectedTx(tx); setIsHistoryDetailModalOpen(true); }}
+                        className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all cursor-default flex items-center justify-between group relative overflow-hidden select-none hover:border-indigo-200 hover:bg-white active:bg-slate-100"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{tx.type === 'income' ? '↑' : '↓'}</div>
+                          <div>
+                            <p className="text-[11px] font-black text-slate-800 line-clamp-1 leading-tight">{tx.description}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="text-[7px] font-black text-slate-400 uppercase">{new Date(tx.timestamp).toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US')}</span>
+                              {tx.jarType && <span className="text-[6px] font-black bg-indigo-50 px-1.5 py-0.5 rounded text-indigo-500 uppercase">{t[`jar_${tx.jarType.toLowerCase()}_name`]}</span>}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                           <p className={`text-[11px] font-black ${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}</p>
+                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-1">
+                              <button onClick={(e) => { e.stopPropagation(); handleEditTransaction(tx); }} className="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm text-[10px]">✏️</button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleTripleDelete(tx.id); }} 
+                                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-sm text-[10px] ${deleteClickData.id === tx.id ? 'bg-red-600 text-white scale-110' : 'bg-red-50 text-red-600'}`}
+                              >
+                                {deleteClickData.id === tx.id ? '❓' : '🗑️'}
+                              </button>
+                           </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                         <p className={`text-[11px] font-black ${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}</p>
-                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-1">
-                            <button onClick={(e) => { e.stopPropagation(); handleEditTransaction(tx); }} className="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm text-[10px]">✏️</button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleTripleDelete(tx.id); }} 
-                              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-sm text-[10px] ${deleteClickData.id === tx.id ? 'bg-red-600 text-white scale-110' : 'bg-red-50 text-red-600'}`}
-                            >
-                              {deleteClickData.id === tx.id ? '❓' : '🗑️'}
-                            </button>
-                         </div>
-                      </div>
-                    </div>
-                  ))
+                    ))}
+                    {filteredTransactions.length > visibleTxCount && (
+                      <button 
+                        onClick={() => setVisibleTxCount(prev => prev + 15)}
+                        className="w-full py-4 text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:bg-indigo-50 rounded-2xl transition-all"
+                      >
+                        {t.history_more}
+                      </button>
+                    )}
+                  </>
                 )}
              </div>
           </section>
@@ -1134,7 +1173,7 @@ const App: React.FC = () => {
                     <button onClick={() => setChartRange('year')} className={`px-3 py-1 text-[8px] font-black uppercase rounded-lg transition-all ${chartRange === 'year' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>{t.chart_year}</button>
                 </div>
               </div>
-              <div className="h-[250px] pb-4">
+              <div className="h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ left: -10 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -1146,7 +1185,19 @@ const App: React.FC = () => {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              
+              <div className="mt-6 grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                  <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                      <p className="text-[9px] font-black text-emerald-600 uppercase mb-1 tracking-widest">Tổng thu</p>
+                      <p className="text-sm font-black text-emerald-700 tracking-tight">{formatCurrency(rangeTotalsVnd.income)}</p>
+                  </div>
+                  <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
+                      <p className="text-[9px] font-black text-rose-600 uppercase mb-1 tracking-widest">Tổng chi</p>
+                      <p className="text-sm font-black text-rose-700 tracking-tight">{formatCurrency(rangeTotalsVnd.expense)}</p>
+                  </div>
+              </div>
             </section>
+            
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl min-h-[350px]">
               <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">🍕 {t.pie_title}</h3>
               <div className="h-[280px]">
@@ -1352,6 +1403,39 @@ const App: React.FC = () => {
       </div>
 
       {/* MODALS */}
+      {/* TRANSFER MODAL */}
+      {isTransferModalOpen && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl relative animate-in zoom-in-95">
+            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg text-lg">⇄</span> {t.transfer_title}</h2>
+            <form onSubmit={handleTransferSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_from}</label>
+                  <select value={transferFrom} onChange={e => setTransferFrom(e.target.value as JarType)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none">
+                    {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_to}</label>
+                  <select value={transferTo} onChange={e => setTransferTo(e.target.value as JarType)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none">
+                    {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_amount}</label>
+                  <input required type="text" inputMode="numeric" value={transferAmount} onChange={e => setTransferAmount(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-12 text-[11px] font-black outline-none focus:border-indigo-400" />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setIsTransferModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.transfer_cancel}</button>
+                <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95">{t.transfer_confirm}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* TRANSACTION DETAIL MODAL */}
       {isHistoryDetailModalOpen && selectedTx && (
         <div className="fixed inset-0 z-[290] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
@@ -1363,12 +1447,6 @@ const App: React.FC = () => {
                 <div className="flex justify-between border-b border-slate-50 pb-2"><span>Ngày:</span><span className="text-slate-900">{new Date(selectedTx.timestamp).toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US')}</span></div>
                 <div className="flex justify-between border-b border-slate-50 pb-2"><span>Hũ:</span><span className="text-indigo-600 uppercase">{selectedTx.jarType ? t[`jar_${selectedTx.jarType.toLowerCase()}_name`] : t.manual_auto}</span></div>
                 {selectedTx.note && <div className="border-b border-slate-50 pb-2 flex flex-col gap-1"><span>Ghi chú:</span><p className="text-slate-900 italic">{selectedTx.note}</p></div>}
-                {selectedTx.imageUrl && (
-                  <div className="pt-2">
-                    <span className="block mb-2">Ảnh chứng từ:</span>
-                    <img src={selectedTx.imageUrl} className="w-full h-40 object-cover rounded-2xl shadow-md cursor-pointer" onClick={() => setViewingImageUrl(selectedTx.imageUrl!)} alt="Proof" />
-                  </div>
-                )}
              </div>
              <div className="grid grid-cols-3 gap-3 mt-8">
                 <button onClick={() => setIsHistoryDetailModalOpen(false)} className="py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95 transition-all">{t.manual_cancel}</button>
@@ -1391,7 +1469,7 @@ const App: React.FC = () => {
                 <div className="flex justify-between border-b border-slate-50 pb-2"><span>Đã trả/thu:</span><span className="text-emerald-600">{formatCurrency(selectedLoan.paidAmount)}</span></div>
                 <div className="flex justify-between border-b border-slate-50 pb-2"><span>Còn lại:</span><span className="text-rose-600 font-black">{formatCurrency(selectedLoan.principal - selectedLoan.paidAmount)}</span></div>
                 <div className="flex justify-between border-b border-slate-50 pb-2"><span>Ngày bắt đầu:</span><span className="text-slate-900">{selectedLoan.startDate}</span></div>
-                {selectedLoan.purpose && <div className="border-b border-slate-50 pb-2 flex flex-col gap-1"><span>Mục đích/Ghi chú:</span><p className="text-slate-900 italic">{selectedLoan.purpose}</p></div>}
+                {selectedLoan.purpose && <div className="border-b border-slate-50 pb-2 flex flex-col gap-1"><span>Ghi chú:</span><p className="text-slate-900 italic">{selectedLoan.purpose}</p></div>}
                 {selectedLoan.imageUrl && (
                   <div className="pt-2">
                     <span className="block mb-2">Ảnh chứng từ:</span>
@@ -1425,7 +1503,7 @@ const App: React.FC = () => {
       {/* HISTORY FILTER MODAL */}
       {isHistoryFilterModalOpen && (
         <div className="fixed inset-0 z-[270] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
              <div className="flex items-center justify-between mb-8 border-b pb-4">
                 <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2"><span>🔍</span> {t.history_filter}</h2>
                 <button onClick={() => setIsHistoryFilterModalOpen(false)} className="text-slate-400 p-1">✕</button>
@@ -1462,52 +1540,79 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* LOAN PAYMENT MODAL */}
+      {/* MINI CALCULATOR POPOVER */}
+      {isCalcOpen && (
+        <div className="fixed inset-0 z-[450] flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] p-6">
+          <div className="bg-white rounded-[2rem] w-full max-w-[280px] p-6 shadow-2xl animate-in zoom-in-95 border border-slate-200">
+             <div className="bg-slate-100 rounded-xl p-3 mb-4 min-h-[50px] flex items-end justify-end overflow-hidden">
+                <span className="text-xl font-black text-slate-800 tracking-tighter truncate">{calcExpr || "0"}</span>
+             </div>
+             <div className="grid grid-cols-4 gap-2">
+                {['C', '(', ')', '/'].map(btn => <button key={btn} onClick={() => onCalcPress(btn)} className="h-12 rounded-xl bg-slate-50 text-indigo-600 font-black text-xs hover:bg-slate-100">{btn}</button>)}
+                {['7', '8', '9', '*'].map(btn => <button key={btn} onClick={() => onCalcPress(btn)} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">{btn}</button>)}
+                {['4', '5', '6', '-'].map(btn => <button key={btn} onClick={() => onCalcPress(btn)} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">{btn}</button>)}
+                {['1', '2', '3', '+'].map(btn => <button key={btn} onClick={() => onCalcPress(btn)} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">{btn}</button>)}
+                <button onClick={() => onCalcPress('0')} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">0</button>
+                <button onClick={() => onCalcPress('.')} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">.</button>
+                <button onClick={() => onCalcPress('%')} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">%</button>
+                <button onClick={() => onCalcPress('=')} className="h-12 rounded-xl bg-indigo-600 text-white font-black text-xs hover:bg-indigo-700">=</button>
+             </div>
+             <button onClick={() => setIsCalcOpen(false)} className="w-full mt-4 py-3 bg-slate-100 text-slate-400 font-black text-[9px] uppercase rounded-xl">Đóng</button>
+          </div>
+        </div>
+      )}
+
+      {/* LOAN PAYMENT MODAL (THANH TOÁN / THU HỒI) */}
       {isLoanPaymentModalOpen && paymentLoanId && (
         <div className="fixed inset-0 z-[280] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95">
              {(() => {
                 const l = loans.find(x => x.id === paymentLoanId);
                 const title = l?.type === LoanType.BORROW ? t.loan_pay : t.loan_recover;
                 const icon = l?.type === LoanType.BORROW ? '💸' : '🤝';
                 return (
                   <>
-                    <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4">
-                      <span className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg text-white ${l?.type === LoanType.BORROW ? 'bg-rose-600' : 'bg-emerald-600'}`}>{icon}</span> {title}
+                    <h2 className="text-[12px] font-black text-slate-800 flex items-center gap-2 uppercase mb-4 tracking-widest border-b pb-3">
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center shadow text-white ${l?.type === LoanType.BORROW ? 'bg-rose-600' : 'bg-emerald-600'}`}>{icon}</span> {title}
                     </h2>
-                    <form onSubmit={handlePaymentSubmit} className="space-y-5">
-                       <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
-                          <input required type="text" inputMode="numeric" value={paymentForm.amountStr} onChange={e => setPaymentForm({...paymentForm, amountStr: formatDots(e.target.value)})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-sm font-black outline-none focus:border-indigo-400" placeholder="0" />
-                          <p className="text-[8px] font-bold text-slate-400 ml-1 italic">{formatAmountUnits(parseFormattedNumber(paymentForm.amountStr) * EXCHANGE_RATES[settings.currency], settings.currency)}</p>
-                       </div>
-                       <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_date_label}</label>
-                          <input required type="date" value={paymentForm.date} onChange={e => setPaymentForm({...paymentForm, date: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-sm font-bold outline-none" />
-                       </div>
-                       <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label>
-                          <select value={paymentForm.jar} onChange={e => setPaymentForm({...paymentForm, jar: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-sm font-bold outline-none">
-                             <option value="AUTO">{t.manual_auto}</option>
-                             {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
-                          </select>
-                       </div>
-                       <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_img_label}</label>
-                          <div className="relative">
-                            <input type="file" hidden ref={paymentPhotoInputRef} accept="image/*" onChange={handlePaymentPhotoChange} />
-                            <button type="button" onClick={() => paymentPhotoInputRef.current?.click()} className="w-full h-12 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black uppercase text-indigo-600 flex items-center justify-center gap-2 transition-all">
-                              {paymentForm.imageUrl ? '✅ Đã thêm' : '📷 Thêm ảnh'}
-                            </button>
+                    <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                       <div className="space-y-1">
+                          <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
+                          <div className="flex gap-2">
+                             <input required type="text" inputMode="numeric" value={paymentForm.amountStr} onChange={e => setPaymentForm({...paymentForm, amountStr: formatDots(e.target.value)})} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[11px] font-black outline-none focus:border-indigo-400" placeholder="0" />
+                             <button type="button" onClick={() => openCalculator('payment')} className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-lg shadow-sm border border-slate-200">🧮</button>
                           </div>
                        </div>
-                       <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
-                          <textarea value={paymentForm.note} onChange={e => setPaymentForm({...paymentForm, note: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 h-20 text-sm font-bold outline-none resize-none" placeholder="..." />
+                       <div className="grid grid-cols-2 gap-3">
+                         <div className="space-y-1">
+                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày tháng</label>
+                            <input required type="date" value={paymentForm.date} onChange={e => setPaymentForm({...paymentForm, date: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-bold outline-none" />
+                         </div>
+                         <div className="space-y-1">
+                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Hũ sử dụng</label>
+                            <select value={paymentForm.jar} onChange={e => setPaymentForm({...paymentForm, jar: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-bold outline-none">
+                               <option value="AUTO">{t.manual_auto}</option>
+                               {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
+                            </select>
+                         </div>
                        </div>
-                       <div className="flex gap-4 pt-2">
-                          <button type="button" onClick={() => { setIsLoanPaymentModalOpen(false); setPaymentLoanId(null); }} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.manual_cancel}</button>
-                          <button type="submit" className={`flex-[2] py-4 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95 ${l?.type === LoanType.BORROW ? 'bg-rose-600' : 'bg-emerald-600'}`}>Lưu giao dịch</button>
+                       <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Chứng từ (Tùy chọn)</label>
+                            {paymentForm.imageUrl && <span className="text-[7px] text-indigo-500 font-bold">✓ Đã đính kèm</span>}
+                          </div>
+                          <input type="file" hidden ref={paymentPhotoInputRef} accept="image/*" onChange={handlePaymentPhotoChange} />
+                          <button type="button" onClick={() => paymentPhotoInputRef.current?.click()} className={`w-full h-10 rounded-xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-2 ${paymentForm.imageUrl ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}>
+                             📷 {paymentForm.imageUrl ? 'THAY ĐỔI ẢNH' : 'ĐÍNH KÈM ẢNH'}
+                          </button>
+                       </div>
+                       <div className="space-y-1">
+                          <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
+                          <input value={paymentForm.note} onChange={e => setPaymentForm({...paymentForm, note: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-bold outline-none" placeholder="..." />
+                       </div>
+                       <div className="flex gap-3 pt-2">
+                          <button type="button" onClick={() => { setIsLoanPaymentModalOpen(false); setPaymentLoanId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95">HỦY</button>
+                          <button type="submit" className={`flex-[2] py-3 text-white font-black uppercase text-[9px] rounded-xl shadow active:scale-95 ${l?.type === LoanType.BORROW ? 'bg-rose-600' : 'bg-emerald-600'}`}>XÁC NHẬN</button>
                        </div>
                     </form>
                   </>
@@ -1517,105 +1622,80 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* ENTRY MODAL (THÊM GIAO DỊCH - TỐI ƯU CHIỀU CAO & KHOẢNG CÁCH) */}
       {isEntryModalOpen && (
-        <div className="fixed inset-0 z-[250] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] w-full max-xl:max-w-xl p-6 sm:p-8 shadow-2xl relative animate-in slide-in-from-bottom-10 duration-300">
-            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg">📝</span> {editingTransactionId ? t.manual_edit : t.manual_title}</h2>
-            <form onSubmit={handleManualSubmit} className="space-y-4 sm:space-y-6">
-               <div className="flex bg-slate-100 p-1.5 rounded-2xl h-12 border-2 border-slate-200">
-                  <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-white shadow-sm text-red-600' : 'text-slate-400'}`}>{t.manual_expense}</button>
-                  <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400'}`}>{t.manual_income}</button>
-               </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <div className="relative h-12 sm:h-14">
-                    <input required type="text" inputMode="numeric" value={manualAmount} onChange={e => setManualAmount(formatDots(e.target.value))} placeholder={`${t.manual_amount} (${settings.currency})`} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-full pr-24" />
-                    <p className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-400 pointer-events-none uppercase tracking-tighter">{formatAmountUnits(parseFormattedNumber(manualAmount) * EXCHANGE_RATES[settings.currency], settings.currency)}</p>
-                 </div>
-                 <div className="flex gap-2 h-12 sm:h-14">
-                    <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder={t.manual_desc} className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none" />
-                    <div className="relative">
-                      <input type="file" hidden ref={manualPhotoInputRef} accept="image/*" onChange={handleManualPhotoChange} />
-                      <button type="button" onClick={() => manualPhotoInputRef.current?.click()} className={`w-12 sm:w-14 h-full rounded-2xl flex items-center justify-center transition-all ${manualImage ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 border-2 border-slate-200 hover:border-indigo-300'}`}>
-                        <span className="text-xl">📷</span>
-                      </button>
-                    </div>
-                 </div>
-               </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <select value={manualJar} onChange={e => setManualJar(e.target.value as any)} className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-12 sm:h-14">
-                    <option value="AUTO">{t.manual_auto}</option>
-                    {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
-                 </select>
-                 <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold h-12 sm:h-14" />
-               </div>
-               <div className="space-y-1">
-                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
-                 <textarea value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder="..." className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-sm font-bold outline-none h-20 resize-none" />
-               </div>
-               {manualImage && (
-                 <div className="relative w-20 h-20 group">
-                    <img src={manualImage} className="w-full h-full object-cover rounded-xl shadow-sm" />
-                    <button onClick={() => setManualImage('')} className="absolute -top-2 -right-2 bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-md">✕</button>
-                 </div>
-               )}
-               <div className="flex gap-4 pt-2">
-                  <button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); setManualAmount(''); setManualDesc(''); setManualNote(''); setManualImage(''); }} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl tracking-widest active:scale-95 transition-all">{t.manual_cancel}</button>
-                  <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{editingTransactionId ? t.manual_update : t.manual_save}</button>
-               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {isRecurringModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
-            <h2 className="text-[13px] font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-9 h-9 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-lg text-[14px]">🔄</span> {t.recurring_add}</h2>
-            <form onSubmit={handleSaveRecurring} className="space-y-6">
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <div className="space-y-1">
-                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Tháng bắt đầu</label>
-                   <input type="date" value={recurringForm.startDate} onChange={e => setRecurringForm({...recurringForm, startDate: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold h-11" />
-                 </div>
-                 <div className="space-y-1">
-                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Loại thuê bao</label>
-                   <select value={recurringForm.subscriptionType} onChange={e => setRecurringForm({...recurringForm, subscriptionType: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold outline-none h-11">
-                      <option value="1d">1 ngày</option>
-                      <option value="3d">3 ngày</option>
-                      <option value="1w">1 tuần</option>
-                      <option value="1m">1 tháng</option>
-                      <option value="3m">3 tháng</option>
-                      <option value="6m">6 tháng</option>
-                      <option value="1y">1 năm</option>
-                      <option value="3y">3 năm</option>
-                   </select>
-                 </div>
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-6 sm:p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
+            <h2 className="text-[13px] font-black text-slate-800 flex items-center gap-3 uppercase mb-4 tracking-widest border-b pb-3">
+              <span className="w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg">📝</span> 
+              {editingTransactionId ? t.manual_edit : t.manual_title}
+            </h2>
+            <form onSubmit={handleManualSubmit} className="space-y-3.5">
+               <div className="flex bg-slate-100 p-1 rounded-2xl h-10.5 border-2 border-slate-200">
+                  <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[10px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-white shadow-sm text-red-600' : 'text-slate-400'}`}>{t.manual_expense}</button>
+                  <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[10px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400'}`}>{t.manual_income}</button>
                </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <div className="relative h-11">
-                    <input required type="text" inputMode="numeric" value={recurringAmountStr} onChange={e => setRecurringAmountStr(formatDots(e.target.value))} placeholder={`${t.manual_amount} (${settings.currency})`} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold outline-none h-full" />
+               
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                 <div className="flex gap-2 h-11">
+                    <input 
+                      required 
+                      type="text" 
+                      inputMode="numeric" 
+                      value={manualAmount} 
+                      onChange={e => setManualAmount(formatDots(e.target.value))} 
+                      placeholder={`${t.manual_amount} (${settings.currency})`} 
+                      className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 text-[12px] font-bold outline-none h-full shadow-sm focus:border-indigo-300 transition-all" 
+                    />
+                    <button type="button" onClick={() => openCalculator('manual')} className="w-11 h-11 bg-slate-100 rounded-2xl flex items-center justify-center text-xl shadow-sm border-2 border-slate-100 hover:bg-slate-200 transition-all">🧮</button>
                  </div>
-                 <input required type="text" value={recurringForm.description} onChange={e => setRecurringForm({...recurringForm, description: e.target.value})} placeholder={t.manual_desc} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold outline-none h-11" />
+                 <input 
+                   required 
+                   type="text" 
+                   value={manualDesc} 
+                   onChange={e => setManualDesc(e.target.value)} 
+                   placeholder={t.manual_desc} 
+                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 text-[12px] font-bold outline-none h-11 shadow-sm focus:border-indigo-300 transition-all" 
+                 />
                </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <select value={recurringForm.jarType} onChange={e => setRecurringForm({...recurringForm, jarType: e.target.value as any})} className="bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold outline-none h-11">
+
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                 <select 
+                   value={manualJar} 
+                   onChange={e => setManualJar(e.target.value as any)} 
+                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 text-[12px] font-bold outline-none h-11 shadow-sm focus:border-indigo-300 transition-all"
+                 >
                     <option value="AUTO">{t.manual_auto}</option>
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
                  </select>
-                 <select value={recurringForm.type} onChange={e => setRecurringForm({...recurringForm, type: e.target.value as any})} className="bg-slate-50 border border-slate-200 rounded-xl px-4 text-[10px] font-bold outline-none h-11">
-                    <option value="expense">{t.manual_expense}</option>
-                    <option value="income">{t.manual_income}</option>
-                 </select>
+                 <input 
+                   type="date" 
+                   value={manualDate} 
+                   onChange={e => setManualDate(e.target.value)} 
+                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 text-[12px] font-bold h-11 shadow-sm focus:border-indigo-300 transition-all" 
+                 />
                </div>
+
+               <div className="space-y-1.5 pt-1">
+                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t.manual_note}</label>
+                 <textarea 
+                   value={manualNote} 
+                   onChange={e => setManualNote(e.target.value)} 
+                   placeholder="..." 
+                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-[12px] font-bold outline-none h-20 resize-none shadow-sm focus:border-indigo-300 transition-all" 
+                 />
+               </div>
+
                <div className="flex gap-3 pt-3">
-                  <button type="button" onClick={() => setIsRecurringModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl tracking-widest transition-colors active:scale-95">Hủy bỏ</button>
-                  <button type="submit" className="flex-[2] py-3 bg-emerald-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg hover:bg-emerald-700 active:scale-95 transition-all tracking-widest">Lưu mẫu</button>
+                  <button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); setManualAmount(''); setManualDesc(''); setManualNote(''); }} className="flex-1 py-3.5 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl tracking-widest active:scale-95 transition-all">{t.manual_cancel}</button>
+                  <button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{editingTransactionId ? t.manual_update : t.manual_save}</button>
                </div>
             </form>
           </div>
         </div>
       )}
 
+      {/* LOAN MODAL (GHI VAY NỢ MỚI) */}
       {isLoanModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
@@ -1643,31 +1723,22 @@ const App: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_date_label}</label>
-                  <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold" />
-                </div>
-                <div className="space-y-1">
-                  <div className="relative">
-                    <input type="file" hidden ref={loanPhotoInputRef} accept="image/*" onChange={handleLoanPhotoChange} />
-                    <button type="button" onClick={() => loanPhotoInputRef.current?.click()} className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl text-[9px] font-black uppercase text-indigo-600 flex items-center justify-center gap-2 hover:bg-white transition-all active:scale-95">
-                      {loanForm.imageUrl ? '✅' : '📷'} {t.loan_add_img}
-                    </button>
-                    {loanForm.imageUrl && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-100 rounded-full border border-white overflow-hidden shadow-sm flex items-center justify-center pointer-events-none">
-                        <img src={loanForm.imageUrl} className="w-full h-full object-cover" alt="Proof thumbnail" />
-                      </div>
-                    )}
+                  <div className="flex gap-2 h-11">
+                    <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="flex-1 px-4 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" />
+                    <div className="relative">
+                      <input type="file" hidden ref={loanPhotoInputRef} accept="image/*" onChange={handleLoanPhotoChange} />
+                      <button type="button" onClick={() => loanPhotoInputRef.current?.click()} className={`w-11 h-11 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition-all ${loanForm.imageUrl ? 'text-indigo-600 bg-indigo-50 border-indigo-200 shadow-sm' : 'text-slate-400 hover:border-indigo-300'}`}>
+                        <span className="text-lg">📷</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_principal}</label>
-                  <input required type="text" inputMode="numeric" value={loanPrincipalStr} onChange={e => setLoanPrincipalStr(formatDots(e.target.value))} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="0" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_paid_label}</label>
-                  <input type="text" inputMode="numeric" value={loanPaidAmountStr} onChange={e => setLoanPaidAmountStr(formatDots(e.target.value))} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="0" />
+                  <div className="flex gap-2">
+                     <input required type="text" inputMode="numeric" value={loanPrincipalStr} onChange={e => setLoanPrincipalStr(formatDots(e.target.value))} className="flex-1 px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="0" />
+                     <button type="button" onClick={() => openCalculator('loan')} className="w-11 h-11 bg-slate-100 rounded-xl flex items-center justify-center text-lg border border-slate-200 shadow-sm">🧮</button>
+                  </div>
                 </div>
               </div>
 
@@ -1677,7 +1748,7 @@ const App: React.FC = () => {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setIsLoanModalOpen(false); setEditingLoanId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl tracking-widest transition-colors active:scale-95">Hủy bỏ</button>
+                <button type="button" onClick={() => { setIsLoanModalOpen(false); setEditingLoanId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl tracking-widest transition-colors active:scale-95">HỦY BỎ</button>
                 <button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{t.save_loan}</button>
               </div>
             </form>
@@ -1685,21 +1756,75 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {isEventModalOpen && (
+      {/* RECURRING MODAL */}
+      {isRecurringModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95">
-            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-rose-600 text-white rounded-xl flex items-center justify-center shadow-lg">🎉</span> {t.event_add}</h2>
-            <form onSubmit={handleSaveEvent} className="space-y-6">
-               <input required type="text" value={eventName} onChange={e => setEventName(e.target.value)} placeholder="Tên sự kiện (Vd: Sinh nhật Tèo)" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
-               <div className="flex gap-3">
-                  <button type="button" onClick={() => setIsEventModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl tracking-widest active:scale-95">{t.manual_cancel}</button>
-                  <button type="submit" className="flex-[2] py-4 bg-rose-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl hover:bg-rose-700 active:scale-95 transition-all tracking-widest">Tạo ngay</button>
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-6 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
+            <h2 className="text-[12px] font-black text-slate-800 flex items-center gap-2 uppercase mb-5 tracking-widest border-b pb-3"><span className="w-8 h-8 bg-emerald-600 text-white rounded-lg flex items-center justify-center shadow text-lg">🔄</span> {t.recurring_add}</h2>
+            <form onSubmit={handleSaveRecurring} className="space-y-4">
+               <div className="grid grid-cols-2 gap-3">
+                 <div className="space-y-1">
+                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Bắt đầu</label>
+                   <input type="date" value={recurringForm.startDate} onChange={e => setRecurringForm({...recurringForm, startDate: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold h-10" />
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Kỳ hạn</label>
+                   <select value={recurringForm.subscriptionType} onChange={e => setRecurringForm({...recurringForm, subscriptionType: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10">
+                      <option value="1d">1 ngày</option>
+                      <option value="1w">1 tuần</option>
+                      <option value="1m">1 tháng</option>
+                      <option value="3m">3 tháng</option>
+                      <option value="1y">1 năm</option>
+                   </select>
+                 </div>
+               </div>
+               <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
+                  <div className="flex gap-2">
+                     <input required type="text" inputMode="numeric" value={recurringAmountStr} onChange={e => setRecurringAmountStr(formatDots(e.target.value))} placeholder={`0 (${settings.currency})`} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10" />
+                     <button type="button" onClick={() => openCalculator('recurring')} className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-lg border border-slate-200 shadow-sm">🧮</button>
+                  </div>
+               </div>
+               <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_desc}</label>
+                  <input required type="text" value={recurringForm.description} onChange={e => setRecurringForm({...recurringForm, description: e.target.value})} placeholder="..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10" />
+               </div>
+               <div className="grid grid-cols-2 gap-3">
+                 <select value={recurringForm.jarType} onChange={e => setRecurringForm({...recurringForm, jarType: e.target.value as any})} className="bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10">
+                    <option value="AUTO">{t.manual_auto}</option>
+                    {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
+                 </select>
+                 <select value={recurringForm.type} onChange={e => setRecurringForm({...recurringForm, type: e.target.value as any})} className="bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10">
+                    <option value="expense">{t.manual_expense}</option>
+                    <option value="income">{t.manual_income}</option>
+                 </select>
+               </div>
+               <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setIsRecurringModalOpen(false)} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95">Hủy bỏ</button>
+                  <button type="submit" className="flex-[2] py-3 bg-emerald-600 text-white font-black uppercase text-[9px] rounded-xl shadow active:scale-95">Lưu mẫu</button>
                </div>
             </form>
           </div>
         </div>
       )}
 
+      {/* EVENT MODAL */}
+      {isEventModalOpen && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95">
+            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-rose-600 text-white rounded-xl flex items-center justify-center shadow-lg text-lg">🎉</span> {t.event_add}</h2>
+            <form onSubmit={handleSaveEvent} className="space-y-6">
+               <input required type="text" value={eventName} onChange={e => setEventName(e.target.value)} placeholder="Tên sự kiện (Vd: Sinh nhật Tèo)" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
+               <div className="flex gap-3">
+                  <button type="button" onClick={() => setIsEventModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.manual_cancel}</button>
+                  <button type="submit" className="flex-[2] py-4 bg-rose-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95 transition-all">{t.onboarding_start}</button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EVENT ENTRY MODAL */}
       {isEventEntryModalOpen && (
         <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95">
@@ -1709,17 +1834,24 @@ const App: React.FC = () => {
                   <button type="button" onClick={() => setEventManualType('expense')} className={`flex-1 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'expense' ? 'bg-white shadow text-rose-600' : 'text-slate-400'}`}>CHI TIÊU</button>
                   <button type="button" onClick={() => setEventManualType('income')} className={`flex-1 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'income' ? 'bg-white shadow text-emerald-600' : 'text-slate-400'}`}>THU NHẬP</button>
                </div>
-               <input required type="text" inputMode="numeric" value={eventManualAmount} onChange={e => setEventManualAmount(formatDots(e.target.value))} placeholder={`Số tiền (${settings.currency})`} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
+               <div className="space-y-1">
+                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
+                  <div className="flex gap-2">
+                     <input required type="text" inputMode="numeric" value={eventManualAmount} onChange={e => setEventManualAmount(formatDots(e.target.value))} placeholder={`0 (${settings.currency})`} className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
+                     <button type="button" onClick={() => openCalculator('event')} className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-xl shadow-sm border-2 border-slate-100">🧮</button>
+                  </div>
+               </div>
                <input required type="text" value={eventManualDesc} onChange={e => setEventManualDesc(e.target.value)} placeholder="Nội dung" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
-               <div className="flex gap-3">
-                  <button type="button" onClick={() => { setIsEventEntryModalOpen(false); setActiveEventId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl active:scale-95">Hủy</button>
-                  <button type="submit" className="flex-[2] py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-lg active:scale-95">Thêm</button>
+               <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => { setIsEventEntryModalOpen(false); setActiveEventId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl active:scale-95">HỦY</button>
+                  <button type="submit" className="flex-[2] py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-lg active:scale-95 transition-all">THÊM</button>
                </div>
             </form>
           </div>
         </div>
       )}
 
+      {/* SETTINGS DRAWER */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[200] flex">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)}></div>
@@ -1810,7 +1942,7 @@ const App: React.FC = () => {
                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t.settings_connect}</h3>
                      <a href="https://www.facebook.com/duclongka" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 group transition-all hover:bg-blue-100/50 active:scale-95"><div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center text-lg font-black">f</div><span className="text-[10px] font-black text-blue-800 uppercase tracking-widest">FACEBOOK</span></a>
                      <div className="flex items-center gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100"><div className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-lg">💬</div><div className="flex flex-col"><span className="text-[7px] font-black text-slate-400 uppercase">ZALO</span><span className="text-[10px] font-black text-emerald-800 uppercase">0964.855.899</span></div></div>
-                     <a href="mailto:longld@itsupro.org" className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 group transition-all hover:bg-indigo-100/50 active:scale-95"><div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-lg">✉️</div><div className="flex flex-col"><span className="text-[7px] font-black text-slate-400 uppercase">{t.support_email}</span><span className="text-[10px] font-black text-indigo-800 uppercase truncate">longld@itsupro.org</span></div></a>
+                     <a href="mailto:longld@itsupro.org" className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 group transition-all hover:bg-indigo-100/50 active:scale-95"><div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-lg">✉️</div><div className="flex flex-col"><span className="text-[7px] font-black text-slate-400 uppercase">{t.support_email}</span><span className="text-[10px] font-black text-indigo-800 truncate">longld@itsupro.org</span></div></a>
                   </div>
                 </div>
               )}
