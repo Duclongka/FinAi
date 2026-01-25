@@ -97,17 +97,18 @@ const TRANSLATIONS: Record<string, any> = {
     manual_save: "LƯU GIAO DỊCH",
     manual_update: "LƯU THAY ĐỔI",
     history_title: "LỊCH SỬ GIAO DỊCH",
-    history_filter: "BỘ LỌC",
-    history_type: "Loại",
-    history_jar: "Hũ",
-    history_date: "Ngày",
+    history_filter: "BỘ LỌC CHI TIẾT",
+    history_type: "Phân loại",
+    history_jar: "Hũ ngân sách",
+    history_date: "Khoảng thời gian",
     history_from: "Từ ngày",
     history_to: "Đến ngày",
     history_all: "TẤT CẢ",
     history_inc_only: "Chỉ Thu",
     history_exp_only: "Chỉ Chi",
-    history_more: "Xem thêm ↓",
+    history_more: "Xem thêm giao dịch ↓",
     history_empty: "Danh sách trống",
+    history_clear_filter: "XÓA BỘ LỌC",
     loan_title: "QUẢN LÝ VAY NỢ",
     loan_new: "GHI VAY NỢ MỚI",
     loan_edit: "SỬA KHOẢN VAY",
@@ -117,12 +118,12 @@ const TRANSLATIONS: Record<string, any> = {
     loan_owes_me: "NỢ TÔI",
     loan_rem: "Còn",
     loan_paid: "Đã trả",
-    loan_partner: "ĐỐI TÁC",
-    loan_principal: "TIỀN GỐC",
-    loan_paid_label: "ĐÃ TRẢ",
-    loan_jar_label: "HŨ LIÊN QUAN",
-    loan_date_label: "NGÀY THỰC HIỆN",
-    loan_img_label: "ẢNH CHỨNG TỪ",
+    loan_partner: "Đối tác",
+    loan_principal: "Tiền gốc",
+    loan_paid_label: "Đã trả/thu",
+    loan_jar_label: "Hũ liên quan",
+    loan_date_label: "Ngày thực hiện",
+    loan_img_label: "Ảnh chứng từ",
     loan_add_img: "THÊM ẢNH",
     settings_title: "CÀI ĐẶT ỨNG DỤNG",
     settings_data: "DỮ LIỆU",
@@ -188,12 +189,12 @@ const TRANSLATIONS: Record<string, any> = {
     history_detail_title: "CHI TIÊU CHI TIẾT",
     confirm_delete_title: "XÁC NHẬN XÓA",
     confirm_delete_msg: "Bạn có chắc chắn muốn xóa vĩnh viễn giao dịch này?",
-    loan_detail_title: "CHI TIẾT GIAO DỊCH VAY NỢ"
+    loan_detail_title: "THÔNG TIN GIAO DỊCH VAY NỢ"
   }
 };
 
 const App: React.FC = () => {
-  const APP_VERSION = "v5.6.1";
+  const APP_VERSION = "v5.6.4";
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const defaultRatios: Record<JarType, number> = {
@@ -253,7 +254,6 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'export' | 'info' | 'policy' | 'guide' | 'app'>('app');
   
-  // History States
   const [isHistoryFilterModalOpen, setIsHistoryFilterModalOpen] = useState(false);
   const [isHistoryDetailModalOpen, setIsHistoryDetailModalOpen] = useState(false);
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState(false);
@@ -274,12 +274,10 @@ const App: React.FC = () => {
   const [manualDate, setManualDate] = useState(getTodayString());
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
 
-  // Calculator State
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [calcExpr, setCalcExpr] = useState('');
-  const [calcTarget, setCalcTarget] = useState<'manual' | 'loan' | 'payment' | 'recurring' | 'event'>('manual');
+  const [calcTarget, setCalcTarget] = useState<'manual' | 'loan' | 'payment' | 'recurring' | 'event' | 'transfer'>('manual');
 
-  // Loan & Payment States
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
   const [isLoanDetailModalOpen, setIsLoanDetailModalOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
@@ -516,6 +514,7 @@ const App: React.FC = () => {
     e.preventDefault();
     const amountInVnd = parseFormattedNumber(transferAmount);
     if (amountInVnd <= 0 || amountInVnd > balances[transferFrom]) return showToast("Số dư không đủ.", "danger");
+    if (transferFrom === transferTo) return showToast("Hũ nguồn và hũ đích phải khác nhau.", "info");
     
     const transferId = `trf_${Date.now()}`;
     const tx1: Transaction = { 
@@ -601,9 +600,16 @@ const App: React.FC = () => {
     const targetLoan = loans.find(l => l.id === paymentLoanId);
     if (!targetLoan || amountVnd <= 0) return;
 
-    const finalJar = paymentForm.jar === 'AUTO' ? targetLoan.loanJar : paymentForm.jar as JarType;
+    const remainingVnd = targetLoan.principal - targetLoan.paidAmount;
+    if (amountVnd > remainingVnd + 0.01) {
+       const label = targetLoan.type === LoanType.BORROW ? 'thanh toán' : 'thu hồi';
+       alert(`Số tiền bạn nhập vượt quá số tiền ${label}!`);
+       return;
+    }
+
+    const finalJar = targetLoan.loanJar;
     const txType = targetLoan.type === LoanType.BORROW ? 'expense' : 'income';
-    const txLabel = targetLoan.type === LoanType.BORROW ? 'Thanh toán khoản vay' : 'Thu hồi khoản vay';
+    const txLabel = targetLoan.type === LoanType.BORROW ? 'Thanh toán nợ' : 'Thu hồi nợ';
 
     const payTx: Transaction = {
       id: `pay_${Date.now()}`,
@@ -616,12 +622,11 @@ const App: React.FC = () => {
       imageUrl: paymentForm.imageUrl
     };
 
-    setTransactions(p => [payTx, ...p]);
     updateBalances(null, payTx);
     setLoans(p => p.map(l => l.id === paymentLoanId ? { ...l, paidAmount: l.paidAmount + amountVnd } : l));
     
     setIsLoanPaymentModalOpen(false);
-    setPaymentForm({ amountStr: '', date: getTodayString(), jar: JarType.NEC, note: '', imageUrl: '' });
+    setPaymentForm({ amountStr: '', date: getTodayString(), jar: JarType.NEC as JarType | 'AUTO', note: '', imageUrl: '' });
     setPaymentLoanId(null);
     showToast("Thành công!");
   };
@@ -744,7 +749,7 @@ const App: React.FC = () => {
     } else {
       setDeleteClickData({ id, count: 1 });
       deleteResetTimer.current = setTimeout(() => {
-        setDeleteClickData({ id: '', count: 0 });
+        setDeleteClickData({ id, count: 0 });
       }, 1500);
     }
   };
@@ -784,14 +789,13 @@ const App: React.FC = () => {
             updateBalances(null, reversalTx);
         }
         setLoans(p => p.filter(l => l.id !== id));
-        setTransactions(p => p.filter(t => t.loanId !== id && t.id !== `loan_${id}`));
         showToast("Đã xóa khoản nợ.");
     }
   };
 
   const handlePayLoan = (loan: Loan) => {
      setPaymentLoanId(loan.id);
-     setPaymentForm({ amountStr: '', date: getTodayString(), jar: loan.loanJar || JarType.NEC, note: '', imageUrl: '' });
+     setPaymentForm({ amountStr: '', date: getTodayString(), jar: JarType.NEC as JarType | 'AUTO', note: '', imageUrl: '' });
      setIsLoanPaymentModalOpen(true);
   };
 
@@ -817,7 +821,7 @@ const App: React.FC = () => {
     }
   };
 
-  const openCalculator = (target: 'manual' | 'loan' | 'payment' | 'recurring' | 'event') => {
+  const openCalculator = (target: 'manual' | 'loan' | 'payment' | 'recurring' | 'event' | 'transfer') => {
     setCalcTarget(target);
     setCalcExpr('');
     setIsCalcOpen(true);
@@ -834,6 +838,7 @@ const App: React.FC = () => {
         else if (calcTarget === 'payment') setPaymentForm(p => ({...p, amountStr: formatted}));
         else if (calcTarget === 'recurring') setRecurringAmountStr(formatted);
         else if (calcTarget === 'event') setEventManualAmount(formatted);
+        else if (calcTarget === 'transfer') setTransferAmount(formatted);
         setIsCalcOpen(false);
       }
       return;
@@ -1058,10 +1063,10 @@ const App: React.FC = () => {
           <>
             <section className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in zoom-in-95 duration-300">
               {[
-                { label: t.stats_jars, icon: '💰', val: (Object.values(balances) as number[]).reduce((a: number, b: number) => a + b, 0), colorClass: 'text-slate-900' }, 
-                { label: t.stats_debt, icon: '📉', val: stats.debt, colorClass: 'text-blue-600' }, 
-                { label: t.stats_lent, icon: '🤝', val: stats.lent, colorClass: 'text-red-600' }, 
-                { label: t.stats_net, icon: '💎', val: stats.net, dark: true, colorClass: 'text-white' }
+                { label: t.stats_jars, val: (Object.values(balances) as number[]).reduce((a: number, b: number) => a + b, 0), icon: '💰', colorClass: 'text-slate-900' }, 
+                { label: t.stats_debt, val: stats.debt, icon: '📉', colorClass: 'text-blue-600' }, 
+                { label: t.stats_lent, val: stats.lent, icon: '🤝', colorClass: 'text-red-600' }, 
+                { label: t.stats_net, val: stats.net, icon: '💎', dark: true, colorClass: 'text-white' }
               ].map((s, i) => (
                 <div key={i} className={`${s.dark ? 'bg-indigo-600 text-white' : 'bg-white'} p-4 rounded-2xl border-2 border-slate-100 shadow-md`}>
                   <p className="text-[8px] font-black uppercase opacity-60 mb-1">{s.label}</p>
@@ -1099,23 +1104,32 @@ const App: React.FC = () => {
         )}
         {activeTab === 'history' && (
           <section className="bg-white p-5 rounded-[2.5rem] border-2 border-slate-200 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300 min-h-[500px]">
-             <div className="flex items-center justify-between mb-4">
+             <div className="flex items-center justify-between mb-4 px-2">
                 <div className="flex items-center gap-2">
                    <span className="text-xl">📜</span>
                    <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">{t.history_title}</h3>
                 </div>
-                <button 
-                  onClick={() => setIsHistoryFilterModalOpen(true)}
-                  className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-90"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-                </button>
+                <div className="flex items-center gap-2">
+                   {(historyFilter !== 'all' || historyJarFilter !== 'all' || historyFromDateFilter || historyToDateFilter) && (
+                     <span className="w-2.5 h-2.5 bg-indigo-600 rounded-full animate-pulse shadow-lg shadow-indigo-200" title="Đang áp dụng bộ lọc"></span>
+                   )}
+                   <button 
+                    onClick={() => setIsHistoryFilterModalOpen(true)}
+                    className={`p-2.5 rounded-xl transition-all shadow-sm active:scale-90 flex items-center gap-2 ${ (historyFilter !== 'all' || historyJarFilter !== 'all' || historyFromDateFilter || historyToDateFilter) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' }`}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                    <span className="text-[8px] font-black uppercase">Bộ lọc</span>
+                  </button>
+                </div>
              </div>
              
              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                 {displayedTransactions.length === 0 ? (
                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-100">
                      <p className="text-[10px] font-bold text-slate-400 italic">{t.history_empty}</p>
+                     {(historyFilter !== 'all' || historyJarFilter !== 'all' || historyFromDateFilter || historyToDateFilter) && (
+                       <button onClick={() => { setHistoryFilter('all'); setHistoryJarFilter('all'); setHistoryFromDateFilter(''); setHistoryToDateFilter(''); }} className="mt-4 text-[9px] font-black text-indigo-600 underline uppercase tracking-widest">Xóa tất cả bộ lọc</button>
+                     )}
                    </div>
                 ) : (
                   <>
@@ -1150,12 +1164,14 @@ const App: React.FC = () => {
                       </div>
                     ))}
                     {filteredTransactions.length > visibleTxCount && (
-                      <button 
-                        onClick={() => setVisibleTxCount(prev => prev + 15)}
-                        className="w-full py-4 text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:bg-indigo-50 rounded-2xl transition-all"
-                      >
-                        {t.history_more}
-                      </button>
+                      <div className="pt-4 pb-2">
+                        <button 
+                          onClick={() => setVisibleTxCount(prev => prev + 15)}
+                          className="w-full py-4 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100 active:scale-95"
+                        >
+                          {t.history_more}
+                        </button>
+                      </div>
                     )}
                   </>
                 )}
@@ -1283,7 +1299,7 @@ const App: React.FC = () => {
                     return (
                       <div key={tpl.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all active:bg-white relative">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px]">🔄</div>
+                          <div className={`w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px]`}>🔄</div>
                           <div>
                             <p className="text-[11px] font-black text-slate-800">{tpl.description}</p>
                             <p className="text-[8px] font-bold text-slate-400 uppercase">
@@ -1402,78 +1418,221 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* MODALS */}
-      {/* TRANSFER MODAL */}
-      {isTransferModalOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl relative animate-in zoom-in-95">
-            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg text-lg">⇄</span> {t.transfer_title}</h2>
-            <form onSubmit={handleTransferSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_from}</label>
-                  <select value={transferFrom} onChange={e => setTransferFrom(e.target.value as JarType)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none">
-                    {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_to}</label>
-                  <select value={transferTo} onChange={e => setTransferTo(e.target.value as JarType)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none">
-                    {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_amount}</label>
-                  <input required type="text" inputMode="numeric" value={transferAmount} onChange={e => setTransferAmount(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-12 text-[11px] font-black outline-none focus:border-indigo-400" />
+      {/* HISTORY FILTER MODAL */}
+      {isHistoryFilterModalOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95 border border-white/50">
+            <div className="flex justify-between items-center mb-6 border-b pb-4">
+              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                <span>🔍</span> {t.history_filter}
+              </h2>
+              <button onClick={() => setIsHistoryFilterModalOpen(false)} className="text-slate-400 hover:text-red-500 p-2">✕</button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Classification Chips */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">{t.history_type}</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: 'all', label: t.history_all },
+                    { id: 'income', label: t.history_inc_only },
+                    { id: 'expense', label: t.history_exp_only }
+                  ].map(f => (
+                    <button 
+                      key={f.id} 
+                      onClick={() => setHistoryFilter(f.id as any)}
+                      className={`px-4 py-2 rounded-full text-[10px] font-black transition-all border-2 ${historyFilter === f.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'}`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="flex gap-3 pt-2">
+
+              {/* Jar Selection Chips */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">{t.history_jar}</label>
+                <div className="flex flex-wrap gap-2">
+                  <button 
+                    onClick={() => setHistoryJarFilter('all')}
+                    className={`px-4 py-2 rounded-full text-[10px] font-black transition-all border-2 ${historyJarFilter === 'all' ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'}`}
+                  >
+                    TẤT CẢ HŨ
+                  </button>
+                  {Object.values(JarType).map(type => (
+                    <button 
+                      key={type} 
+                      onClick={() => setHistoryJarFilter(type)}
+                      className={`px-4 py-2 rounded-full text-[10px] font-black transition-all border-2 ${historyJarFilter === type ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'}`}
+                    >
+                      {t[`jar_${type.toLowerCase()}_name`]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date Range Selection */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">{t.history_date}</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[8px] font-bold text-slate-400 uppercase ml-1">{t.history_from}</span>
+                    <input 
+                      type="date" 
+                      value={historyFromDateFilter} 
+                      onChange={e => setHistoryFromDateFilter(e.target.value)}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-bold outline-none focus:border-indigo-300 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[8px] font-bold text-slate-400 uppercase ml-1">{t.history_to}</span>
+                    <input 
+                      type="date" 
+                      value={historyToDateFilter} 
+                      onChange={e => setHistoryToDateFilter(e.target.value)}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-bold outline-none focus:border-indigo-300 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-4">
+                <button 
+                  onClick={() => {
+                    setHistoryFilter('all');
+                    setHistoryJarFilter('all');
+                    setHistoryFromDateFilter('');
+                    setHistoryToDateFilter('');
+                  }}
+                  className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95 transition-all"
+                >
+                  {t.history_clear_filter}
+                </button>
+                <button 
+                  onClick={() => setIsHistoryFilterModalOpen(false)}
+                  className="flex-[1.5] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition-all"
+                >
+                  XONG
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TRANSFER MODAL */}
+      {isTransferModalOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
+            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4">
+              <span className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-lg text-lg">⇄</span> 
+              {t.transfer_title}
+            </h2>
+            <form onSubmit={handleTransferSubmit} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_from}</label>
+                  <select 
+                    value={transferFrom} 
+                    onChange={e => setTransferFrom(e.target.value as JarType)}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 h-12 text-[10px] font-black outline-none focus:border-indigo-300"
+                  >
+                    {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_to}</label>
+                  <select 
+                    value={transferTo} 
+                    onChange={e => setTransferTo(e.target.value as JarType)}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 h-12 text-[10px] font-black outline-none focus:border-indigo-300"
+                  >
+                    {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_amount}</label>
+                <div className="flex gap-2">
+                  <input 
+                    required 
+                    type="text" 
+                    inputMode="numeric"
+                    value={transferAmount} 
+                    onChange={e => setTransferAmount(formatDots(e.target.value))} 
+                    placeholder={`0 (${settings.currency})`}
+                    className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-14 text-sm font-black outline-none focus:border-indigo-300" 
+                  />
+                  <button type="button" onClick={() => openCalculator('transfer')} className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm border-2 border-slate-100 active:scale-95 transition-all">🧮</button>
+                </div>
+                <p className="text-[8px] font-bold text-slate-400 ml-1">Số dư hiện tại: <span className="text-indigo-600">{formatCurrency(balances[transferFrom])}</span></p>
+              </div>
+
+              <div className="flex gap-4 pt-2">
                 <button type="button" onClick={() => setIsTransferModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.transfer_cancel}</button>
-                <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95">{t.transfer_confirm}</button>
+                <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95 transition-all">{t.transfer_confirm}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* TRANSACTION DETAIL MODAL */}
-      {isHistoryDetailModalOpen && selectedTx && (
-        <div className="fixed inset-0 z-[290] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
-             <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6 border-b pb-4"><span>📄</span> {t.history_detail_title}</h2>
-             <div className="space-y-4 text-[11px] font-bold text-slate-600">
-                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Nội dung:</span><span className="text-slate-900 font-black">{selectedTx.description}</span></div>
-                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Số tiền:</span><span className={`font-black ${selectedTx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{selectedTx.type === 'income' ? '+' : '-'}{formatCurrency(selectedTx.amount)}</span></div>
-                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Ngày:</span><span className="text-slate-900">{new Date(selectedTx.timestamp).toLocaleDateString(settings.language === 'vi' ? 'vi-VN' : 'en-US')}</span></div>
-                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Hũ:</span><span className="text-indigo-600 uppercase">{selectedTx.jarType ? t[`jar_${selectedTx.jarType.toLowerCase()}_name`] : t.manual_auto}</span></div>
-                {selectedTx.note && <div className="border-b border-slate-50 pb-2 flex flex-col gap-1"><span>Ghi chú:</span><p className="text-slate-900 italic">{selectedTx.note}</p></div>}
-             </div>
-             <div className="grid grid-cols-3 gap-3 mt-8">
-                <button onClick={() => setIsHistoryDetailModalOpen(false)} className="py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95 transition-all">{t.manual_cancel}</button>
-                <button onClick={() => setIsDeleteConfirmModalOpen(true)} className="py-3 bg-red-50 text-red-600 font-black uppercase text-[9px] rounded-xl active:scale-95 transition-all">Xóa</button>
-                <button onClick={() => handleEditTransaction(selectedTx)} className="py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg active:scale-95 transition-all">Sửa</button>
-             </div>
+      {/* CALC MODAL */}
+      {isCalcOpen && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md">
+          <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-[320px] p-6 shadow-2xl animate-in zoom-in-95 border border-white/50">
+            <div className="flex justify-between items-center mb-4 border-b pb-2">
+              <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Máy tính tài chính</span>
+              <button onClick={() => setIsCalcOpen(false)} className="text-slate-400 hover:text-red-500 p-2">✕</button>
+            </div>
+            <div className="bg-slate-900 rounded-3xl p-5 mb-6 text-right shadow-inner min-h-[80px] flex flex-col justify-end">
+              <div className="text-slate-400 text-[10px] font-bold overflow-hidden text-ellipsis mb-1">{calcExpr || '0'}</div>
+              <div className="text-white text-2xl font-black">{evaluateMath(calcExpr) || '0'}</div>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {['(', ')', '%', '/'].map(btn => (
+                <button key={btn} onClick={() => onCalcPress(btn)} className="h-14 rounded-2xl bg-indigo-50 text-indigo-600 font-black text-lg shadow-sm hover:bg-indigo-600 hover:text-white transition-all active:scale-90">{btn}</button>
+              ))}
+              {['7', '8', '9', '*'].map(btn => (
+                <button key={btn} onClick={() => onCalcPress(btn)} className="h-14 rounded-2xl bg-white border border-slate-100 text-slate-700 font-black text-lg shadow-sm hover:bg-slate-50 transition-all active:scale-90">{btn}</button>
+              ))}
+              {['4', '5', '6', '-'].map(btn => (
+                <button key={btn} onClick={() => onCalcPress(btn)} className="h-14 rounded-2xl bg-white border border-slate-100 text-slate-700 font-black text-lg shadow-sm hover:bg-slate-50 transition-all active:scale-90">{btn}</button>
+              ))}
+              {['1', '2', '3', '+'].map(btn => (
+                <button key={btn} onClick={() => onCalcPress(btn)} className="h-14 rounded-2xl bg-white border border-slate-100 text-slate-700 font-black text-lg shadow-sm hover:bg-slate-50 transition-all active:scale-90">{btn}</button>
+              ))}
+              <button onClick={() => onCalcPress('C')} className="h-14 rounded-2xl bg-rose-50 text-rose-600 font-black text-lg shadow-sm hover:bg-rose-600 hover:text-white transition-all active:scale-90">C</button>
+              <button onClick={() => onCalcPress('0')} className="h-14 rounded-2xl bg-white border border-slate-100 text-slate-700 font-black text-lg shadow-sm hover:bg-slate-50 transition-all active:scale-90">0</button>
+              <button onClick={() => onCalcPress('.')} className="h-14 rounded-2xl bg-white border border-slate-100 text-slate-700 font-black text-lg shadow-sm hover:bg-slate-50 transition-all active:scale-90">.</button>
+              <button onClick={() => onCalcPress('=')} className="h-14 rounded-2xl bg-indigo-600 text-white font-black text-xl shadow-xl hover:bg-indigo-700 transition-all active:scale-95 shadow-indigo-200">=</button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* LOAN DETAIL MODAL */}
+      {/* LOAN DETAIL MODAL (THÔNG TIN GIAO DỊCH VAY NỢ) */}
       {isLoanDetailModalOpen && selectedLoan && (
         <div className="fixed inset-0 z-[290] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6 border-b pb-4"><span>🏦</span> {t.loan_detail_title}</h2>
              <div className="space-y-4 text-[11px] font-bold text-slate-600">
-                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Đối tác:</span><span className="text-slate-900 font-black uppercase">{selectedLoan.lenderName}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>{t.loan_partner}:</span><span className="text-slate-900 font-black uppercase">{selectedLoan.lenderName}</span></div>
                 <div className="flex justify-between border-b border-slate-50 pb-2"><span>Loại:</span><span className={selectedLoan.type === LoanType.BORROW ? 'text-rose-600' : 'text-emerald-600'}>{selectedLoan.type === LoanType.BORROW ? t.loan_i_owe : t.loan_owes_me}</span></div>
-                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Tiền gốc:</span><span className="text-slate-900 font-black">{formatCurrency(selectedLoan.principal)}</span></div>
-                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Đã trả/thu:</span><span className="text-emerald-600">{formatCurrency(selectedLoan.paidAmount)}</span></div>
-                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Còn lại:</span><span className="text-rose-600 font-black">{formatCurrency(selectedLoan.principal - selectedLoan.paidAmount)}</span></div>
-                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Ngày bắt đầu:</span><span className="text-slate-900">{selectedLoan.startDate}</span></div>
-                {selectedLoan.purpose && <div className="border-b border-slate-50 pb-2 flex flex-col gap-1"><span>Ghi chú:</span><p className="text-slate-900 italic">{selectedLoan.purpose}</p></div>}
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>Danh mục:</span><span className="text-slate-900">{selectedLoan.category === LoanCategory.BANK ? 'Ngân hàng' : 'Cá nhân'}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>{t.loan_principal}:</span><span className="text-slate-900 font-black">{formatCurrency(selectedLoan.principal)}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>{t.loan_paid_label}:</span><span className="text-emerald-600">{formatCurrency(selectedLoan.paidAmount)}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>{t.loan_rem}:</span><span className="text-rose-600 font-black">{formatCurrency(selectedLoan.principal - selectedLoan.paidAmount)}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>{t.loan_jar_label}:</span><span className="text-indigo-600 uppercase">{selectedLoan.loanJar ? t[`jar_${selectedLoan.loanJar.toLowerCase()}_name`] : t.manual_auto}</span></div>
+                <div className="flex justify-between border-b border-slate-50 pb-2"><span>{t.loan_date_label}:</span><span className="text-slate-900">{selectedLoan.startDate}</span></div>
+                {selectedLoan.purpose && <div className="border-b border-slate-50 pb-2 flex flex-col gap-1"><span>{t.manual_note}:</span><p className="text-slate-900 italic">{selectedLoan.purpose}</p></div>}
                 {selectedLoan.imageUrl && (
-                  <div className="pt-2">
-                    <span className="block mb-2">Ảnh chứng từ:</span>
-                    <img src={selectedLoan.imageUrl} className="w-full h-40 object-cover rounded-2xl shadow-md cursor-pointer" onClick={() => setViewingImageUrl(selectedLoan.imageUrl!)} alt="Loan Proof" />
+                  <div className="flex justify-between items-center border-b border-slate-50 pb-2">
+                    <span>{t.loan_img_label}:</span>
+                    <button onClick={() => setViewingImageUrl(selectedLoan.imageUrl!)} className="text-indigo-600 underline text-[9px] font-black uppercase">Xem ảnh</button>
                   </div>
                 )}
              </div>
@@ -1485,87 +1644,10 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* DELETE CONFIRM MODAL */}
-      {isDeleteConfirmModalOpen && selectedTx && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-xs p-8 shadow-2xl text-center animate-in zoom-in-95">
-             <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-sm">⚠️</div>
-             <h3 className="text-sm font-black text-slate-800 uppercase mb-4 tracking-tighter">{t.confirm_delete_title}</h3>
-             <p className="text-[10px] font-bold text-slate-500 mb-8 leading-relaxed">{t.confirm_delete_msg}</p>
-             <div className="flex gap-3">
-                <button onClick={() => setIsDeleteConfirmModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl active:scale-95">{t.manual_cancel}</button>
-                <button onClick={() => handleDeleteTransaction(selectedTx.id)} className="flex-1 py-4 bg-red-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-xl shadow-red-200 active:scale-95">Xác nhận</button>
-             </div>
-          </div>
-        </div>
-      )}
-
-      {/* HISTORY FILTER MODAL */}
-      {isHistoryFilterModalOpen && (
-        <div className="fixed inset-0 z-[270] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
-             <div className="flex items-center justify-between mb-8 border-b pb-4">
-                <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2"><span>🔍</span> {t.history_filter}</h2>
-                <button onClick={() => setIsHistoryFilterModalOpen(false)} className="text-slate-400 p-1">✕</button>
-             </div>
-             <div className="space-y-5">
-                <div className="space-y-1.5">
-                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_type}</label>
-                   <select value={historyFilter} onChange={e => setHistoryFilter(e.target.value as any)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none">
-                      <option value="all">{t.history_all}</option>
-                      <option value="income">{t.history_inc_only}</option>
-                      <option value="expense">{t.history_exp_only}</option>
-                   </select>
-                </div>
-                <div className="space-y-1.5">
-                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_jar}</label>
-                   <select value={historyJarFilter} onChange={e => setHistoryJarFilter(e.target.value as any)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none">
-                      <option value="all">{t.history_all}</option>
-                      {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
-                   </select>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                   <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_from}</label>
-                      <input type="date" value={historyFromDateFilter} onChange={e => setHistoryFromDateFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none" />
-                   </div>
-                   <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_to}</label>
-                      <input type="date" value={historyToDateFilter} onChange={e => setHistoryToDateFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 h-12 text-[11px] font-bold outline-none" />
-                   </div>
-                </div>
-             </div>
-             <button onClick={() => setIsHistoryFilterModalOpen(false)} className="w-full py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl mt-8 active:scale-95 transition-all">Áp dụng bộ lọc</button>
-          </div>
-        </div>
-      )}
-
-      {/* MINI CALCULATOR POPOVER */}
-      {isCalcOpen && (
-        <div className="fixed inset-0 z-[450] flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] p-6">
-          <div className="bg-white rounded-[2rem] w-full max-w-[280px] p-6 shadow-2xl animate-in zoom-in-95 border border-slate-200">
-             <div className="bg-slate-100 rounded-xl p-3 mb-4 min-h-[50px] flex items-end justify-end overflow-hidden">
-                <span className="text-xl font-black text-slate-800 tracking-tighter truncate">{calcExpr || "0"}</span>
-             </div>
-             <div className="grid grid-cols-4 gap-2">
-                {['C', '(', ')', '/'].map(btn => <button key={btn} onClick={() => onCalcPress(btn)} className="h-12 rounded-xl bg-slate-50 text-indigo-600 font-black text-xs hover:bg-slate-100">{btn}</button>)}
-                {['7', '8', '9', '*'].map(btn => <button key={btn} onClick={() => onCalcPress(btn)} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">{btn}</button>)}
-                {['4', '5', '6', '-'].map(btn => <button key={btn} onClick={() => onCalcPress(btn)} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">{btn}</button>)}
-                {['1', '2', '3', '+'].map(btn => <button key={btn} onClick={() => onCalcPress(btn)} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">{btn}</button>)}
-                <button onClick={() => onCalcPress('0')} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">0</button>
-                <button onClick={() => onCalcPress('.')} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">.</button>
-                <button onClick={() => onCalcPress('%')} className="h-12 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200">%</button>
-                <button onClick={() => onCalcPress('=')} className="h-12 rounded-xl bg-indigo-600 text-white font-black text-xs hover:bg-indigo-700">=</button>
-             </div>
-             <button onClick={() => setIsCalcOpen(false)} className="w-full mt-4 py-3 bg-slate-100 text-slate-400 font-black text-[9px] uppercase rounded-xl">Đóng</button>
-          </div>
-        </div>
-      )}
-
-      {/* LOAN PAYMENT MODAL (THANH TOÁN / THU HỒI) */}
+      {/* LOAN PAYMENT MODAL */}
       {isLoanPaymentModalOpen && paymentLoanId && (
         <div className="fixed inset-0 z-[280] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-6 shadow-2xl animate-in zoom-in-95">
              {(() => {
                 const l = loans.find(x => x.id === paymentLoanId);
                 const title = l?.type === LoanType.BORROW ? t.loan_pay : t.loan_recover;
@@ -1580,6 +1662,13 @@ const App: React.FC = () => {
                           <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
                           <div className="flex gap-2">
                              <input required type="text" inputMode="numeric" value={paymentForm.amountStr} onChange={e => setPaymentForm({...paymentForm, amountStr: formatDots(e.target.value)})} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[11px] font-black outline-none focus:border-indigo-400" placeholder="0" />
+                             <button type="button" onClick={() => {
+                                const target = loans.find(x => x.id === paymentLoanId);
+                                if (target) {
+                                  const rem = target.principal - target.paidAmount;
+                                  setPaymentForm(prev => ({...prev, amountStr: formatDots((rem * EXCHANGE_RATES[settings.currency]).toString())}));
+                                }
+                             }} className="px-2 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-[8px] font-black uppercase border border-indigo-100 shadow-sm active:scale-95 transition-all">Còn lại</button>
                              <button type="button" onClick={() => openCalculator('payment')} className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-lg shadow-sm border border-slate-200">🧮</button>
                           </div>
                        </div>
@@ -1589,11 +1678,10 @@ const App: React.FC = () => {
                             <input required type="date" value={paymentForm.date} onChange={e => setPaymentForm({...paymentForm, date: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-bold outline-none" />
                          </div>
                          <div className="space-y-1">
-                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Hũ sử dụng</label>
-                            <select value={paymentForm.jar} onChange={e => setPaymentForm({...paymentForm, jar: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-bold outline-none">
-                               <option value="AUTO">{t.manual_auto}</option>
-                               {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
-                            </select>
+                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Hũ nguồn</label>
+                            <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-black flex items-center text-indigo-600 uppercase tracking-tighter truncate">
+                               {l?.loanJar ? t[`jar_${l.loanJar.toLowerCase()}_name`] : t.manual_auto}
+                            </div>
                          </div>
                        </div>
                        <div className="space-y-1">
@@ -1622,22 +1710,21 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* ENTRY MODAL (THÊM GIAO DỊCH - TỐI ƯU CHIỀU CAO & KHOẢNG CÁCH) */}
       {isEntryModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-6 sm:p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
-            <h2 className="text-[13px] font-black text-slate-800 flex items-center gap-3 uppercase mb-4 tracking-widest border-b pb-3">
-              <span className="w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg">📝</span> 
+          <div className="bg-white rounded-[2.5rem] w-full max-xl:max-w-xl p-6 sm:p-8 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
+            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4">
+              <span className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg">📝</span> 
               {editingTransactionId ? t.manual_edit : t.manual_title}
             </h2>
-            <form onSubmit={handleManualSubmit} className="space-y-3.5">
-               <div className="flex bg-slate-100 p-1 rounded-2xl h-10.5 border-2 border-slate-200">
-                  <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[10px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-white shadow-sm text-red-600' : 'text-slate-400'}`}>{t.manual_expense}</button>
-                  <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[10px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400'}`}>{t.manual_income}</button>
+            <form onSubmit={handleManualSubmit} className="space-y-5">
+               <div className="flex bg-slate-100 p-1.5 rounded-2xl h-12 border-2 border-slate-200">
+                  <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-white shadow-sm text-red-600' : 'text-slate-400'}`}>{t.manual_expense}</button>
+                  <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400'}`}>{t.manual_income}</button>
                </div>
                
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                 <div className="flex gap-2 h-11">
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                 <div className="flex gap-2 h-14">
                     <input 
                       required 
                       type="text" 
@@ -1645,9 +1732,9 @@ const App: React.FC = () => {
                       value={manualAmount} 
                       onChange={e => setManualAmount(formatDots(e.target.value))} 
                       placeholder={`${t.manual_amount} (${settings.currency})`} 
-                      className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 text-[12px] font-bold outline-none h-full shadow-sm focus:border-indigo-300 transition-all" 
+                      className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-full shadow-sm focus:border-indigo-300 transition-all" 
                     />
-                    <button type="button" onClick={() => openCalculator('manual')} className="w-11 h-11 bg-slate-100 rounded-2xl flex items-center justify-center text-xl shadow-sm border-2 border-slate-100 hover:bg-slate-200 transition-all">🧮</button>
+                    <button type="button" onClick={() => openCalculator('manual')} className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm border-2 border-slate-100 hover:bg-slate-200 transition-all">🧮</button>
                  </div>
                  <input 
                    required 
@@ -1655,15 +1742,15 @@ const App: React.FC = () => {
                    value={manualDesc} 
                    onChange={e => setManualDesc(e.target.value)} 
                    placeholder={t.manual_desc} 
-                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 text-[12px] font-bold outline-none h-11 shadow-sm focus:border-indigo-300 transition-all" 
+                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-14 shadow-sm focus:border-indigo-300 transition-all" 
                  />
                </div>
 
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                  <select 
                    value={manualJar} 
                    onChange={e => setManualJar(e.target.value as any)} 
-                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 text-[12px] font-bold outline-none h-11 shadow-sm focus:border-indigo-300 transition-all"
+                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-14 shadow-sm focus:border-indigo-300 transition-all"
                  >
                     <option value="AUTO">{t.manual_auto}</option>
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
@@ -1672,30 +1759,29 @@ const App: React.FC = () => {
                    type="date" 
                    value={manualDate} 
                    onChange={e => setManualDate(e.target.value)} 
-                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 text-[12px] font-bold h-11 shadow-sm focus:border-indigo-300 transition-all" 
+                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold h-14 shadow-sm focus:border-indigo-300 transition-all" 
                  />
                </div>
 
-               <div className="space-y-1.5 pt-1">
-                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{t.manual_note}</label>
+               <div className="space-y-1.5 pt-2">
+                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t.manual_note}</label>
                  <textarea 
                    value={manualNote} 
                    onChange={e => setManualNote(e.target.value)} 
                    placeholder="..." 
-                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-[12px] font-bold outline-none h-20 resize-none shadow-sm focus:border-indigo-300 transition-all" 
+                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold outline-none h-24 resize-none shadow-sm focus:border-indigo-300 transition-all" 
                  />
                </div>
 
-               <div className="flex gap-3 pt-3">
-                  <button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); setManualAmount(''); setManualDesc(''); setManualNote(''); }} className="flex-1 py-3.5 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl tracking-widest active:scale-95 transition-all">{t.manual_cancel}</button>
-                  <button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{editingTransactionId ? t.manual_update : t.manual_save}</button>
+               <div className="flex gap-4 pt-4">
+                  <button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); setManualAmount(''); setManualDesc(''); setManualNote(''); }} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl tracking-widest active:scale-95 transition-all">{t.manual_cancel}</button>
+                  <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{editingTransactionId ? t.manual_update : t.manual_save}</button>
                </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* LOAN MODAL (GHI VAY NỢ MỚI) */}
       {isLoanModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
@@ -1756,7 +1842,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* RECURRING MODAL */}
       {isRecurringModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-6 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
@@ -1808,7 +1893,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* EVENT MODAL */}
       {isEventModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95">
@@ -1824,7 +1908,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* EVENT ENTRY MODAL */}
       {isEventEntryModalOpen && (
         <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95">
@@ -1851,7 +1934,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* SETTINGS DRAWER */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[200] flex">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)}></div>
