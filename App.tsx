@@ -1018,7 +1018,7 @@ const App: React.FC = () => {
             </div>
           </div>
           <form onSubmit={handleProcessInput} className="relative w-full">
-            <input ref={aiInputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t.ai_placeholder} className="w-full bg-slate-100 border-2 border-slate-200 rounded-full px-5 py-2.5 text-[11px] font-bold outline-none focus:border-indigo-400 transition-all" />
+            <input ref={aiInputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t.ai_placeholder} className="w-full bg-slate-100 border-2 border-slate-200 rounded-full px-5 py-2.5 text-[11px] font-normal outline-none focus:border-indigo-400 transition-all" />
             <button type="submit" className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition-all active:scale-95">
               {isLoading ? <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "✨"}
             </button>
@@ -1160,7 +1160,7 @@ const App: React.FC = () => {
                 </ResponsiveContainer>
               </div>
               
-              <div className="mt-6 grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+              <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-slate-50">
                   <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
                       <p className="text-[9px] font-black text-emerald-600 uppercase mb-1 tracking-widest">Tổng thu</p>
                       <p className="text-sm font-black text-emerald-700 tracking-tight">{formatCurrency(rangeTotalsVnd.income)}</p>
@@ -1168,6 +1168,12 @@ const App: React.FC = () => {
                   <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
                       <p className="text-[9px] font-black text-rose-600 uppercase mb-1 tracking-widest">Tổng chi</p>
                       <p className="text-sm font-black text-rose-700 tracking-tight">{formatCurrency(rangeTotalsVnd.expense)}</p>
+                  </div>
+                  <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 md:col-span-1 col-span-2">
+                      <p className="text-[9px] font-black text-indigo-600 uppercase mb-1 tracking-widest">Tổng thu/chi</p>
+                      <p className={`text-sm font-black tracking-tight ${rangeTotalsVnd.income - rangeTotalsVnd.expense >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          {rangeTotalsVnd.income - rangeTotalsVnd.expense >= 0 ? '+' : ''}{formatCurrency(rangeTotalsVnd.income - rangeTotalsVnd.expense)}
+                      </p>
                   </div>
               </div>
             </section>
@@ -1380,7 +1386,7 @@ const App: React.FC = () => {
       {isHistoryFilterModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setIsHistoryFilterModalOpen(false)}>
           <div 
-            className="bg-white rounded-[2.5rem] w-full max-w-sm p-7 shadow-2xl animate-in zoom-in-95" 
+            className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl animate-in zoom-in-95" 
             onClick={e => e.stopPropagation()}
           >
             <h2 className="text-[11px] font-black text-slate-800 flex items-center gap-2 uppercase mb-6 tracking-widest border-b pb-4">
@@ -1493,42 +1499,41 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* REMAINDER OF MODALS - NO CHANGES AS PER REQUEST */}
+      {/* TRANSFER MODAL - REDESIGNED */}
       {isTransferModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
-            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4">
-              <span className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-lg text-lg">⇄</span> 
+            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4 text-center justify-center">
               {t.transfer_title}
             </h2>
             <form onSubmit={handleTransferSubmit} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_from}</label>
+                  <label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.transfer_from}</label>
                   <select 
                     value={transferFrom} 
                     onChange={e => setTransferFrom(e.target.value as JarType)}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 h-12 text-[10px] font-black outline-none focus:border-indigo-300"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 h-12 text-[10px] font-normal outline-none focus:border-indigo-300"
                   >
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_to}</label>
+                  <label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.transfer_to}</label>
                   <select 
                     value={transferTo} 
                     onChange={e => setTransferTo(e.target.value as JarType)}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 h-12 text-[10px] font-black outline-none focus:border-indigo-300"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 h-12 text-[10px] font-normal outline-none focus:border-indigo-300"
                   >
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
                   </select>
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_amount}</label>
-                <div className="flex gap-2">
-                  <input required type="text" inputMode="numeric" value={transferAmount} onChange={e => setTransferAmount(formatDots(e.target.value))} placeholder={`0 (${settings.currency})`} className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-14 text-sm font-black outline-none focus:border-indigo-300" />
-                  <button type="button" onClick={() => openCalculator('transfer')} className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm border-2 border-slate-100 active:scale-95 transition-all">🧮</button>
+                <label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.transfer_amount}</label>
+                <div className="relative">
+                  <input required type="text" inputMode="numeric" value={transferAmount} onChange={e => setTransferAmount(formatDots(e.target.value))} placeholder={`0 (${settings.currency})`} className="w-full pr-12 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-14 text-sm font-black outline-none focus:border-indigo-300" />
+                  <button type="button" onClick={() => openCalculator('transfer')} className="absolute right-1 top-1/2 -translate-y-1/2 w-12 h-12 bg-transparent text-slate-400 flex items-center justify-center text-2xl active:scale-95 transition-all">🧮</button>
                 </div>
                 <p className="text-[8px] font-bold text-slate-400 ml-1">Số dư hiện tại: <span className="text-indigo-600">{formatCurrency(balances[transferFrom])}</span></p>
               </div>
@@ -1544,13 +1549,12 @@ const App: React.FC = () => {
       {isCalcOpen && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md">
           <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-[320px] p-6 shadow-2xl animate-in zoom-in-95 border border-white/50">
-            <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Máy tính tài chính</span>
-              <button onClick={() => setIsCalcOpen(false)} className="text-slate-400 hover:text-red-500 p-2">✕</button>
+            <div className="flex justify-end mb-4 border-b pb-2">
+              <button onClick={() => setIsCalcOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors p-2">✕</button>
             </div>
-            <div className="bg-slate-900 rounded-3xl p-5 mb-6 text-right shadow-inner min-h-[80px] flex flex-col justify-end">
-              <div className="text-slate-400 text-[10px] font-bold overflow-hidden text-ellipsis mb-1">{calcExpr || '0'}</div>
-              <div className="text-white text-2xl font-black">{evaluateMath(calcExpr) || '0'}</div>
+            <div className="bg-white border border-black/10 rounded-3xl p-5 mb-6 text-right shadow-lg min-h-[80px] flex flex-col justify-end overflow-hidden">
+              <div className="text-slate-500 text-[10px] font-bold overflow-hidden text-ellipsis mb-1">{calcExpr || '0'}</div>
+              <div className="text-black text-2xl font-black">{evaluateMath(calcExpr) || '0'}</div>
             </div>
             <div className="grid grid-cols-4 gap-3">
               {['(', ')', '%', '/'].map(btn => (
@@ -1605,32 +1609,34 @@ const App: React.FC = () => {
                 const icon = l?.type === LoanType.BORROW ? '💸' : '🤝';
                 return (
                   <>
-                    <h2 className="text-[12px] font-black text-slate-800 flex items-center gap-2 uppercase mb-4 tracking-widest border-b pb-3">
-                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center shadow text-white ${l?.type === LoanType.BORROW ? 'bg-rose-600' : 'bg-emerald-600'}`}>{icon}</span> {title}
+                    <h2 className="text-[12px] font-black text-slate-800 flex items-center gap-2 uppercase mb-4 tracking-widest border-b pb-3 text-center justify-center">
+                      {title}
                     </h2>
                     <form onSubmit={handlePaymentSubmit} className="space-y-4">
                        <div className="space-y-1">
                           <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
-                          <div className="flex gap-2">
-                             <input required type="text" inputMode="numeric" value={paymentForm.amountStr} onChange={e => setPaymentForm({...paymentForm, amountStr: formatDots(e.target.value)})} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[11px] font-black outline-none focus:border-indigo-400" placeholder="0" />
-                             <button type="button" onClick={() => {
-                                const target = loans.find(x => x.id === paymentLoanId);
-                                if (target) {
-                                  const rem = target.principal - target.paidAmount;
-                                  setPaymentForm(prev => ({...prev, amountStr: formatDots((rem * EXCHANGE_RATES[settings.currency]).toString())}));
-                                }
-                             }} className="px-2 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-[8px] font-black uppercase border border-indigo-100 shadow-sm active:scale-95 transition-all">Còn lại</button>
-                             <button type="button" onClick={() => openCalculator('payment')} className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-lg shadow-sm border border-slate-200">🧮</button>
+                          <div className="relative">
+                             <input required type="text" inputMode="numeric" value={paymentForm.amountStr} onChange={e => setPaymentForm({...paymentForm, amountStr: formatDots(e.target.value)})} className="w-full pr-24 bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[11px] font-black outline-none focus:border-indigo-400" placeholder="0" />
+                             <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                               <button type="button" onClick={() => {
+                                  const target = loans.find(x => x.id === paymentLoanId);
+                                  if (target) {
+                                    const rem = target.principal - target.paidAmount;
+                                    setPaymentForm(prev => ({...prev, amountStr: formatDots((rem * EXCHANGE_RATES[settings.currency]).toString())}));
+                                  }
+                               }} className="px-2 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-[7px] font-black uppercase border border-indigo-100 active:scale-95 transition-all">Còn lại</button>
+                               <button type="button" onClick={() => openCalculator('payment')} className="w-8 h-8 bg-transparent text-slate-400 flex items-center justify-center text-lg active:scale-90">🧮</button>
+                             </div>
                           </div>
                        </div>
                        <div className="grid grid-cols-2 gap-3">
                          <div className="space-y-1">
                             <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày tháng</label>
-                            <input required type="date" value={paymentForm.date} onChange={e => setPaymentForm({...paymentForm, date: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-bold outline-none" />
+                            <input required type="date" value={paymentForm.date} onChange={e => setPaymentForm({...paymentForm, date: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-normal outline-none" />
                          </div>
                          <div className="space-y-1">
                             <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Hũ nguồn</label>
-                            <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-black flex items-center text-indigo-600 uppercase tracking-tighter truncate">
+                            <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 h-10 text-[9px] font-normal flex items-center text-indigo-600 uppercase tracking-tighter truncate">
                                {l?.loanJar ? t[`jar_${l.loanJar.toLowerCase()}_name`] : t.manual_auto}
                             </div>
                          </div>
@@ -1775,8 +1781,8 @@ const App: React.FC = () => {
                </div>
                <input required type="text" value={eventManualDesc} onChange={e => setEventManualDesc(e.target.value)} placeholder="Nội dung" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => { setIsEventEntryModalOpen(false); setActiveEventId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl active:scale-95">HỦY</button>
-                  <button type="submit" className="flex-[2] py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-lg active:scale-95 transition-all">THÊM</button>
+                  <button type="button" onClick={() => { setIsEventEntryModalOpen(false); setActiveEventId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95">HỦY</button>
+                  <button type="submit" className="flex-[2] py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg active:scale-95 transition-all">THÊM</button>
                </div>
             </form>
           </div>
