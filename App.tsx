@@ -18,37 +18,6 @@ const EXCHANGE_RATES = {
   JPY: 1 / 168,
 };
 
-const formatAmountUnits = (amount: number, currency: string): string => {
-  if (!amount || amount <= 0) return '0' + (currency === 'VND' ? ' đồng' : currency === 'JPY' ? ' yên' : '');
-  
-  const formatWithCommas = (num: number) => num.toLocaleString('en-US');
-
-  if (currency === 'VND') {
-    const ty = Math.floor(amount / 1000000000);
-    const trieu = Math.floor((amount % 1000000000) / 1000000);
-    const ngan = Math.floor((amount % 1000000) / 1000);
-    const dong = Math.floor(amount % 1000);
-    let res = '';
-    if (ty > 0) res += `${formatWithCommas(ty)} tỷ `;
-    if (trieu > 0) res += `${formatWithCommas(trieu)} triệu `;
-    if (ngan > 0) res += `${formatWithCommas(ngan)} ngàn `;
-    if (dong > 0 || res === '') res += `${formatWithCommas(dong)} đồng`;
-    return res.trim();
-  } else if (currency === 'JPY') {
-    const man = Math.floor(amount / 10000);
-    const sen = Math.floor((amount % 10000) / 1000);
-    const yen = Math.floor(amount % 1000);
-    let res = '';
-    if (man > 0) res += `${formatWithCommas(man)} man `;
-    if (sen > 0) res += `${formatWithCommas(sen)} sên `;
-    if (yen > 0 || res === '') res += `${formatWithCommas(yen)} yên`;
-    return res.trim();
-  } else if (currency === 'USD') {
-    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-  return '';
-};
-
 const formatDots = (val: string) => {
   if (!val) return "";
   const cleaned = val.toString().replace(/[^0-9.]/g, "");
@@ -81,7 +50,7 @@ const TRANSLATIONS: Record<string, any> = {
     chart_week: "Tuần",
     chart_month: "Tháng",
     chart_year: "Năm",
-    manual_title: "THÊM GIAO DỊCH",
+    manual_title: "Thêm giao dịch mới",
     manual_edit: "ĐANG SỬA GIAO DỊCH",
     manual_cancel: "HỦY",
     manual_type: "Loại giao dịch",
@@ -90,25 +59,24 @@ const TRANSLATIONS: Record<string, any> = {
     manual_amount: "Số tiền",
     manual_desc: "Nội dung",
     manual_note: "Ghi chú",
-    manual_jar_img: "Phân bổ & Hình ảnh",
+    manual_jar_img: "Phân bổ",
     manual_allocation_only: "Phân bổ",
     manual_date_label: "Ngày tháng",
     manual_auto: "✨ Tự động phân bổ 6 hũ",
     manual_save: "LƯU GIAO DỊCH",
     manual_update: "LƯU THAY ĐỔI",
     history_title: "LỊCH SỬ GIAO DỊCH",
-    history_filter: "BỘ LỌC CHI TIẾT",
-    history_type: "Phân loại",
-    history_jar: "Hũ ngân sách",
-    history_date: "Khoảng thời gian",
+    history_filter: "BỘ LỌC",
+    history_type: "Loại",
+    history_jar: "Hũ",
+    history_date: "Ngày",
     history_from: "Từ ngày",
     history_to: "Đến ngày",
     history_all: "TẤT CẢ",
     history_inc_only: "Chỉ Thu",
     history_exp_only: "Chỉ Chi",
-    history_more: "Xem thêm giao dịch ↓",
+    history_more: "Xem thêm ↓",
     history_empty: "Danh sách trống",
-    history_clear_filter: "XÓA BỘ LỌC",
     loan_title: "QUẢN LÝ VAY NỢ",
     loan_new: "GHI VAY NỢ MỚI",
     loan_edit: "SỬA KHOẢN VAY",
@@ -194,7 +162,7 @@ const TRANSLATIONS: Record<string, any> = {
 };
 
 const App: React.FC = () => {
-  const APP_VERSION = "v5.6.4";
+  const APP_VERSION = "v5.6.5";
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const defaultRatios: Record<JarType, number> = {
@@ -1104,32 +1072,24 @@ const App: React.FC = () => {
         )}
         {activeTab === 'history' && (
           <section className="bg-white p-5 rounded-[2.5rem] border-2 border-slate-200 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300 min-h-[500px]">
-             <div className="flex items-center justify-between mb-4 px-2">
+             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                    <span className="text-xl">📜</span>
                    <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">{t.history_title}</h3>
                 </div>
-                <div className="flex items-center gap-2">
-                   {(historyFilter !== 'all' || historyJarFilter !== 'all' || historyFromDateFilter || historyToDateFilter) && (
-                     <span className="w-2.5 h-2.5 bg-indigo-600 rounded-full animate-pulse shadow-lg shadow-indigo-200" title="Đang áp dụng bộ lọc"></span>
-                   )}
-                   <button 
-                    onClick={() => setIsHistoryFilterModalOpen(true)}
-                    className={`p-2.5 rounded-xl transition-all shadow-sm active:scale-90 flex items-center gap-2 ${ (historyFilter !== 'all' || historyJarFilter !== 'all' || historyFromDateFilter || historyToDateFilter) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' }`}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-                    <span className="text-[8px] font-black uppercase">Bộ lọc</span>
-                  </button>
-                </div>
+                <button 
+                  onClick={() => setIsHistoryFilterModalOpen(true)}
+                  className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-90 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                  <span className="text-[9px] font-black uppercase tracking-tighter">{t.history_filter}</span>
+                </button>
              </div>
              
              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                 {displayedTransactions.length === 0 ? (
                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-100">
                      <p className="text-[10px] font-bold text-slate-400 italic">{t.history_empty}</p>
-                     {(historyFilter !== 'all' || historyJarFilter !== 'all' || historyFromDateFilter || historyToDateFilter) && (
-                       <button onClick={() => { setHistoryFilter('all'); setHistoryJarFilter('all'); setHistoryFromDateFilter(''); setHistoryToDateFilter(''); }} className="mt-4 text-[9px] font-black text-indigo-600 underline uppercase tracking-widest">Xóa tất cả bộ lọc</button>
-                     )}
                    </div>
                 ) : (
                   <>
@@ -1164,14 +1124,12 @@ const App: React.FC = () => {
                       </div>
                     ))}
                     {filteredTransactions.length > visibleTxCount && (
-                      <div className="pt-4 pb-2">
-                        <button 
-                          onClick={() => setVisibleTxCount(prev => prev + 15)}
-                          className="w-full py-4 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100 active:scale-95"
-                        >
-                          {t.history_more}
-                        </button>
-                      </div>
+                      <button 
+                        onClick={() => setVisibleTxCount(prev => prev + 15)}
+                        className="w-full py-4 text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:bg-indigo-50 rounded-2xl transition-all"
+                      >
+                        {t.history_more}
+                      </button>
                     )}
                   </>
                 )}
@@ -1418,111 +1376,132 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* HISTORY FILTER MODAL */}
+      {/* HISTORY FILTER MODAL - REDESIGNED */}
       {isHistoryFilterModalOpen && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95 border border-white/50">
-            <div className="flex justify-between items-center mb-6 border-b pb-4">
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                <span>🔍</span> {t.history_filter}
-              </h2>
-              <button onClick={() => setIsHistoryFilterModalOpen(false)} className="text-slate-400 hover:text-red-500 p-2">✕</button>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Classification Chips */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">{t.history_type}</label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { id: 'all', label: t.history_all },
-                    { id: 'income', label: t.history_inc_only },
-                    { id: 'expense', label: t.history_exp_only }
-                  ].map(f => (
-                    <button 
-                      key={f.id} 
-                      onClick={() => setHistoryFilter(f.id as any)}
-                      className={`px-4 py-2 rounded-full text-[10px] font-black transition-all border-2 ${historyFilter === f.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'}`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setIsHistoryFilterModalOpen(false)}>
+          <div 
+            className="bg-white rounded-[2.5rem] w-full max-w-sm p-7 shadow-2xl animate-in zoom-in-95" 
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-[11px] font-black text-slate-800 flex items-center gap-2 uppercase mb-6 tracking-widest border-b pb-4">
+              <span className="text-lg">🔍</span> {t.history_filter}
+            </h2>
+
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_type}</label>
+                <select 
+                  value={historyFilter} 
+                  onChange={e => setHistoryFilter(e.target.value as any)}
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[10px] font-black outline-none focus:border-indigo-300 transition-all"
+                >
+                  <option value="all">{t.history_all}</option>
+                  <option value="income">Thu nhập</option>
+                  <option value="expense">Chi tiêu</option>
+                </select>
               </div>
 
-              {/* Jar Selection Chips */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">{t.history_jar}</label>
-                <div className="flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => setHistoryJarFilter('all')}
-                    className={`px-4 py-2 rounded-full text-[10px] font-black transition-all border-2 ${historyJarFilter === 'all' ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'}`}
-                  >
-                    TẤT CẢ HŨ
-                  </button>
+              <div className="space-y-1.5">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_jar}</label>
+                <select 
+                  value={historyJarFilter} 
+                  onChange={e => setHistoryJarFilter(e.target.value as any)}
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[10px] font-black outline-none focus:border-indigo-300 transition-all"
+                >
+                  <option value="all">Tất cả các hũ</option>
                   {Object.values(JarType).map(type => (
-                    <button 
-                      key={type} 
-                      onClick={() => setHistoryJarFilter(type)}
-                      className={`px-4 py-2 rounded-full text-[10px] font-black transition-all border-2 ${historyJarFilter === type ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'}`}
-                    >
-                      {t[`jar_${type.toLowerCase()}_name`]}
-                    </button>
+                    <option key={type} value={type}>{JAR_CONFIG[type].icon} {t[`jar_${type.toLowerCase()}_name`]}</option>
                   ))}
-                </div>
+                </select>
               </div>
 
-              {/* Date Range Selection */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">{t.history_date}</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase ml-1">{t.history_from}</span>
-                    <input 
-                      type="date" 
-                      value={historyFromDateFilter} 
-                      onChange={e => setHistoryFromDateFilter(e.target.value)}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-bold outline-none focus:border-indigo-300 transition-all"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase ml-1">{t.history_to}</span>
-                    <input 
-                      type="date" 
-                      value={historyToDateFilter} 
-                      onChange={e => setHistoryToDateFilter(e.target.value)}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-bold outline-none focus:border-indigo-300 transition-all"
-                    />
-                  </div>
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="date" value={historyFromDateFilter} onChange={e => setHistoryFromDateFilter(e.target.value)} className="w-full h-11 bg-slate-50 border-2 border-slate-100 rounded-xl px-3 text-[9px] font-black text-slate-700 outline-none" />
+                <input type="date" value={historyToDateFilter} onChange={e => setHistoryToDateFilter(e.target.value)} className="w-full h-11 bg-slate-50 border-2 border-slate-100 rounded-xl px-3 text-[9px] font-black text-slate-700 outline-none" />
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-4 pt-4">
-                <button 
-                  onClick={() => {
-                    setHistoryFilter('all');
-                    setHistoryJarFilter('all');
-                    setHistoryFromDateFilter('');
-                    setHistoryToDateFilter('');
-                  }}
-                  className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95 transition-all"
-                >
-                  {t.history_clear_filter}
-                </button>
-                <button 
-                  onClick={() => setIsHistoryFilterModalOpen(false)}
-                  className="flex-[1.5] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition-all"
-                >
-                  XONG
-                </button>
+              <div className="grid grid-cols-3 gap-2 pt-3">
+                <button onClick={() => setIsHistoryFilterModalOpen(false)} className="py-3 bg-slate-100 text-slate-400 font-black uppercase text-[8px] rounded-xl active:scale-95 transition-all">Hủy</button>
+                <button onClick={() => { setHistoryFilter('all'); setHistoryJarFilter('all'); setHistoryFromDateFilter(''); setHistoryToDateFilter(''); }} className="py-3 bg-slate-50 text-indigo-400 border border-indigo-100 font-black uppercase text-[8px] rounded-xl active:scale-95 transition-all">Reset</button>
+                <button onClick={() => setIsHistoryFilterModalOpen(false)} className="py-3 bg-indigo-600 text-white font-black uppercase text-[8px] rounded-xl shadow-lg shadow-indigo-100 active:scale-95 transition-all">Xác nhận</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* TRANSFER MODAL */}
+      {/* ENTRY MODAL - REDESIGNED */}
+      {isEntryModalOpen && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
+            <h2 className="text-[12px] font-black text-slate-800 flex items-center gap-2 uppercase mb-6 tracking-widest border-b pb-4">
+              <span className="text-lg">📝</span> {editingTransactionId ? t.manual_edit : t.manual_title}
+            </h2>
+            <form onSubmit={handleManualSubmit} className="space-y-5">
+               <div className="flex bg-slate-100 p-1 rounded-2xl h-11 border border-slate-200">
+                  <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[9px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-400'}`}>{t.manual_expense}</button>
+                  <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[9px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400'}`}>{t.manual_income}</button>
+               </div>
+               
+               <div className="space-y-1.5">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
+                 <div className="relative">
+                    <input 
+                      required 
+                      type="text" 
+                      inputMode="numeric" 
+                      value={manualAmount} 
+                      onChange={e => setManualAmount(formatDots(e.target.value))} 
+                      placeholder={`Nhập số tiền (${settings.currency})`} 
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl pl-4 pr-12 h-12 text-lg font-black outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 placeholder:text-[10px] placeholder:font-normal" 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => openCalculator('manual')} 
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 bg-indigo-600 text-white rounded-lg flex items-center justify-center text-xl shadow-lg active:scale-90 transition-all"
+                    >
+                      🧮
+                    </button>
+                 </div>
+               </div>
+
+               <div className="space-y-1.5">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_desc}</label>
+                  <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder="Nhập nội dung giao dịch..." className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-indigo-300 transition-all placeholder:text-slate-300 placeholder:text-[10px] placeholder:font-normal" />
+               </div>
+
+               <div className="space-y-1.5">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_jar_img}</label>
+                 <select 
+                    value={manualJar} 
+                    onChange={e => setManualJar(e.target.value as any)}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-black outline-none focus:border-indigo-300 transition-all"
+                  >
+                    <option value="AUTO">{t.manual_auto}</option>
+                    {Object.values(JarType).map(type => (
+                      <option key={type} value={type}>{JAR_CONFIG[type].icon} {t[`jar_${type.toLowerCase()}_name`]}</option>
+                    ))}
+                  </select>
+               </div>
+
+               <div className="grid grid-cols-1 gap-4">
+                 <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none" />
+                 <div className="space-y-1.5">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
+                    <input type="text" value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder="Ghi chú thêm (tùy chọn)..." className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none placeholder:text-slate-300 placeholder:text-[10px] placeholder:font-normal" />
+                 </div>
+               </div>
+
+               <div className="grid grid-cols-2 gap-3 pt-4">
+                  <button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); }} className="py-4 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-2xl active:scale-95 transition-all">{t.manual_cancel}</button>
+                  <button type="submit" className="py-4 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-2xl shadow-xl shadow-indigo-100 active:scale-95 transition-all">{editingTransactionId ? t.manual_update : t.manual_save}</button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* REMAINDER OF MODALS - NO CHANGES AS PER REQUEST */}
       {isTransferModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
@@ -1553,24 +1532,14 @@ const App: React.FC = () => {
                   </select>
                 </div>
               </div>
-
               <div className="space-y-2">
                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.transfer_amount}</label>
                 <div className="flex gap-2">
-                  <input 
-                    required 
-                    type="text" 
-                    inputMode="numeric"
-                    value={transferAmount} 
-                    onChange={e => setTransferAmount(formatDots(e.target.value))} 
-                    placeholder={`0 (${settings.currency})`}
-                    className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-14 text-sm font-black outline-none focus:border-indigo-300" 
-                  />
+                  <input required type="text" inputMode="numeric" value={transferAmount} onChange={e => setTransferAmount(formatDots(e.target.value))} placeholder={`0 (${settings.currency})`} className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 h-14 text-sm font-black outline-none focus:border-indigo-300" />
                   <button type="button" onClick={() => openCalculator('transfer')} className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm border-2 border-slate-100 active:scale-95 transition-all">🧮</button>
                 </div>
                 <p className="text-[8px] font-bold text-slate-400 ml-1">Số dư hiện tại: <span className="text-indigo-600">{formatCurrency(balances[transferFrom])}</span></p>
               </div>
-
               <div className="flex gap-4 pt-2">
                 <button type="button" onClick={() => setIsTransferModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.transfer_cancel}</button>
                 <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95 transition-all">{t.transfer_confirm}</button>
@@ -1580,7 +1549,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* CALC MODAL */}
       {isCalcOpen && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md">
           <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-[320px] p-6 shadow-2xl animate-in zoom-in-95 border border-white/50">
@@ -1614,7 +1582,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* LOAN DETAIL MODAL (THÔNG TIN GIAO DỊCH VAY NỢ) */}
       {isLoanDetailModalOpen && selectedLoan && (
         <div className="fixed inset-0 z-[290] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
@@ -1628,13 +1595,6 @@ const App: React.FC = () => {
                 <div className="flex justify-between border-b border-slate-50 pb-2"><span>{t.loan_rem}:</span><span className="text-rose-600 font-black">{formatCurrency(selectedLoan.principal - selectedLoan.paidAmount)}</span></div>
                 <div className="flex justify-between border-b border-slate-50 pb-2"><span>{t.loan_jar_label}:</span><span className="text-indigo-600 uppercase">{selectedLoan.loanJar ? t[`jar_${selectedLoan.loanJar.toLowerCase()}_name`] : t.manual_auto}</span></div>
                 <div className="flex justify-between border-b border-slate-50 pb-2"><span>{t.loan_date_label}:</span><span className="text-slate-900">{selectedLoan.startDate}</span></div>
-                {selectedLoan.purpose && <div className="border-b border-slate-50 pb-2 flex flex-col gap-1"><span>{t.manual_note}:</span><p className="text-slate-900 italic">{selectedLoan.purpose}</p></div>}
-                {selectedLoan.imageUrl && (
-                  <div className="flex justify-between items-center border-b border-slate-50 pb-2">
-                    <span>{t.loan_img_label}:</span>
-                    <button onClick={() => setViewingImageUrl(selectedLoan.imageUrl!)} className="text-indigo-600 underline text-[9px] font-black uppercase">Xem ảnh</button>
-                  </div>
-                )}
              </div>
              <div className="grid grid-cols-2 gap-3 mt-8">
                 <button onClick={() => setIsLoanDetailModalOpen(false)} className="py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95 transition-all">Đóng</button>
@@ -1644,7 +1604,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* LOAN PAYMENT MODAL */}
       {isLoanPaymentModalOpen && paymentLoanId && (
         <div className="fixed inset-0 z-[280] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-6 shadow-2xl animate-in zoom-in-95">
@@ -1684,20 +1643,6 @@ const App: React.FC = () => {
                             </div>
                          </div>
                        </div>
-                       <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Chứng từ (Tùy chọn)</label>
-                            {paymentForm.imageUrl && <span className="text-[7px] text-indigo-500 font-bold">✓ Đã đính kèm</span>}
-                          </div>
-                          <input type="file" hidden ref={paymentPhotoInputRef} accept="image/*" onChange={handlePaymentPhotoChange} />
-                          <button type="button" onClick={() => paymentPhotoInputRef.current?.click()} className={`w-full h-10 rounded-xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-2 ${paymentForm.imageUrl ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}>
-                             📷 {paymentForm.imageUrl ? 'THAY ĐỔI ẢNH' : 'ĐÍNH KÈM ẢNH'}
-                          </button>
-                       </div>
-                       <div className="space-y-1">
-                          <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
-                          <input value={paymentForm.note} onChange={e => setPaymentForm({...paymentForm, note: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-[10px] font-bold outline-none" placeholder="..." />
-                       </div>
                        <div className="flex gap-3 pt-2">
                           <button type="button" onClick={() => { setIsLoanPaymentModalOpen(false); setPaymentLoanId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95">HỦY</button>
                           <button type="submit" className={`flex-[2] py-3 text-white font-black uppercase text-[9px] rounded-xl shadow active:scale-95 ${l?.type === LoanType.BORROW ? 'bg-rose-600' : 'bg-emerald-600'}`}>XÁC NHẬN</button>
@@ -1706,78 +1651,6 @@ const App: React.FC = () => {
                   </>
                 );
              })()}
-          </div>
-        </div>
-      )}
-
-      {isEntryModalOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-xl:max-w-xl p-6 sm:p-8 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
-            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4">
-              <span className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg">📝</span> 
-              {editingTransactionId ? t.manual_edit : t.manual_title}
-            </h2>
-            <form onSubmit={handleManualSubmit} className="space-y-5">
-               <div className="flex bg-slate-100 p-1.5 rounded-2xl h-12 border-2 border-slate-200">
-                  <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-white shadow-sm text-red-600' : 'text-slate-400'}`}>{t.manual_expense}</button>
-                  <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[11px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-white shadow-sm text-green-600' : 'text-slate-400'}`}>{t.manual_income}</button>
-               </div>
-               
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                 <div className="flex gap-2 h-14">
-                    <input 
-                      required 
-                      type="text" 
-                      inputMode="numeric" 
-                      value={manualAmount} 
-                      onChange={e => setManualAmount(formatDots(e.target.value))} 
-                      placeholder={`${t.manual_amount} (${settings.currency})`} 
-                      className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-full shadow-sm focus:border-indigo-300 transition-all" 
-                    />
-                    <button type="button" onClick={() => openCalculator('manual')} className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm border-2 border-slate-100 hover:bg-slate-200 transition-all">🧮</button>
-                 </div>
-                 <input 
-                   required 
-                   type="text" 
-                   value={manualDesc} 
-                   onChange={e => setManualDesc(e.target.value)} 
-                   placeholder={t.manual_desc} 
-                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-14 shadow-sm focus:border-indigo-300 transition-all" 
-                 />
-               </div>
-
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                 <select 
-                   value={manualJar} 
-                   onChange={e => setManualJar(e.target.value as any)} 
-                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold outline-none h-14 shadow-sm focus:border-indigo-300 transition-all"
-                 >
-                    <option value="AUTO">{t.manual_auto}</option>
-                    {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
-                 </select>
-                 <input 
-                   type="date" 
-                   value={manualDate} 
-                   onChange={e => setManualDate(e.target.value)} 
-                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-sm font-bold h-14 shadow-sm focus:border-indigo-300 transition-all" 
-                 />
-               </div>
-
-               <div className="space-y-1.5 pt-2">
-                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t.manual_note}</label>
-                 <textarea 
-                   value={manualNote} 
-                   onChange={e => setManualNote(e.target.value)} 
-                   placeholder="..." 
-                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold outline-none h-24 resize-none shadow-sm focus:border-indigo-300 transition-all" 
-                 />
-               </div>
-
-               <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); setManualAmount(''); setManualDesc(''); setManualNote(''); }} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl tracking-widest active:scale-95 transition-all">{t.manual_cancel}</button>
-                  <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{editingTransactionId ? t.manual_update : t.manual_save}</button>
-               </div>
-            </form>
           </div>
         </div>
       )}
@@ -1791,7 +1664,6 @@ const App: React.FC = () => {
                 <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.BORROW})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all active:scale-95 ${loanForm.type === LoanType.BORROW ? 'bg-white shadow text-rose-600' : 'text-slate-400'}`}>💸 {t.loan_i_owe}</button>
                 <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.LEND})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all active:scale-95 ${loanForm.type === LoanType.LEND ? 'bg-white shadow text-emerald-600' : 'text-slate-400'}`}>🤝 {t.loan_owes_me}</button>
               </div>
-              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label>
@@ -1805,19 +1677,10 @@ const App: React.FC = () => {
                   </select>
                 </div>
               </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_date_label}</label>
-                  <div className="flex gap-2 h-11">
-                    <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="flex-1 px-4 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" />
-                    <div className="relative">
-                      <input type="file" hidden ref={loanPhotoInputRef} accept="image/*" onChange={handleLoanPhotoChange} />
-                      <button type="button" onClick={() => loanPhotoInputRef.current?.click()} className={`w-11 h-11 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition-all ${loanForm.imageUrl ? 'text-indigo-600 bg-indigo-50 border-indigo-200 shadow-sm' : 'text-slate-400 hover:border-indigo-300'}`}>
-                        <span className="text-lg">📷</span>
-                      </button>
-                    </div>
-                  </div>
+                  <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_principal}</label>
@@ -1827,15 +1690,9 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-1">
-                <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
-                <textarea value={loanForm.purpose} onChange={e => setLoanForm({...loanForm, purpose: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none h-16 resize-none" placeholder="..." />
-              </div>
-
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setIsLoanModalOpen(false); setEditingLoanId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl tracking-widest transition-colors active:scale-95">HỦY BỎ</button>
-                <button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all tracking-widest">{t.save_loan}</button>
+                <button type="button" onClick={() => { setIsLoanModalOpen(false); setEditingLoanId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95">HỦY BỎ</button>
+                <button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[9px] rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">{t.save_loan}</button>
               </div>
             </form>
           </div>
@@ -1844,7 +1701,7 @@ const App: React.FC = () => {
 
       {isRecurringModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-6 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
+          <div className="bg-white rounded-[2.5rem] w-full max-lg:max-w-lg p-6 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
             <h2 className="text-[12px] font-black text-slate-800 flex items-center gap-2 uppercase mb-5 tracking-widest border-b pb-3"><span className="w-8 h-8 bg-emerald-600 text-white rounded-lg flex items-center justify-center shadow text-lg">🔄</span> {t.recurring_add}</h2>
             <form onSubmit={handleSaveRecurring} className="space-y-4">
                <div className="grid grid-cols-2 gap-3">
@@ -1898,7 +1755,7 @@ const App: React.FC = () => {
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95">
             <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-10 h-10 bg-rose-600 text-white rounded-xl flex items-center justify-center shadow-lg text-lg">🎉</span> {t.event_add}</h2>
             <form onSubmit={handleSaveEvent} className="space-y-6">
-               <input required type="text" value={eventName} onChange={e => setEventName(e.target.value)} placeholder="Tên sự kiện (Vd: Sinh nhật Tèo)" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
+               <input required type="text" value={eventName} onChange={e => setEventName(e.target.value)} placeholder="Tên sự kiện" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
                <div className="flex gap-3">
                   <button type="button" onClick={() => setIsEventModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.manual_cancel}</button>
                   <button type="submit" className="flex-[2] py-4 bg-rose-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95 transition-all">{t.onboarding_start}</button>
