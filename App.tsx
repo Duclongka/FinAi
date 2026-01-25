@@ -1389,11 +1389,11 @@ const App: React.FC = () => {
 
             <div className="space-y-5">
               <div className="space-y-1.5">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_type}</label>
+                <label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.history_type}</label>
                 <select 
                   value={historyFilter} 
                   onChange={e => setHistoryFilter(e.target.value as any)}
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[10px] font-black outline-none focus:border-indigo-300 transition-all"
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[10px] font-normal outline-none focus:border-indigo-300 transition-all"
                 >
                   <option value="all">{t.history_all}</option>
                   <option value="income">Thu nhập</option>
@@ -1402,11 +1402,11 @@ const App: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.history_jar}</label>
+                <label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.history_jar}</label>
                 <select 
                   value={historyJarFilter} 
                   onChange={e => setHistoryJarFilter(e.target.value as any)}
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[10px] font-black outline-none focus:border-indigo-300 transition-all"
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[10px] font-normal outline-none focus:border-indigo-300 transition-all"
                 >
                   <option value="all">Tất cả các hũ</option>
                   {Object.values(JarType).map(type => (
@@ -1416,12 +1416,12 @@ const App: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <input type="date" value={historyFromDateFilter} onChange={e => setHistoryFromDateFilter(e.target.value)} className="w-full h-11 bg-slate-50 border-2 border-slate-100 rounded-xl px-3 text-[9px] font-black text-slate-700 outline-none" />
-                <input type="date" value={historyToDateFilter} onChange={e => setHistoryToDateFilter(e.target.value)} className="w-full h-11 bg-slate-50 border-2 border-slate-100 rounded-xl px-3 text-[9px] font-black text-slate-700 outline-none" />
+                <input type="date" value={historyFromDateFilter} onChange={e => setHistoryFromDateFilter(e.target.value)} className="w-full h-11 bg-slate-50 border-2 border-slate-100 rounded-xl px-3 text-[9px] font-normal italic text-slate-400 outline-none" />
+                <input type="date" value={historyToDateFilter} onChange={e => setHistoryToDateFilter(e.target.value)} className="w-full h-11 bg-slate-50 border-2 border-slate-100 rounded-xl px-3 text-[9px] font-normal italic text-slate-400 outline-none" />
               </div>
 
               <div className="grid grid-cols-3 gap-2 pt-3">
-                <button onClick={() => setIsHistoryFilterModalOpen(false)} className="py-3 bg-slate-100 text-slate-400 font-black uppercase text-[8px] rounded-xl active:scale-95 transition-all">Hủy</button>
+                <button onClick={() => setIsHistoryFilterModalOpen(false)} className="py-3 bg-slate-100 text-slate-400 font-black uppercase text-[8px] rounded-xl active:scale-95 transition-all">{t.manual_cancel}</button>
                 <button onClick={() => { setHistoryFilter('all'); setHistoryJarFilter('all'); setHistoryFromDateFilter(''); setHistoryToDateFilter(''); }} className="py-3 bg-slate-50 text-indigo-400 border border-indigo-100 font-black uppercase text-[8px] rounded-xl active:scale-95 transition-all">Reset</button>
                 <button onClick={() => setIsHistoryFilterModalOpen(false)} className="py-3 bg-indigo-600 text-white font-black uppercase text-[8px] rounded-xl shadow-lg shadow-indigo-100 active:scale-95 transition-all">Xác nhận</button>
               </div>
@@ -1434,48 +1434,43 @@ const App: React.FC = () => {
       {isEntryModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
-            <h2 className="text-[12px] font-black text-slate-800 flex items-center gap-2 uppercase mb-6 tracking-widest border-b pb-4">
-              <span className="text-lg">📝</span> {editingTransactionId ? t.manual_edit : t.manual_title}
+            <h2 className="text-[12px] font-black text-slate-800 flex items-center gap-2 uppercase mb-6 tracking-widest border-b pb-4 text-center justify-center">
+              {editingTransactionId ? t.manual_edit : t.manual_title}
             </h2>
-            <form onSubmit={handleManualSubmit} className="space-y-5">
+            <form onSubmit={handleManualSubmit} className="space-y-4">
                <div className="flex bg-slate-100 p-1 rounded-2xl h-11 border border-slate-200">
                   <button type="button" onClick={() => { setManualType('expense'); setManualJar(JarType.NEC); }} className={`flex-1 text-[9px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-400'}`}>{t.manual_expense}</button>
                   <button type="button" onClick={() => { setManualType('income'); setManualJar('AUTO'); }} className={`flex-1 text-[9px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400'}`}>{t.manual_income}</button>
                </div>
                
-               <div className="space-y-1.5">
-                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
-                 <div className="relative">
-                    <input 
-                      required 
-                      type="text" 
-                      inputMode="numeric" 
-                      value={manualAmount} 
-                      onChange={e => setManualAmount(formatDots(e.target.value))} 
-                      placeholder={`Nhập số tiền (${settings.currency})`} 
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl pl-4 pr-12 h-12 text-lg font-black outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 placeholder:text-[10px] placeholder:font-normal" 
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => openCalculator('manual')} 
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 bg-indigo-600 text-white rounded-lg flex items-center justify-center text-xl shadow-lg active:scale-90 transition-all"
-                    >
-                      🧮
-                    </button>
-                 </div>
+               <div className="relative">
+                  <input 
+                    required 
+                    type="text" 
+                    inputMode="numeric" 
+                    value={manualAmount} 
+                    onChange={e => setManualAmount(formatDots(e.target.value))} 
+                    placeholder="Nhập số tiền..." 
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl pl-4 pr-12 h-12 text-lg font-black outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 placeholder:text-[10px] placeholder:font-normal" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => openCalculator('manual')} 
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 bg-transparent text-slate-400 rounded-lg flex items-center justify-center text-xl active:scale-90 transition-all"
+                  >
+                    🧮
+                  </button>
                </div>
 
-               <div className="space-y-1.5">
-                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_desc}</label>
+               <div className="space-y-1">
                   <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder="Nhập nội dung giao dịch..." className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none focus:border-indigo-300 transition-all placeholder:text-slate-300 placeholder:text-[10px] placeholder:font-normal" />
                </div>
 
-               <div className="space-y-1.5">
-                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_jar_img}</label>
+               <div className="space-y-1">
                  <select 
                     value={manualJar} 
                     onChange={e => setManualJar(e.target.value as any)}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-black outline-none focus:border-indigo-300 transition-all"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-normal outline-none focus:border-indigo-300 transition-all"
                   >
                     <option value="AUTO">{t.manual_auto}</option>
                     {Object.values(JarType).map(type => (
@@ -1485,11 +1480,8 @@ const App: React.FC = () => {
                </div>
 
                <div className="grid grid-cols-1 gap-4">
-                 <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none" />
-                 <div className="space-y-1.5">
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_note}</label>
-                    <input type="text" value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder="Ghi chú thêm (tùy chọn)..." className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none placeholder:text-slate-300 placeholder:text-[10px] placeholder:font-normal" />
-                 </div>
+                 <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-normal outline-none" />
+                 <input type="text" value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder="Ghi chú thêm..." className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-11 text-[11px] font-bold outline-none placeholder:text-slate-300 placeholder:text-[10px] placeholder:font-normal" />
                </div>
 
                <div className="grid grid-cols-2 gap-3 pt-4">
@@ -1657,7 +1649,7 @@ const App: React.FC = () => {
 
       {isLoanModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
+          <div className="bg-white rounded-[2.5rem] w-full max-xl:max-w-xl p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
             <h2 className="text-[13px] font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg text-[14px]">🏦</span> {editingLoanId ? t.loan_edit : t.loan_new}</h2>
             <form onSubmit={handleSaveLoan} className="space-y-5">
               <div className="flex bg-slate-100 p-1 rounded-xl gap-1 border border-slate-200">
