@@ -1650,20 +1650,20 @@ const App: React.FC = () => {
       {isLoanModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-xl:max-w-xl p-7 shadow-2xl relative animate-in zoom-in-95 border border-slate-100">
-            <h2 className="text-[13px] font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg text-[14px]">🏦</span> {editingLoanId ? t.loan_edit : t.loan_new}</h2>
+            <h2 className="text-[13px] font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4"><span className="w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg text-[14px]">＋</span> {editingLoanId ? t.loan_edit : t.loan_new}</h2>
             <form onSubmit={handleSaveLoan} className="space-y-5">
-              <div className="flex bg-slate-100 p-1 rounded-xl gap-1 border border-slate-200">
-                <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.BORROW})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all active:scale-95 ${loanForm.type === LoanType.BORROW ? 'bg-white shadow text-rose-600' : 'text-slate-400'}`}>💸 {t.loan_i_owe}</button>
-                <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.LEND})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all active:scale-95 ${loanForm.type === LoanType.LEND ? 'bg-white shadow text-emerald-600' : 'text-slate-400'}`}>🤝 {t.loan_owes_me}</button>
+              <div className="flex p-1 rounded-xl gap-1 border border-slate-200 bg-slate-100">
+                <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.BORROW})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all active:scale-95 ${loanForm.type === LoanType.BORROW ? 'bg-rose-600 text-white shadow' : 'text-slate-400'}`}>{t.loan_i_owe}</button>
+                <button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.LEND})} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all active:scale-95 ${loanForm.type === LoanType.LEND ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'}`}>{t.loan_owes_me}</button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_partner}</label>
-                  <input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="..." />
+                  <input required type="text" value={loanForm.lenderName} onChange={e => setLoanForm({...loanForm, lenderName: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none placeholder:text-slate-300 placeholder:font-normal" placeholder="Vietcombank, Nguyễn Văn A ..." />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_jar_label}</label>
-                  <select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as any})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none">
+                  <select value={loanForm.loanJar} onChange={e => setLoanForm({...loanForm, loanJar: e.target.value as any})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-normal outline-none">
                     <option value="AUTO">{t.manual_auto}</option>
                     {Object.values(JarType).map(jt => <option key={jt} value={jt}>{t[`jar_${jt.toLowerCase()}_name`]}</option>)}
                   </select>
@@ -1672,13 +1672,13 @@ const App: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_date_label}</label>
-                  <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" />
+                  <input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-normal outline-none" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_principal}</label>
-                  <div className="flex gap-2">
-                     <input required type="text" inputMode="numeric" value={loanPrincipalStr} onChange={e => setLoanPrincipalStr(formatDots(e.target.value))} className="flex-1 px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="0" />
-                     <button type="button" onClick={() => openCalculator('loan')} className="w-11 h-11 bg-slate-100 rounded-xl flex items-center justify-center text-lg border border-slate-200 shadow-sm">🧮</button>
+                  <div className="relative">
+                     <input required type="text" inputMode="numeric" value={loanPrincipalStr} onChange={e => setLoanPrincipalStr(formatDots(e.target.value))} className="w-full pl-4 pr-11 h-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" placeholder="0" />
+                     <button type="button" onClick={() => openCalculator('loan')} className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 bg-transparent text-slate-400 flex items-center justify-center text-lg active:scale-90 transition-all">🧮</button>
                   </div>
                 </div>
               </div>
@@ -1698,12 +1698,12 @@ const App: React.FC = () => {
             <form onSubmit={handleSaveRecurring} className="space-y-4">
                <div className="grid grid-cols-2 gap-3">
                  <div className="space-y-1">
-                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Bắt đầu</label>
-                   <input type="date" value={recurringForm.startDate} onChange={e => setRecurringForm({...recurringForm, startDate: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold h-10" />
+                   <label className="text-[7px] font-normal text-slate-400 uppercase tracking-widest ml-1">Bắt đầu</label>
+                   <input type="date" value={recurringForm.startDate} onChange={e => setRecurringForm({...recurringForm, startDate: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-normal h-10" />
                  </div>
                  <div className="space-y-1">
-                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Kỳ hạn</label>
-                   <select value={recurringForm.subscriptionType} onChange={e => setRecurringForm({...recurringForm, subscriptionType: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10">
+                   <label className="text-[7px] font-normal text-slate-400 uppercase tracking-widest ml-1">Kỳ hạn</label>
+                   <select value={recurringForm.subscriptionType} onChange={e => setRecurringForm({...recurringForm, subscriptionType: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-normal outline-none h-10">
                       <option value="1d">1 ngày</option>
                       <option value="1w">1 tuần</option>
                       <option value="1m">1 tháng</option>
@@ -1713,22 +1713,22 @@ const App: React.FC = () => {
                  </div>
                </div>
                <div className="space-y-1">
-                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
-                  <div className="flex gap-2">
-                     <input required type="text" inputMode="numeric" value={recurringAmountStr} onChange={e => setRecurringAmountStr(formatDots(e.target.value))} placeholder={`0 (${settings.currency})`} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10" />
-                     <button type="button" onClick={() => openCalculator('recurring')} className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-lg border border-slate-200 shadow-sm">🧮</button>
+                  <label className="text-[7px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
+                  <div className="relative">
+                     <input required type="text" inputMode="numeric" value={recurringAmountStr} onChange={e => setRecurringAmountStr(formatDots(e.target.value))} placeholder="0" className="w-full pl-3 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold h-10 outline-none" />
+                     <button type="button" onClick={() => openCalculator('recurring')} className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-transparent text-slate-400 flex items-center justify-center text-lg active:scale-90 transition-all">🧮</button>
                   </div>
                </div>
                <div className="space-y-1">
-                  <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_desc}</label>
+                  <label className="text-[7px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.manual_desc}</label>
                   <input required type="text" value={recurringForm.description} onChange={e => setRecurringForm({...recurringForm, description: e.target.value})} placeholder="..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10" />
                </div>
                <div className="grid grid-cols-2 gap-3">
-                 <select value={recurringForm.jarType} onChange={e => setRecurringForm({...recurringForm, jarType: e.target.value as any})} className="bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10">
+                 <select value={recurringForm.jarType} onChange={e => setRecurringForm({...recurringForm, jarType: e.target.value as any})} className="bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-normal outline-none h-10">
                     <option value="AUTO">{t.manual_auto}</option>
                     {Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}
                  </select>
-                 <select value={recurringForm.type} onChange={e => setRecurringForm({...recurringForm, type: e.target.value as any})} className="bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-bold outline-none h-10">
+                 <select value={recurringForm.type} onChange={e => setRecurringForm({...recurringForm, type: e.target.value as any})} className="bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-normal outline-none h-10">
                     <option value="expense">{t.manual_expense}</option>
                     <option value="income">{t.manual_income}</option>
                  </select>
@@ -1762,15 +1762,15 @@ const App: React.FC = () => {
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95">
             <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest border-b pb-4">📝 {t.event_entry_title}</h2>
             <form onSubmit={handleEventEntrySubmit} className="space-y-4">
-               <div className="flex bg-slate-100 p-1 rounded-xl h-10 mb-2">
-                  <button type="button" onClick={() => setEventManualType('expense')} className={`flex-1 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'expense' ? 'bg-white shadow text-rose-600' : 'text-slate-400'}`}>CHI TIÊU</button>
-                  <button type="button" onClick={() => setEventManualType('income')} className={`flex-1 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'income' ? 'bg-white shadow text-emerald-600' : 'text-slate-400'}`}>THU NHẬP</button>
+               <div className="flex p-1 rounded-xl h-10 mb-2 border border-slate-200 bg-slate-100">
+                  <button type="button" onClick={() => setEventManualType('expense')} className={`flex-1 text-[9px] font-black rounded-lg transition-all active:scale-95 ${eventManualType === 'expense' ? 'bg-rose-600 text-white shadow' : 'text-slate-400'}`}>CHI TIÊU</button>
+                  <button type="button" onClick={() => setEventManualType('income')} className={`flex-1 text-[9px] font-black rounded-lg transition-all active:scale-95 ${eventManualType === 'income' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'}`}>THU NHẬP</button>
                </div>
                <div className="space-y-1">
                   <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
-                  <div className="flex gap-2">
-                     <input required type="text" inputMode="numeric" value={eventManualAmount} onChange={e => setEventManualAmount(formatDots(e.target.value))} placeholder={`0 (${settings.currency})`} className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
-                     <button type="button" onClick={() => openCalculator('event')} className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-xl shadow-sm border-2 border-slate-100">🧮</button>
+                  <div className="relative">
+                     <input required type="text" inputMode="numeric" value={eventManualAmount} onChange={e => setEventManualAmount(formatDots(e.target.value))} placeholder="0" className="w-full pl-5 pr-12 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[11px] font-bold outline-none h-14" />
+                     <button type="button" onClick={() => openCalculator('event')} className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 bg-transparent text-slate-400 flex items-center justify-center text-xl active:scale-90 transition-all">🧮</button>
                   </div>
                </div>
                <input required type="text" value={eventManualDesc} onChange={e => setEventManualDesc(e.target.value)} placeholder="Nội dung" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
