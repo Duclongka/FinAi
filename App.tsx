@@ -152,7 +152,7 @@ const TRANSLATIONS: Record<string, any> = {
     recurring_freq: "Chu kỳ lặp lại",
     event_title: "GD THEO SỰ KIỆN",
     event_add: "+Tạo SK mới",
-    event_save_history: "Lưu vào hũ",
+    event_save_history: "Lưu",
     event_delete: "Xóa sự kiện",
     event_entry_title: "NHẬP LIỆU SỰ KIỆN",
     history_detail_title: "CHI TIÊU CHI TIẾT",
@@ -291,7 +291,6 @@ const App: React.FC = () => {
   const [chartRange, setChartRange] = useState<'week' | 'month' | 'year'>('week');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const directoryInputRef = useRef<HTMLInputElement>(null);
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS.vi;
 
@@ -659,7 +658,7 @@ const App: React.FC = () => {
     setEvents(p => p.filter(e => e.id !== event.id));
     setIsEventJarSelectorOpen(false);
     setEventToSave(null);
-    showToast("Đã lưu vào hũ!");
+    showToast("Đã lưu!");
   };
 
   const handleDeleteTransaction = (id: string) => {
@@ -1097,7 +1096,7 @@ const App: React.FC = () => {
                                  </button>
                                ))}
                             </div>
-                            <button onClick={() => { setEventToSave(ev); setIsEventJarSelectorOpen(true); }} className="py-2 px-4 bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase shadow-sm active:scale-95 transition-all">Lưu vào hũ</button>
+                            <button onClick={() => { setEventToSave(ev); setIsEventJarSelectorOpen(true); }} className="py-2 px-4 bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase shadow-sm active:scale-95 transition-all">{t.event_save_history}</button>
                             <button onClick={(e) => { e.stopPropagation(); handleTripleDelete(ev.id); }} className={`py-2 px-4 rounded-xl text-[8px] font-black uppercase shadow-sm transition-all active:scale-95 ${deleteClickData.id === ev.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'}`}>
                               {deleteClickData.id === ev.id ? `Xóa? (${deleteClickData.count}/3)` : 'Xóa'}
                             </button>
@@ -1124,7 +1123,7 @@ const App: React.FC = () => {
                             <span className="text-[8px] font-black text-rose-600 uppercase tracking-tighter">Chi: {formatCurrency(totalExp)}</span>
                           </div>
                           
-                          <button onClick={() => { setActiveEventId(ev.id); setIsEventEntryModalOpen(true); }} className="px-6 py-2.5 bg-blue-600 text-white text-[10px] font-black uppercase rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all">Thêm GD</button>
+                          <button onClick={() => { setActiveEventId(ev.id); setIsEventEntryModalOpen(true); }} className="px-6 py-2.5 bg-blue-600 text-white text-[10px] font-black uppercase rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all">Thêm</button>
 
                           <span className="text-[9px] font-black uppercase px-4 py-1.5 rounded-full bg-white shadow-sm border border-slate-100 text-slate-900 ring-2 ring-indigo-50">Tổng: {formatCurrency(Math.abs(totalInc - totalExp))}</span>
                         </div>
@@ -1190,13 +1189,7 @@ const App: React.FC = () => {
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_data}</label>
                     <div className="bg-slate-50 rounded-2xl border-2 border-slate-100 overflow-hidden">
                       <button onClick={exportToCSV} className="w-full flex items-center gap-3 px-5 py-4 border-b border-slate-100 active:bg-emerald-50 text-[10px] font-bold text-slate-600"><span>📤</span> {t.settings_data_export}</button>
-                      <button onClick={() => directoryInputRef.current?.click()} className="w-full flex items-center gap-3 px-5 py-4 border-b border-slate-100 active:bg-indigo-50 text-[10px] font-bold text-slate-600"><span>📥</span> {t.settings_data_import}</button>
-                      <input type="file" ref={directoryInputRef} style={{ display: 'none' }} {...({ webkitdirectory: "", directory: "" } as any)} onChange={(e) => {
-                          const files = e.target.files;
-                          if (files && files.length > 0) {
-                              showToast(`Đã chọn thư mục với ${files.length} tệp.`, 'info');
-                          }
-                      }} />
+                      <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 px-5 py-4 border-b border-slate-100 active:bg-indigo-50 text-[10px] font-bold text-slate-600"><span>📥</span> {t.settings_data_import}</button>
                       <input type="file" ref={fileInputRef} style={{ display: 'none' }} />
                       <button onClick={handleResetData} className="w-full flex items-center gap-3 px-5 py-4 active:bg-red-50 text-[10px] font-bold text-red-600"><span>⚠️</span> {t.settings_data_reset}</button>
                     </div>
@@ -1205,7 +1198,7 @@ const App: React.FC = () => {
               )}
               {settingsTab === 'info' && <div className="space-y-10 animate-in fade-in"><div className="text-center space-y-1"><h2 className="text-2xl font-black text-slate-800 tracking-tighter">FinAi</h2><p className="text-[9px] font-bold text-slate-500">Quản lý tài chính cá nhân thông minh</p><p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest pt-2">THIẾT KẾ BỞI LOONG LEE</p><p className="text-[8px] font-bold text-slate-400 italic">Version {APP_VERSION}</p></div><div className="space-y-3 pt-8 border-t border-slate-100"><h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-4">{t.settings_connect}</h3><div className="space-y-2"><a href="https://www.facebook.com/duclongka" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 hover:border-blue-200"><div className="flex items-center gap-3"><span className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-black">f</span><span className="text-[10px] font-black text-slate-600 uppercase">Facebook</span></div><span className="text-[9px] font-bold text-slate-400 underline">duclongka</span></a><div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border-2 border-slate-100"><div className="flex items-center gap-3"><span className="w-8 h-8 bg-emerald-600 text-white rounded-lg flex items-center justify-center text-sm">💬</span><span className="text-[10px] font-black text-slate-600 uppercase">Zalo</span></div><span className="text-[10px] font-black text-emerald-800">0964 855 899</span></div><a href="mailto:longld@itsupro.org" className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 hover:border-indigo-200"><div className="flex items-center gap-3"><span className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center text-sm">✉️</span><span className="text-[10px] font-black text-slate-600 uppercase">Email</span></div><span className="text-[10px] font-bold text-indigo-800 truncate">longld@itsupro.org</span></a></div></div></div>}
               {settingsTab === 'policy' && <div className="animate-in fade-in space-y-6"><h3 className="text-[13px] font-black text-rose-600 uppercase text-center mb-2">CHÍNH SÁCH BẢO MẬT & MIỄN TRỪ TRÁCH NHIỆM</h3><div className="bg-rose-50/50 p-6 rounded-[2rem] border border-rose-100 space-y-5 text-[10px] font-medium text-rose-900 leading-relaxed"><p><strong>1. Quyền riêng tư tuyệt đối:</strong> Ứng dụng FINAI cam kết không lưu trữ bất kỳ dữ liệu tài chính nào của người dùng trên máy chủ (server). Mọi dữ liệu đều được lưu trữ trực tiếp trên thiết bị cá nhân (LocalStorage/Browser Storage) của chính bạn.</p><p><strong>2. An toàn mạng:</strong> Chúng tôi tuân thủ nghiêm ngặt Luật An toàn thông tin mạng và Luật An ninh mạng Việt Nam. Vì dữ liệu không được tải lên mạng, nguy cơ rò rỉ dữ liệu cá nhân từ hệ thống là bằng 0.</p><p><strong>3. Trách nhiệm người dùng:</strong> Do đặc thù lưu trữ tại chỗ, người dùng có trách nhiệm tự bảo mật thiết bị truy cập và sao lưu dữ liệu (qua tính năng Export CSV).</p><p><strong>4. Miễn trừ trách nhiệm:</strong> FINAI không chịu trách nhiệm cho bất kỳ mất bát dữ liệu nào do lỗi thiết bị, xóa bộ nhớ trình duyệt, hoặc hành vi xâm nhập trái phép vào thiết bị của người dùng.</p><p className="text-center font-black pt-4 border-t border-rose-200 uppercase tracking-tighter">* Dựa trên Luật An ninh mạng Việt Nam 2018 và Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân.</p></div></div>}
-              {settingsTab === 'guide' && <div className="animate-in fade-in space-y-6"><h3 className="text-[13px] font-black text-indigo-600 uppercase text-center mb-2">HƯỚNG DẪN SỬ DỤNG</h3><div className="bg-indigo-50/50 p-6 rounded-[2rem] border border-indigo-100 space-y-6"><div className="flex gap-4 items-center"><span className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">1</span><p className="text-[10px] font-bold text-slate-700 leading-relaxed">Sử dụng AI: Nhập nhanh giao dịch tại thanh tìm kiếm trên cùng. (Ví dụ: "Sáng ăn phở 50k hũ thiết yếu")</p></div><div className="flex gap-4 items-center"><span className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">2</span><p className="text-[10px] font-bold text-slate-700 leading-relaxed">Quy tắc 6 Hũ: Hệ thống tự động chia thu nhập của bạn theo tỉ lệ (55%, 10%, 10%, 10%, 10%, 5%).</p></div><div className="flex gap-4 items-center"><span className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">3</span><p className="text-[10px] font-bold text-slate-700 leading-relaxed">Vay nợ: Quản lý các khoản nợ phải trả và nợ thu hồi một cách minh bạch.</p></div><div className="flex gap-4 items-center"><span className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">4</span><p className="text-[10px] font-bold text-slate-700 leading-relaxed">Dữ liệu: Mọi thông tin lưu trên máy bạn. Hãy xuất CSV định kỳ để sao lưu!</p></div><div className="pt-6 border-t border-indigo-200 mt-2 space-y-4 text-center"><h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Video tài liệu tham khảo</h4><p className="text-[9px] font-bold text-slate-500">Tìm hiểu chi tiết hơn về quy tắc 6 chiếc lọ để quản lý tài chính cá nhân thông minh qua video sau:</p><button className="w-full py-4 border-2 border-emerald-400 rounded-2xl text-[9px] font-black text-emerald-600 flex items-center justify-center gap-2 hover:bg-emerald-50 active:scale-95 transition-all">🎬 {t.guide_video_btn}</button></div></div></div>}
+              {settingsTab === 'guide' && <div className="animate-in fade-in space-y-6"><h3 className="text-[13px] font-black text-indigo-600 uppercase text-center mb-2">HƯỚNG DẪN SỬ DỤNG</h3><div className="bg-indigo-50/50 p-6 rounded-[2rem] border border-indigo-100 space-y-6"><div className="flex gap-4 items-center"><span className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">1</span><p className="text-[10px] font-bold text-slate-700 leading-relaxed">Sử dụng AI: Nhập nhanh giao dịch tại thanh tìm kiếm trên cùng. (Ví dụ: "Sáng ăn phở 50k hũ thiết yếu")</p></div><div className="flex gap-4 items-center"><span className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">2</span><p className="text-[10px] font-bold text-slate-700 leading-relaxed">Quy tắc 6 Hũ: Hệ thống tự động chia thu nhập của bạn theo tỉ lệ (55%, 10%, 10%, 10%, 10%, 5%).</p></div><div className="flex gap-4 items-center"><span className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">3</span><p className="text-[10px] font-bold text-slate-700 leading-relaxed">Vay nợ: Quản lý các khoản nợ phải trả và nợ thu hồi một cách minh bạch.</p></div><div className="flex gap-4 items-center"><span className="w-7 h-7 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">4</span><p className="text-[10px] font-bold text-slate-700 leading-relaxed">Dữ liệu: Mọi thông tin lưu trên máy bạn. Hãy xuất CSV định kỳ để sao lưu!</p></div><div className="pt-6 border-t border-indigo-200 mt-2 space-y-4 text-center"><h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Video tài liệu tham khảo</h4><p className="text-[9px] font-bold text-slate-500">Tìm hiểu chi tiết hơn về quy tắc 6 chiếc lọ để quản lý tài chính cá nhân thông minh qua video sau:</p><button onClick={() => window.open('https://fb.watch/EVNQ463bNS/', '_blank')} className="w-full py-4 border-2 border-emerald-400 rounded-2xl text-[9px] font-black text-emerald-600 flex items-center justify-center gap-2 hover:bg-emerald-50 active:scale-95 transition-all">🎬 {t.guide_video_btn}</button></div></div></div>}
             </div>
             <div className="p-3 border-t grid grid-cols-4 items-center justify-around bg-slate-50" style={{ paddingBottom: 'calc(var(--sab, 0px) + 12px)' }}>{[ { id: 'app', icon: '⚙️', label: t.settings_app }, { id: 'info', icon: 'ℹ️', label: t.settings_info }, { id: 'policy', icon: '🛡️', label: t.settings_policy }, { id: 'guide', icon: '📖', label: t.settings_guide } ].map(tab => (<button key={tab.id} onClick={() => setSettingsTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-1 py-2 rounded-xl transition-all ${settingsTab === tab.id ? 'bg-white shadow-lg shadow-indigo-100 text-indigo-600' : 'text-slate-400'}`}><span className="text-base">{tab.icon}</span><span className="text-[7px] font-black uppercase text-center leading-none">{tab.label}</span></button>))}</div>
           </div>
@@ -1229,7 +1222,7 @@ const App: React.FC = () => {
       {/* ENTRY MODAL */}
       {isEntryModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
             <h2 className="text-[12px] font-black text-slate-800 uppercase mb-5 tracking-widest text-center">{editingTransactionId ? t.manual_edit : t.manual_title}</h2>
             <form onSubmit={handleManualSubmit} className="space-y-4">
                <div className="flex bg-slate-100 p-1 rounded-2xl border-2 border-slate-200"><button type="button" onClick={() => setManualType('expense')} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_expense}</button><button type="button" onClick={() => setManualType('income')} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_income}</button></div>
@@ -1247,7 +1240,7 @@ const App: React.FC = () => {
       {/* RECURRING ADD MODAL - RESTORED */}
       {isRecurringModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
             <h2 className="text-[12px] font-black text-slate-800 uppercase mb-5 tracking-widest text-center">{t.recurring_add}</h2>
             <form onSubmit={handleSaveRecurring} className="space-y-4">
                <div className="flex bg-slate-100 p-1 rounded-2xl border-2 border-slate-200"><button type="button" onClick={() => setRecurringForm({...recurringForm, type: 'expense'})} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${recurringForm.type === 'expense' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_expense}</button><button type="button" onClick={() => setRecurringForm({...recurringForm, type: 'income'})} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${recurringForm.type === 'income' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_income}</button></div>
@@ -1267,7 +1260,7 @@ const App: React.FC = () => {
       {/* HISTORY FILTER MODAL */}
       {isHistoryFilterModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsHistoryFilterModalOpen(false)}>
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-7 shadow-2xl border-2 border-slate-200" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl border-2 border-slate-200" onClick={e => e.stopPropagation()}>
             <h2 className="text-[11px] font-black text-slate-800 uppercase mb-6 tracking-widest text-center">📜 {t.history_filter}</h2>
             <div className="space-y-4">
               <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.history_type}</label><select value={historyFilter} onChange={e => setHistoryFilter(e.target.value as any)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[10px] font-normal outline-none"><option value="all">tất cả</option><option value="income">Thu nhập</option><option value="expense">Chi tiêu</option></select></div>
@@ -1282,7 +1275,7 @@ const App: React.FC = () => {
       {/* HISTORY DETAIL MODAL */}
       {isHistoryDetailModalOpen && selectedTx && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest text-center mb-6">Thông tin chi tiết</h2>
              <div className="space-y-4 text-[11px] font-bold text-slate-600">
                 <div className="flex justify-between border-b pb-2"><span>Nội dung:</span><span className="text-slate-900">{selectedTx.description}</span></div>
@@ -1299,7 +1292,7 @@ const App: React.FC = () => {
       {/* LOAN DETAIL MODAL */}
       {isLoanDetailModalOpen && selectedLoan && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest text-center mb-6">{t.loan_detail_title}</h2>
              <div className="space-y-4 text-[11px] font-bold text-slate-600">
                 <div className="flex justify-between border-b pb-2"><span>Loại:</span><span>{selectedLoan.type === LoanType.BORROW ? 'Tôi nợ' : 'Nợ tôi'}</span></div>
@@ -1318,7 +1311,7 @@ const App: React.FC = () => {
       {/* LOAN PAYMENT MODAL */}
       {isLoanPaymentModalOpen && paymentLoanId && (
         <div className="fixed inset-0 z-[280] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-7 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
             {(() => {
                 const l = loans.find(x => x.id === paymentLoanId);
                 return (
@@ -1394,7 +1387,7 @@ const App: React.FC = () => {
       {/* RECURRING DETAIL MODAL */}
       {isRecurringDetailModalOpen && selectedRecurring && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest text-center mb-6">Chi tiết định kỳ</h2>
              <div className="space-y-4 text-[11px] font-bold text-slate-600">
                 <div className="flex justify-between border-b pb-2"><span>Nội dung:</span><span className="text-slate-900">{selectedRecurring.description}</span></div>
@@ -1434,7 +1427,7 @@ const App: React.FC = () => {
       {/* EVENT MODAL */}
       {isEventModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
             <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest text-center">🎊 {t.event_add}</h2>
             <form onSubmit={handleSaveEvent} className="space-y-6">
                <input required type="text" value={eventName} onChange={e => setEventName(e.target.value)} placeholder="Tên sự kiện..." className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" />
@@ -1447,7 +1440,7 @@ const App: React.FC = () => {
       {/* LOAN MODAL */}
       {isLoanModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-7 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
             <h2 className="text-[12px] font-black text-slate-800 uppercase mb-5 tracking-widest text-center">＋ {editingLoanId ? t.loan_edit : t.loan_new}</h2>
             <form onSubmit={handleSaveLoan} className="space-y-4">
               <div className="flex p-1 rounded-2xl border-2 border-slate-200 bg-slate-100"><button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.BORROW})} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${loanForm.type === LoanType.BORROW ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.loan_i_owe}</button><button type="button" onClick={() => setLoanForm({...loanForm, type: LoanType.LEND})} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${loanForm.type === LoanType.LEND ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.loan_owes_me}</button></div>
