@@ -665,8 +665,8 @@ const App: React.FC = () => {
     const newTx: Transaction = { id: Date.now().toString(), type: eventManualType, amount: amountVnd, description: eventManualDesc, timestamp: Date.now() };
     setEvents(prev => prev.map(ev => ev.id === activeEventId ? { ...ev, transactions: [newTx, ...ev.transactions] } : ev));
     setEventManualAmount(''); setEventManualDesc('');
-    setIsEventEntryModalOpen(false);
-    showToast("Đã thêm vào sự kiện!");
+    // KHÔNG đóng modal để tiếp tục nhập
+    showToast("Đã thêm!");
   };
 
   const handleDeleteEventTransaction = (eventId: string, txId: string) => {
@@ -1120,7 +1120,7 @@ const App: React.FC = () => {
                         {/* Hàng 1: Tên, Ngày, Số GD */}
                         <div className="flex justify-between items-center">
                           <div>
-                            <h4 className="text-[14px] font-black text-slate-800 uppercase">{ev.name}</h4>
+                            <h4 className="text-[12px] font-black text-slate-800 uppercase leading-tight">{ev.name}</h4>
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{ev.date} • {ev.transactions.length} GD</p>
                           </div>
                         </div>
@@ -1157,7 +1157,7 @@ const App: React.FC = () => {
                         </div>
 
                         {/* Hàng Thu/Chi/Tổng căn giữa */}
-                        <div className="flex items-center justify-center gap-6 py-2 border-t border-slate-200/50 mt-2">
+                        <div className="flex items-center justify-center gap-6 py-2 border-t border-slate-200/50 mt-2 flex-wrap">
                             <span className="text-[8px] font-black text-emerald-600 uppercase tracking-tighter">Thu: {formatCurrency(totalInc)}</span>
                             <span className="text-[8px] font-black text-rose-600 uppercase tracking-tighter">Chi: {formatCurrency(totalExp)}</span>
                             <span className="text-[9px] font-black uppercase text-slate-900 px-3 py-1 bg-white rounded-full border border-slate-100 shadow-sm ring-2 ring-indigo-50/50">Tổng: {formatCurrency(Math.abs(totalInc - totalExp))}</span>
@@ -1309,7 +1309,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* HISTORY FILTER MODAL */}
+      {/* HISTORY FILTER MODAL - RESTORED */}
       {isHistoryFilterModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsHistoryFilterModalOpen(false)}>
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl border-2 border-slate-200" onClick={e => e.stopPropagation()}>
@@ -1324,7 +1324,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* HISTORY DETAIL MODAL */}
+      {/* HISTORY DETAIL MODAL - RESTORED */}
       {isHistoryDetailModalOpen && selectedTx && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
@@ -1341,7 +1341,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* LOAN DETAIL MODAL */}
+      {/* LOAN DETAIL MODAL - RESTORED */}
       {isLoanDetailModalOpen && selectedLoan && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
@@ -1467,7 +1467,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* EVENT ENTRY MODAL */}
+      {/* EVENT ENTRY MODAL - RESTORED & UPDATED LOGIC */}
       {isEventEntryModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2rem] w-full max-w-[340px] p-6 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-300">
