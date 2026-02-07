@@ -1,0 +1,7 @@
+{
+  "name": "FINAI - Quản lý tài chính cá nhân 6 chiếc lọ",
+  "description": "Ứng dụng chuyên gia tài chính thông minh dựa trên quy tắc 6 chiếc lọ, tích hợp AI phân tích thu chi và tư vấn tài chính.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

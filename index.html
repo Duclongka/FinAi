@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>FINAI - Quản lý tài chính cá nhân 6 chiếc lọ</title>
+  <link rel="icon" type="image/png" href="FinAi_icon_512x512_under256kb.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Các biến Safe Area để xử lý "tai thỏ" và thanh điều hướng Android */
+      --sat: env(safe-area-inset-top);
+      --sar: env(safe-area-inset-right);
+      --sab: env(safe-area-inset-bottom);
+      --sal: env(safe-area-inset-left);
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      overscroll-behavior-y: none; /* Ngăn chặn pull-to-refresh trên mobile */
+      user-select: none; /* Ngăn bôi đen văn bản để giống App Native */
+      -webkit-tap-highlight-color: transparent; /* Loại bỏ khung xanh khi chạm */
+      touch-action: manipulation; /* Ngăn chặn double-tap zoom */
+    }
+    /* Cho phép chọn văn bản trong các ô nhập liệu */
+    input, textarea, [contenteditable="true"] {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "path": "https://esm.sh/path@^0.12.7",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "firebase/": "https://esm.sh/firebase@^12.8.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

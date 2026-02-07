@@ -1,0 +1,90 @@
+:root {
+  --primary: #4f46e5;
+  --secondary: #6366f1;
+  --accent: #10b981;
+  --background: #ebf0f3;
+  --text: #1e293b;
+  --nm-bg: #ebf0f3;
+  --nm-shadow-dark: #c1c9d2;
+  --nm-shadow-light: #ffffff;
+}
+
+/* Ẩn thanh cuộn nhưng vẫn cho phép cuộn */
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  -webkit-overflow-scrolling: touch; /* Cuộn mượt trên mobile */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+}
+
+@keyframes wave {
+  0% { transform: translateX(-50%) skewY(-2deg); }
+  50% { transform: translateX(-50%) skewY(2deg); }
+  100% { transform: translateX(-50%) skewY(-2deg); }
+}
+
+.liquid-wave {
+  animation: wave 4s ease-in-out infinite;
+  will-change: transform; 
+}
+
+/* Neumorphism Styles */
+.nm-flat {
+  background: var(--nm-bg);
+  box-shadow: 10px 10px 20px var(--nm-shadow-dark),
+             -10px -10px 20px var(--nm-shadow-light);
+}
+
+.nm-inset {
+  background: var(--nm-bg);
+  box-shadow: inset 6px 6px 12px var(--nm-shadow-dark),
+             inset -6px -6px 12px var(--nm-shadow-light);
+}
+
+.nm-button-teal {
+  background: #2dd4bf;
+  box-shadow: 6px 6px 12px #9bc2be,
+             -6px -6px 12px #ffffff;
+  color: white;
+}
+
+.nm-button-teal:active {
+  box-shadow: inset 4px 4px 8px #24a898,
+             inset -4px -4px 8px #36ffd8;
+  transform: scale(0.98);
+}
+
+.nm-button-white {
+  background: var(--nm-bg);
+  box-shadow: 4px 4px 8px var(--nm-shadow-dark),
+             -4px -4px 8px var(--nm-shadow-light);
+}
+
+.nm-button-white:active {
+  box-shadow: inset 2px 2px 4px var(--nm-shadow-dark),
+             inset -2px -2px 4px var(--nm-shadow-light);
+  transform: scale(0.98);
+}
+
+button:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+.animate-in {
+  will-change: transform, opacity;
+}
