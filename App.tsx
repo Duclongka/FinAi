@@ -158,7 +158,7 @@ const TRANSLATIONS: Record<string, any> = {
     history_exp_only: "Chỉ Chi",
     history_more: "+Xem thêm GD",
     history_empty: "Danh sách trống",
-    loan_title: "QUẢN LÝ VAY NỢ",
+    loan_title: "Quản lý vay nợ",
     loan_title_help: "Nơi quản lý tất cả giao dịch bạn cho ai đó vay hoặc bạn đang vay ai đó.",
     loan_new: "GHI VAY NỢ MỚI",
     loan_edit: "SỬA KHOẢN VAY",
@@ -174,7 +174,7 @@ const TRANSLATIONS: Record<string, any> = {
     loan_jar_label: "Hũ liên quan",
     loan_date_label: "Ngày thực hiện",
     loan_img_label: "Ảnh chứng từ",
-    loan_add_img: "THÊM ẢNH",
+    loan_add_img: "THÊM Ảnh",
     settings_title: "CÀI ĐẶT ỨNG DỤNG",
     settings_data: "Dữ liệu",
     settings_data_export: "XUẤT DỮ LIỆU CSV",
@@ -229,22 +229,22 @@ const TRANSLATIONS: Record<string, any> = {
     jar_ffa_desc: "Dành cho các khoản đầu tư nhằm tăng thu nhập, giúp bạn đạt được tự do tài chính trong tương lai.",
     jar_give_name: "Cho đi",
     jar_give_desc: "Dùng để ủng hộ các tổ chức từ thiện hoặc giúp đỡ người thân, bạn bè, tạo giá trị cộng đồng.",
-    recurring_title: "GIAO DỊCH ĐỊNH KỲ",
+    recurring_title: "Giao dịch định kỳ",
     recurring_title_help: "Nơi bạn thêm các giao dịch có tính chu kỳ cố định. Ví dụ: tiền thuê bao internet (160k/tháng), tiền thuê bao camera ...",
     recurring_add: "THÊM ĐỊNH KỲ",
     recurring_freq: "Chu kỳ lặp lại",
-    event_title: "GD THEO SỰ KIỆN",
+    event_title: "GD theo sự kiện",
     event_title_help: "Nơi bạn quản lý các giao dịch theo tính chất sự kiện, tạm thời (ví dụ: tổ chức sinh nhật, cưới hỏi, ăn dỗ ...). Giao dịch loại này được tách riêng, không liên quan với các giao dịch chung khác, trừ khi bạn lưu nó mới xuất hiện ở 1 trong 6 hũ bạn chọn.",
     event_add: "+Tạo SK mới",
     event_save_history: "Lưu",
     event_delete: "Xóa sự kiện",
     event_entry_title: "NHẬP LIỆU SỰ KIỆN",
-    future_title: "GD TƯƠNG LAI",
+    future_title: "GD tương lai",
     future_title_help: "Nơi bạn quản lý các giao dịch bạn dự định mua sắm hoặc chi tiêu trong tương lai. Giao dịch loại này không liên quan đến dữ liệu chung, chỉ khi bạn đã thực hiện và muốn lưu thì nó mới xuất hiện ở 1 trong 6 hũ bạn chọn.",
     future_add: "+Tạo dự định mới",
     future_save_history: "Lưu",
     future_entry_title: "NHẬP LIỆU TƯƠNG LAI",
-    history_detail_title: "CHI TIÊU CHI TIẾT",
+    history_detail_title: "CHI TIẾT GIAO DỊCH",
     confirm_delete_title: "XÁC NHẬN XÓA",
     confirm_delete_msg: "Bạn có chắc chắn muốn xóa vĩnh viễn giao dịch này?",
     loan_detail_title: "THÔNG TIN GIAO DỊCH VAY NỢ",
@@ -290,7 +290,11 @@ const TRANSLATIONS: Record<string, any> = {
     pin_enabled_label: "Sử dụng mã PIN bảo mật",
     pin_change_label: "Đổi mã PIN",
     faceid_label: "Sử dụng FaceID/Vân tay",
-    loading_data: "Đang tải dữ liệu..."
+    loading_data: "Đang tải dữ liệu...",
+    freq_daily: "Hàng ngày",
+    freq_weekly: "Hàng tuần",
+    freq_monthly: "Hàng tháng",
+    freq_yearly: "Hàng năm"
   },
   en: {
     appTitle: "FinAi",
@@ -336,7 +340,7 @@ const TRANSLATIONS: Record<string, any> = {
     history_exp_only: "Expense Only",
     history_more: "+View more",
     history_empty: "List is empty",
-    loan_title: "LOAN MANAGEMENT",
+    loan_title: "Loan management",
     loan_title_help: "Manage all transactions where you lent money to or borrowed from someone.",
     loan_new: "NEW LOAN",
     loan_edit: "EDIT LOAN",
@@ -407,22 +411,22 @@ const TRANSLATIONS: Record<string, any> = {
     jar_ffa_desc: "Investments to increase income and achieve financial freedom.",
     jar_give_name: "Give",
     jar_give_desc: "To support charities or help friends and community.",
-    recurring_title: "RECURRING TRANS",
+    recurring_title: "Recurring transactions",
     recurring_title_help: "Add transactions with fixed cycles, e.g., internet subscription, utilities.",
     recurring_add: "ADD RECURRING",
     recurring_freq: "Repeat Cycle",
-    event_title: "EVENT TRANSACTIONS",
+    event_title: "Event transactions",
     event_title_help: "Manage transactions for specific events (e.g., birthday, wedding). These are isolated until saved to a jar.",
     event_add: "+New Event",
     event_save_history: "Save",
     event_delete: "Delete event",
     event_entry_title: "EVENT ENTRY",
-    future_title: "FUTURE TRANS",
+    future_title: "Future transactions",
     future_title_help: "Manage planned future purchases. These don't affect main data until executed and saved to a jar.",
     future_add: "+New Future Task",
     future_save_history: "Save",
     future_entry_title: "FUTURE ENTRY",
-    history_detail_title: "SPENDING DETAILS",
+    history_detail_title: "TRANSACTION DETAILS",
     confirm_delete_title: "CONFIRM DELETE",
     confirm_delete_msg: "Are you sure you want to permanently delete this?",
     loan_detail_title: "LOAN TRANSACTION INFO",
@@ -468,7 +472,11 @@ const TRANSLATIONS: Record<string, any> = {
     pin_enabled_label: "Enable Security PIN",
     pin_change_label: "Change PIN",
     faceid_label: "Use Biometrics",
-    loading_data: "Loading data..."
+    loading_data: "Loading data...",
+    freq_daily: "Daily",
+    freq_weekly: "Weekly",
+    freq_monthly: "Monthly",
+    freq_yearly: "Yearly"
   },
   ja: {
     appTitle: "FinAi",
@@ -586,7 +594,7 @@ const TRANSLATIONS: Record<string, any> = {
     jar_give_name: "寄付",
     jar_give_desc: "慈善団体への寄付や友人へのサポート用。",
     recurring_title: "定期取引",
-    recurring_title_help: "インターネット代や固定費など、一定の周期を持つ取引を追加します。",
+    recurring_title_help: "インターネット代や固定費など、一定 của周期を持つ取引を追加します。",
     recurring_add: "定期追加",
     recurring_freq: "繰り返し周期",
     event_title: "イベント取引",
@@ -600,7 +608,7 @@ const TRANSLATIONS: Record<string, any> = {
     future_add: "+新規予定",
     future_save_history: "保存",
     future_entry_title: "予定入力",
-    history_detail_title: "支出詳細",
+    history_detail_title: "取引詳細",
     confirm_delete_title: "削除確認",
     confirm_delete_msg: "本当に削除してもよろしいですか？",
     loan_detail_title: "貸借取引詳細",
@@ -646,12 +654,16 @@ const TRANSLATIONS: Record<string, any> = {
     pin_enabled_label: "PINロックを有効化",
     pin_change_label: "PINを変更",
     faceid_label: "生体認証を使用",
-    loading_data: "データを読み込み中..."
+    loading_data: "データを読み込み中...",
+    freq_daily: "毎日",
+    freq_weekly: "毎週",
+    freq_monthly: "毎月",
+    freq_yearly: "毎年"
   }
 };
 
 const App: React.FC = () => {
-  const APP_VERSION = "v6.3.0";
+  const APP_VERSION = "v6.3.1";
   const SESSION_TIMEOUT = 30 * 24 * 60 * 60 * 1000; 
   
   const getTodayString = () => new Date().toISOString().split('T')[0];
@@ -777,10 +789,10 @@ const App: React.FC = () => {
   const [isAdviceLoading, setIsAdviceLoading] = useState(false);
   const [chartRange, setChartRange] = useState<'week' | 'month' | 'year'>('week');
 
-  const [isLoansExpanded, setIsLoansExpanded] = useState(true);
-  const [isRecurringExpanded, setIsRecurringExpanded] = useState(true);
-  const [isEventsExpanded, setIsEventsExpanded] = useState(true);
-  const [isFutureExpanded, setIsFutureExpanded] = useState(true);
+  const [isLoansExpanded, setIsLoansExpanded] = useState(false);
+  const [isRecurringExpanded, setIsRecurringExpanded] = useState(false);
+  const [isEventsExpanded, setIsEventsExpanded] = useState(false);
+  const [isFutureExpanded, setIsFutureExpanded] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -1078,7 +1090,6 @@ const App: React.FC = () => {
           note: "Nhập liệu tự động bằng AI"
         }));
 
-        // Update balances for the batch
         setBalances(prev => {
           const nb = { ...prev };
           const ratios = settings.jarRatios;
@@ -1322,7 +1333,7 @@ const App: React.FC = () => {
       }
     } else {
       setDeleteClickData({ id, count: 1 });
-      deleteResetTimer.current = setTimeout(() => { setDeleteClickData({ id, count: 0 }); }, 1500);
+      deleteResetTimer.current = setTimeout(() => { setDeleteClickData({ id: '', count: 0 }); }, 1500);
     }
   };
 
@@ -1700,7 +1711,6 @@ const App: React.FC = () => {
 
         {activeTab === 'loans' && (
           <div className="space-y-8 animate-in fade-in duration-300 pb-20">
-            {/* LOAN SECTION */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl relative group">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.loan_title_help} position="bottom" />
@@ -1708,7 +1718,7 @@ const App: React.FC = () => {
               <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setIsLoansExpanded(!isLoansExpanded)}>
                 <div className="flex items-center gap-2">
                   <span className={`transition-transform duration-300 text-slate-400 ${isLoansExpanded ? 'rotate-0' : '-rotate-90'}`}>▼</span>
-                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📉</span> {t.loan_title}</h3>
+                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📉</span> {t.loan_title} ({loans.length})</h3>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); handleOpenNewLoan(); }} className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
@@ -1743,7 +1753,6 @@ const App: React.FC = () => {
               )}
             </section>
 
-            {/* RECURRING SECTION */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl relative group">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.recurring_title_help} position="bottom" />
@@ -1751,7 +1760,7 @@ const App: React.FC = () => {
               <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setIsRecurringExpanded(!isRecurringExpanded)}>
                 <div className="flex items-center gap-2">
                   <span className={`transition-transform duration-300 text-slate-400 ${isRecurringExpanded ? 'rotate-0' : '-rotate-90'}`}>▼</span>
-                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📅</span> {t.recurring_title}</h3>
+                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📅</span> {t.recurring_title} ({recurringTemplates.length})</h3>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); setIsRecurringModalOpen(true); }} className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
@@ -1780,7 +1789,6 @@ const App: React.FC = () => {
               )}
             </section>
 
-            {/* EVENT SECTION */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl relative group">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.event_title_help} position="bottom" />
@@ -1788,7 +1796,7 @@ const App: React.FC = () => {
               <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setIsEventsExpanded(!isEventsExpanded)}>
                 <div className="flex items-center gap-2">
                   <span className={`transition-transform duration-300 text-slate-400 ${isEventsExpanded ? 'rotate-0' : '-rotate-90'}`}>▼</span>
-                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🎊</span> {t.event_title}</h3>
+                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🎊</span> {t.event_title} ({events.length})</h3>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); setIsEventModalOpen(true); }} className="w-10 h-10 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
@@ -1821,7 +1829,6 @@ const App: React.FC = () => {
               )}
             </section>
 
-            {/* FUTURE SECTION */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl mb-10 relative group">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.future_title_help} position="bottom" />
@@ -1829,7 +1836,7 @@ const App: React.FC = () => {
               <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setIsFutureExpanded(!isFutureExpanded)}>
                 <div className="flex items-center gap-2">
                   <span className={`transition-transform duration-300 text-slate-400 ${isFutureExpanded ? 'rotate-0' : '-rotate-90'}`}>▼</span>
-                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🔮</span> {t.future_title}</h3>
+                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🔮</span> {t.future_title} ({futureGroups.length})</h3>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); setIsFutureModalOpen(true); }} className="w-10 h-10 bg-sky-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
@@ -1903,7 +1910,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-2"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.currency}</label><select value={settings.currency} onChange={e => setSettings({...settings, currency: e.target.value as any})} className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl px-4 text-[11px] font-normal outline-none focus:border-indigo-400 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207L10%2012L15%207%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:20px] bg-[right_1rem_center] bg-no-repeat"><option value="VND">VND</option><option value="JPY">JPY</option><option value="USD">USD</option></select></div>
-                  <div className="space-y-2"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.language}</label><select value={settings.language} onChange={e => setSettings({...settings, language: e.target.value as any})} className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl px-4 h-12 text-[11px] font-normal outline-none focus:border-indigo-400 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207L10%2012L15%207%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:20px] bg-[right_1rem_center] bg-no-repeat"><option value="vi">{t.lang_vi}</option><option value="en">{t.lang_en}</option><option value="ja">{t.lang_ja}</option></select></div>
+                  <div className="space-y-2"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.language}</label><select value={settings.language} onChange={e => setSettings({...settings, language: e.target.value as any})} className="w-full h-12 bg-slate-50 border-2 border-slate-100 rounded-xl px-4 text-[11px] font-normal outline-none focus:border-indigo-400 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207L10%2012L15%207%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:20px] bg-[right_1rem_center] bg-no-repeat"><option value="vi">{t.lang_vi}</option><option value="en">{t.lang_en}</option><option value="ja">{t.lang_ja}</option></select></div>
                   <div className="space-y-2"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_data}</label><div className="bg-slate-50 rounded-2xl border-2 border-slate-100 overflow-hidden"><button onClick={exportToCSV} className="w-full flex items-center gap-3 px-5 py-4 border-b border-slate-100 active:bg-emerald-50 text-[10px] font-bold text-slate-600"><span>📤</span> {t.settings_data_export}</button><button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 px-5 py-4 border-b border-slate-100 active:bg-indigo-50 text-[10px] font-bold text-slate-600"><span>📥</span> {t.settings_data_import}</button><input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImportFile} /><button onClick={handleResetData} className="w-full flex items-center gap-3 px-5 py-4 active:bg-red-50 text-[10px] font-bold text-red-600"><span>⚠️</span> {t.settings_data_reset}</button></div></div>
                 </div>
               )}
@@ -1951,7 +1958,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Manual Entry Modal */}
       {isEntryModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
@@ -1969,7 +1975,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Recurring Template Modal */}
       {isRecurringModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
@@ -1979,7 +1984,7 @@ const App: React.FC = () => {
                <div className="space-y-1"><div className="relative"><input required type="text" inputMode="numeric" value={recurringAmountStr} onChange={e => setRecurringAmountStr(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl pl-4 pr-12 h-12 text-sm font-black outline-none focus:border-indigo-400 placeholder:text-[10px]" /><button type="button" onClick={() => openCalculator('recurring')} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 text-slate-400 text-2xl active:scale-90">🧮</button></div><AmountHintLabel val={recurringAmountStr} currency={settings.currency} lang={settings.language} /></div>
                <input required type="text" value={recurringForm.description} onChange={e => setRecurringForm({...recurringForm, description: e.target.value})} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-bold outline-none" />
                <div className="grid grid-cols-2 gap-3">
-                 <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.recurring_freq}</label><select value={recurringForm.subscriptionType} onChange={e => setRecurringForm({...recurringForm, subscriptionType: e.target.value as SubscriptionType})} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 h-12 text-[10px] font-normal outline-none"><option value="1d">Daily</option><option value="1w">Weekly</option><option value="1m">Monthly</option><option value="1y">Yearly</option></select></div>
+                 <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.recurring_freq}</label><select value={recurringForm.subscriptionType} onChange={e => setRecurringForm({...recurringForm, subscriptionType: e.target.value as SubscriptionType})} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 h-12 text-[10px] font-normal outline-none"><option value="1d">{t.freq_daily}</option><option value="1w">{t.freq_weekly}</option><option value="1m">{t.freq_monthly}</option><option value="1y">{t.freq_yearly}</option></select></div>
                  <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.manual_jar_img}</label><select value={recurringForm.jarType} onChange={e => setRecurringForm({...recurringForm, jarType: e.target.value as any})} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 h-12 text-[10px] font-normal outline-none"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}</select></div>
                </div>
                <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.recurring_start_date}</label><input type="date" value={recurringForm.startDate} onChange={e => setRecurringForm({...recurringForm, startDate: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-normal outline-none text-center min-w-0 max-w-full appearance-none" /></div>
@@ -1989,7 +1994,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* History Filter Modal */}
       {isHistoryFilterModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsHistoryFilterModalOpen(false)}>
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl border-2 border-slate-200" onClick={e => e.stopPropagation()}>
@@ -2004,7 +2008,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Event Group Modal */}
       {isEventModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
@@ -2014,7 +2017,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Future Group Modal */}
       {isFutureModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
@@ -2024,7 +2026,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Event Entry Modal */}
       {isEventEntryModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2rem] w-full max-w-[340px] p-6 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-300">
@@ -2040,7 +2041,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Future Entry Modal with Ghi Chu */}
       {isFutureEntryModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2rem] w-full max-w-[340px] p-6 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-300">
@@ -2057,7 +2057,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Loan Modal */}
       {isLoanModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
@@ -2069,13 +2068,12 @@ const App: React.FC = () => {
                 <div className="min-w-0 flex-1"><input type="date" value={loanForm.startDate} onChange={e => setLoanForm({...loanForm, startDate: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[10px] font-normal outline-none text-center min-w-0 appearance-none" /></div>
                 <div className="space-y-1 min-w-0 flex-1"><div className="relative"><input required type="text" inputMode="numeric" value={loanPrincipalStr} onChange={e => setLoanPrincipalStr(formatDots(e.target.value))} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-black outline-none" placeholder="0" /><button type="button" onClick={() => openCalculator('loan')} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-slate-400 text-xl active:scale-95">🧮</button></div><AmountHintLabel val={loanPrincipalStr} currency={settings.currency} lang={settings.language} /></div>
               </div>
-              <div className="flex gap-4 pt-4"><button type="button" onClick={() => { setIsLoanModalOpen(false); setEditingLoanId(null); }} className="flex-1 py-3 border-2 border-slate-200 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.loan_back_btn}</button><button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-lg active:scale-95">＋</button></div>
+              <div className="flex gap-4 pt-4"><button type="button" onClick={() => { setIsLoanModalOpen(false); setEditingLoanId(null); }} className="flex-1 py-3 border-2 border-slate-200 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.loan_back_btn}</button><button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-lg">＋</button></div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Loan Payment Modal */}
       {isLoanPaymentModalOpen && paymentLoanId && (
         <div className="fixed inset-0 z-[280] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
@@ -2096,7 +2094,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* History Detail Modal */}
       {isHistoryDetailModalOpen && selectedTx && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
@@ -2113,7 +2110,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Loan Detail Modal */}
       {isLoanDetailModalOpen && selectedLoan && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
@@ -2132,7 +2128,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Event Jar Selector Modal */}
       {isEventJarSelectorOpen && eventToSave && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl border-2 border-slate-200">
@@ -2143,7 +2138,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Future Jar Selector Modal */}
       {isFutureJarSelectorOpen && futureToSave && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl border-2 border-slate-200">
@@ -2154,7 +2148,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Transfer Modal */}
       {isTransferModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-8 shadow-2xl animate-in zoom-in-95 border-2 border-slate-200">
@@ -2162,13 +2155,12 @@ const App: React.FC = () => {
             <form onSubmit={handleTransferSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3"><div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.transfer_from}</label><select value={transferFrom} onChange={e => setTransferFrom(e.target.value as JarType)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 h-12 text-[10px] font-normal outline-none">{Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}</select></div><div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.transfer_to}</label><select value={transferTo} onChange={e => setTransferTo(e.target.value as JarType)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 h-12 text-[10px] font-normal outline-none">{Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}</select></div></div>
               <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.transfer_amount}</label><div className="relative"><input required type="text" inputMode="numeric" value={transferAmount} onChange={e => setTransferAmount(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 h-12 text-[11px] font-black outline-none placeholder:text-[9px]" /><button type="button" onClick={() => openCalculator('transfer')} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-slate-400 text-xl active:scale-95">🧮</button></div><AmountHintLabel val={transferAmount} currency={settings.currency} lang={settings.language} /><p className="text-[8px] font-bold text-slate-400 ml-1 mt-2">Balance: <span className="text-indigo-600">{formatCurrency(balances[transferFrom])}</span></p></div>
-              <div className="flex gap-4 pt-4"><button type="button" onClick={() => setIsTransferModalOpen(false)} className="flex-1 py-3 border-2 border-slate-200 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.transfer_cancel}</button><button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-lg active:scale-95">{t.transfer_confirm}</button></div>
+              <div className="flex gap-4 pt-4"><button type="button" onClick={() => setIsTransferModalOpen(false)} className="flex-1 py-3 border-2 border-slate-200 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.transfer_cancel}</button><button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-lg">{t.transfer_confirm}</button></div>
             </form>
           </div>
         </div>
       )}
 
-      {/* CALCULATOR MODAL */}
       {isCalcOpen && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md">
           <div className="bg-white/95 rounded-[2.5rem] w-full max-w-[320px] p-7 shadow-2xl border-2 border-slate-200">
