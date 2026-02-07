@@ -11,6 +11,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 type AppTab = 'home' | 'history' | 'overview' | 'loans';
+type ExpandedSection = 'loans' | 'recurring' | 'events' | 'future' | null;
 
 const SUBSCRIPTION_DURATIONS: Record<SubscriptionType, number> = {
   '1d': 1, '3d': 3, '1w': 7, '1m': 30, '3m': 90, '6m': 180, '1y': 365, '3y': 1095
@@ -294,7 +295,8 @@ const TRANSLATIONS: Record<string, any> = {
     freq_daily: "Hàng ngày",
     freq_weekly: "Hàng tuần",
     freq_monthly: "Hàng tháng",
-    freq_yearly: "Hàng năm"
+    freq_yearly: "Hàng năm",
+    ai_quota_exceeded: "Giới hạn AI đã đạt mức tối đa. Vui lòng thử lại sau hoặc nâng cấp tài khoản."
   },
   en: {
     appTitle: "FinAi",
@@ -476,7 +478,8 @@ const TRANSLATIONS: Record<string, any> = {
     freq_daily: "Daily",
     freq_weekly: "Weekly",
     freq_monthly: "Monthly",
-    freq_yearly: "Yearly"
+    freq_yearly: "Yearly",
+    ai_quota_exceeded: "AI quota exceeded. Please try again later."
   },
   ja: {
     appTitle: "FinAi",
@@ -485,7 +488,7 @@ const TRANSLATIONS: Record<string, any> = {
     stats_debt: "負債額",
     stats_debt_help: "返済が必要な負債の総額です。詳細は「貸借管理」セクションにあります。",
     stats_lent: "貸付金",
-    stats_lent_help: "誰かに貸しているお金の総額です。詳細は「貸借管理」セクションにあります。",
+    stats_lent_help: "誰かに貸しているお金 của総額です。詳細は「貸借管理」セクションにあります。",
     stats_net: "純資産",
     stats_net_help: "支出と負債を差し引いた後の合計金額（実際に所有しているお金）です。",
     advice_title: "専門家のアドバイス",
@@ -658,12 +661,13 @@ const TRANSLATIONS: Record<string, any> = {
     freq_daily: "毎日",
     freq_weekly: "毎週",
     freq_monthly: "毎月",
-    freq_yearly: "毎年"
+    freq_yearly: "毎年",
+    ai_quota_exceeded: "AIクォータを超えました。後でもう一度お試しください。"
   }
 };
 
 const App: React.FC = () => {
-  const APP_VERSION = "v6.3.1";
+  const APP_VERSION = "v6.3.4";
   const SESSION_TIMEOUT = 30 * 24 * 60 * 60 * 1000; 
   
   const getTodayString = () => new Date().toISOString().split('T')[0];
@@ -718,6 +722,11 @@ const App: React.FC = () => {
   const [historyFromDateFilter, setHistoryFromDateFilter] = useState<string>(''); 
   const [historyToDateFilter, setHistoryToDateFilter] = useState<string>(''); 
   const [visibleTxCount, setVisibleTxCount] = useState(5);
+
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+
+  // Use a single state for accordion expansion in the "GD Khác" tab
+  const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -789,15 +798,18 @@ const App: React.FC = () => {
   const [isAdviceLoading, setIsAdviceLoading] = useState(false);
   const [chartRange, setChartRange] = useState<'week' | 'month' | 'year'>('week');
 
-  const [isLoansExpanded, setIsLoansExpanded] = useState(false);
-  const [isRecurringExpanded, setIsRecurringExpanded] = useState(false);
-  const [isEventsExpanded, setIsEventsExpanded] = useState(false);
-  const [isFutureExpanded, setIsFutureExpanded] = useState(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS.vi;
+
+  const handleSectionAccordion = (section: ExpandedSection, isForced = false) => {
+    if (isForced) {
+      setExpandedSection(section);
+      return;
+    }
+    setExpandedSection(prev => prev === section ? null : section);
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -1061,7 +1073,13 @@ const App: React.FC = () => {
         setActiveTab('history');
         showToast("AI OK");
       } else showToast(t.history_empty, "info");
-    } catch (e) { showToast("AI Error", "danger"); }
+    } catch (e: any) {
+      if (e?.message?.includes("429") || e?.status === 429) {
+        showToast(t.ai_quota_exceeded, "danger");
+      } else {
+        showToast("AI Error", "danger");
+      }
+    }
     finally { setIsLoading(false); setInput(''); }
   };
 
@@ -1176,6 +1194,7 @@ const App: React.FC = () => {
   };
 
   const handleOpenNewLoan = () => {
+    handleSectionAccordion('loans', true);
     setEditingLoanId(null);
     setLoanForm({ type: LoanType.BORROW, lenderName: '', principal: 0, paidAmount: 0, startDate: getTodayString(), category: LoanCategory.BANK, isUrgent: false, loanJar: 'AUTO', imageUrl: '', purpose: '' });
     setLoanPrincipalStr('');
@@ -1638,7 +1657,18 @@ const App: React.FC = () => {
               {displayedTransactions.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-[10px] font-bold text-slate-400 italic bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">{t.history_empty}</div> : (
                 <>
                   {displayedTransactions.map(tx => (
-                    <div key={tx.id} onDoubleClick={() => { setSelectedTx(tx); setIsHistoryDetailModalOpen(true); }} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group relative overflow-hidden transition-all hover:bg-white active:bg-slate-100 cursor-pointer">
+                    <div 
+                      key={tx.id} 
+                      onClick={() => {
+                        if (activeItemId === tx.id) {
+                          setSelectedTx(tx);
+                          setIsHistoryDetailModalOpen(true);
+                        } else {
+                          setActiveItemId(tx.id);
+                        }
+                      }}
+                      className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group relative overflow-hidden transition-all hover:bg-white active:bg-slate-100 cursor-pointer"
+                    >
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{tx.type === 'income' ? '↑' : '↓'}</div>
                         <div>
@@ -1651,7 +1681,7 @@ const App: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <p className={`text-[11px] font-black ${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}</p>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-1">
+                        <div className={`flex gap-1 transition-all ml-1 ${activeItemId === tx.id ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'} group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto`}>
                           <button onClick={(e) => { e.stopPropagation(); setEditingTransactionId(tx.id); setManualType(tx.type); setManualAmount(formatDots((tx.amount * EXCHANGE_RATES[settings.currency]).toString())); setManualDesc(tx.description); setManualNote(tx.note || ''); setManualJar(tx.jarType || 'AUTO'); setManualDate(new Date(tx.timestamp).toISOString().split('T')[0]); setIsEntryModalOpen(true); }} className="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-[10px]">✏️</button>
                           <button onClick={(e) => { e.stopPropagation(); handleTripleDelete(tx.id); }} className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] ${deleteClickData.id === tx.id ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600'}`}>{deleteClickData.id === tx.id ? '❓' : '🗑️'}</button>
                         </div>
@@ -1711,24 +1741,36 @@ const App: React.FC = () => {
 
         {activeTab === 'loans' && (
           <div className="space-y-8 animate-in fade-in duration-300 pb-20">
+            {/* VAY NỢ SECTION */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl relative group">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.loan_title_help} position="bottom" />
               </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setIsLoansExpanded(!isLoansExpanded)}>
+              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => handleSectionAccordion('loans')}>
                 <div className="flex items-center gap-2">
-                  <span className={`transition-transform duration-300 text-slate-400 ${isLoansExpanded ? 'rotate-0' : '-rotate-90'}`}>▼</span>
+                  <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'loans' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
                   <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📉</span> {t.loan_title} ({loans.length})</h3>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); handleOpenNewLoan(); }} className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
-              {isLoansExpanded && (
+              {expandedSection === 'loans' && (
                 <div className="animate-in slide-in-from-top-2 duration-300">
                   <div className="w-full h-[1px] bg-slate-100 mb-6" />
                   {loans.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold">{t.history_empty}</div> : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {loans.map(loan => (
-                        <div key={loan.id} onDoubleClick={() => { setSelectedLoan(loan); setIsLoanDetailModalOpen(true); }} className="bg-slate-50 rounded-2xl border border-slate-100 p-4 group relative pb-10 cursor-pointer transition-all hover:bg-white">
+                        <div 
+                          key={loan.id} 
+                          onClick={() => {
+                            if (activeItemId === loan.id) {
+                              setSelectedLoan(loan);
+                              setIsLoanDetailModalOpen(true);
+                            } else {
+                              setActiveItemId(loan.id);
+                            }
+                          }}
+                          className="bg-slate-50 rounded-2xl border border-slate-100 p-4 group relative pb-10 cursor-pointer transition-all hover:bg-white"
+                        >
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
                               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm ${loan.type === LoanType.BORROW ? 'bg-rose-50' : 'bg-emerald-50'}`}>{loan.type === LoanType.BORROW ? '💸' : '🤝'}</div>
@@ -1741,7 +1783,7 @@ const App: React.FC = () => {
                           </div>
                           <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden mt-2"><div className={`h-full ${loan.type === LoanType.BORROW ? 'bg-rose-400' : 'bg-emerald-400'}`} style={{ width: `${(loan.paidAmount/loan.principal)*100}%` }} /></div>
                           <div className="flex justify-between mt-2 px-1 text-[8px] font-bold text-slate-400 uppercase"><span>{t.loan_paid}: {formatCurrency(loan.paidAmount)}</span><span>{t.loan_rem}: {formatCurrency(loan.principal - loan.paidAmount)}</span></div>
-                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-all">
+                          <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 transition-all ${activeItemId === loan.id ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'} group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto`}>
                             <button onClick={(e) => { e.stopPropagation(); setEditingLoanId(loan.id); setLoanForm({...loan, loanJar: loan.loanJar || 'AUTO'}); setLoanPrincipalStr(formatDots((loan.principal * EXCHANGE_RATES[settings.currency]).toString())); setIsLoanModalOpen(true); }} className="w-7 h-7 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-md border border-indigo-100 text-[10px]">✏️</button>
                             <button onClick={(e) => { e.stopPropagation(); handleTripleDelete(loan.id); }} className={`w-7 h-7 rounded-full flex items-center justify-center shadow-md text-[10px] transition-all ${deleteClickData.id === loan.id ? 'bg-red-600 text-white animate-pulse' : 'bg-white text-rose-600 border border-rose-100'}`}>{deleteClickData.id === loan.id ? (deleteClickData.count >= 2 ? '❓' : deleteClickData.count) : '🗑️'}</button>
                           </div>
@@ -1753,18 +1795,19 @@ const App: React.FC = () => {
               )}
             </section>
 
+            {/* ĐỊNH KỲ SECTION */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl relative group">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.recurring_title_help} position="bottom" />
               </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setIsRecurringExpanded(!isRecurringExpanded)}>
+              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => handleSectionAccordion('recurring')}>
                 <div className="flex items-center gap-2">
-                  <span className={`transition-transform duration-300 text-slate-400 ${isRecurringExpanded ? 'rotate-0' : '-rotate-90'}`}>▼</span>
+                  <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'recurring' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
                   <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📅</span> {t.recurring_title} ({recurringTemplates.length})</h3>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setIsRecurringModalOpen(true); }} className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
+                <button onClick={(e) => { e.stopPropagation(); handleSectionAccordion('recurring', true); setIsRecurringModalOpen(true); }} className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
-              {isRecurringExpanded && (
+              {expandedSection === 'recurring' && (
                 <div className="animate-in slide-in-from-top-2 duration-300">
                   <div className="w-full h-[1px] bg-slate-100 mb-6" />
                   {recurringTemplates.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold">{t.history_empty}</div> : (
@@ -1789,18 +1832,19 @@ const App: React.FC = () => {
               )}
             </section>
 
+            {/* SỰ KIỆN SECTION */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl relative group">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.event_title_help} position="bottom" />
               </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setIsEventsExpanded(!isEventsExpanded)}>
+              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => handleSectionAccordion('events')}>
                 <div className="flex items-center gap-2">
-                  <span className={`transition-transform duration-300 text-slate-400 ${isEventsExpanded ? 'rotate-0' : '-rotate-90'}`}>▼</span>
+                  <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'events' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
                   <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🎊</span> {t.event_title} ({events.length})</h3>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setIsEventModalOpen(true); }} className="w-10 h-10 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
+                <button onClick={(e) => { e.stopPropagation(); handleSectionAccordion('events', true); setIsEventModalOpen(true); }} className="w-10 h-10 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
-              {isEventsExpanded && (
+              {expandedSection === 'events' && (
                 <div className="animate-in slide-in-from-top-2 duration-300">
                   <div className="w-full h-[1px] bg-slate-100 mb-6" />
                   {events.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold">{t.history_empty}</div> : (
@@ -1829,18 +1873,19 @@ const App: React.FC = () => {
               )}
             </section>
 
+            {/* TƯƠNG LAI SECTION */}
             <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl mb-10 relative group">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.future_title_help} position="bottom" />
               </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setIsFutureExpanded(!isFutureExpanded)}>
+              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => handleSectionAccordion('future')}>
                 <div className="flex items-center gap-2">
-                  <span className={`transition-transform duration-300 text-slate-400 ${isFutureExpanded ? 'rotate-0' : '-rotate-90'}`}>▼</span>
+                  <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'future' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
                   <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🔮</span> {t.future_title} ({futureGroups.length})</h3>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setIsFutureModalOpen(true); }} className="w-10 h-10 bg-sky-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
+                <button onClick={(e) => { e.stopPropagation(); handleSectionAccordion('future', true); setIsFutureModalOpen(true); }} className="w-10 h-10 bg-sky-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
-              {isFutureExpanded && (
+              {expandedSection === 'future' && (
                 <div className="animate-in slide-in-from-top-2 duration-300">
                   <div className="w-full h-[1px] bg-slate-100 mb-6" />
                   {futureGroups.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold">{t.history_empty}</div> : (
