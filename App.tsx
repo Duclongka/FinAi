@@ -721,6 +721,7 @@ const App: React.FC = () => {
   const [historyJarFilter, setHistoryJarFilter] = useState<JarType | 'all'>('all');
   const [historyFromDateFilter, setHistoryFromDateFilter] = useState<string>(''); 
   const [historyToDateFilter, setHistoryToDateFilter] = useState<string>(''); 
+  const [historySearch, setHistorySearch] = useState('');
   const [visibleTxCount, setVisibleTxCount] = useState(5);
 
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
@@ -736,6 +737,7 @@ const App: React.FC = () => {
   const [manualType, setManualType] = useState<'income' | 'expense'>('expense');
   const [manualJar, setManualJar] = useState<JarType | 'AUTO'>(JarType.NEC);
   const [manualDate, setManualDate] = useState(getTodayString());
+  const [manualImage, setManualImage] = useState<string | null>(null);
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
 
   const [isCalcOpen, setIsCalcOpen] = useState(false);
@@ -798,8 +800,65 @@ const App: React.FC = () => {
   const [isAdviceLoading, setIsAdviceLoading] = useState(false);
   const [chartRange, setChartRange] = useState<'week' | 'month' | 'year'>('week');
 
+  const touchStartX = useRef<number | null>(null);
+
+  const compressImage = (base64: string, maxWidth = 800, maxHeight = 800): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+    });
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchEndX - touchStartX.current;
+    if (diff > 100 && !isSettingsOpen && !isAuthModalOpen && !isEntryModalOpen && !isLoanModalOpen && !isRecurringModalOpen && !isEventModalOpen && !isFutureModalOpen) {
+      setIsSettingsOpen(true);
+    }
+    touchStartX.current = null;
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const manualImageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleManualImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setManualImage(compressed);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS.vi;
 
@@ -1035,6 +1094,7 @@ const App: React.FC = () => {
       amount: amountInVnd, description: manualDesc, note: manualNote,
       jarType: manualJar === 'AUTO' ? undefined : manualJar as JarType,
       timestamp: new Date(manualDate).getTime(),
+      imageUrl: manualImage || undefined
     };
     if (editingTransactionId) {
       const old = transactions.find(item => item.id === editingTransactionId) || null;
@@ -1046,6 +1106,7 @@ const App: React.FC = () => {
       updateBalances(null, newTrans);
     }
     setManualAmount(''); setManualDesc(''); setManualNote('');
+    setManualImage(null);
     setManualJar(manualType === 'expense' ? JarType.NEC : 'AUTO');
     setManualDate(getTodayString());
     setIsEntryModalOpen(false);
@@ -1480,9 +1541,18 @@ const App: React.FC = () => {
       const txDateStr = new Date(tx.timestamp).toISOString().split('T')[0];
       const matchFromDate = !historyFromDateFilter || txDateStr >= historyFromDateFilter;
       const matchToDate = !historyToDateFilter || txDateStr <= historyToDateFilter;
-      return matchType && matchJar && matchFromDate && matchToDate;
+      
+      const searchLower = historySearch.toLowerCase();
+      const matchSearch = !historySearch || 
+        tx.description.toLowerCase().includes(searchLower) ||
+        (tx.note && tx.note.toLowerCase().includes(searchLower)) ||
+        txDateStr.includes(searchLower) ||
+        (tx.jarType && t[`jar_${tx.jarType.toLowerCase()}_name`].toLowerCase().includes(searchLower)) ||
+        (tx.type === 'income' ? t.manual_income.toLowerCase().includes(searchLower) : t.manual_expense.toLowerCase().includes(searchLower));
+
+      return matchType && matchJar && matchFromDate && matchToDate && matchSearch;
     });
-  }, [transactions, historyFilter, historyJarFilter, historyFromDateFilter, historyToDateFilter]);
+  }, [transactions, historyFilter, historyJarFilter, historyFromDateFilter, historyToDateFilter, historySearch, t]);
 
   const displayedTransactions = useMemo(() => filteredTransactions.slice(0, visibleTxCount), [filteredTransactions, visibleTxCount]);
 
@@ -1497,7 +1567,11 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col items-center pt-[calc(var(--sat,0px)+120px)] pb-[calc(var(--sab,0px)+100px)]">
+    <div 
+      className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col items-center pt-[calc(var(--sat,0px)+120px)] pb-[calc(var(--sab,0px)+100px)]"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {toast && (
         <div className={`fixed left-1/2 -translate-x-1/2 z-[1000] bg-indigo-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase shadow-2xl animate-in slide-in-from-top-4`} style={{ top: 'calc(var(--sat, 0px) + 12px)' }}>
           {toast.msg}
@@ -1653,6 +1727,28 @@ const App: React.FC = () => {
                 <span className="text-[9px] font-black uppercase tracking-tighter">{t.history_filter}</span>
               </button>
             </div>
+            
+            <div className="mb-4 relative">
+              <input 
+                type="text" 
+                placeholder="Tìm kiếm giao dịch..." 
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                className="w-full p-3 pl-10 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              />
+              <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {historySearch && (
+                <button 
+                  onClick={() => setHistorySearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
             <div className="space-y-2">
               {displayedTransactions.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-[10px] font-bold text-slate-400 italic bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">{t.history_empty}</div> : (
                 <>
@@ -1833,11 +1929,11 @@ const App: React.FC = () => {
             </section>
 
             {/* SỰ KIỆN SECTION */}
-            <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl relative group">
+            <section className="bg-white px-1 py-6 sm:p-6 rounded-[2.5rem] border-2 border-slate-200 shadow-xl relative group mx-[-0.5rem] sm:mx-0">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.event_title_help} position="bottom" />
               </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => handleSectionAccordion('events')}>
+              <div className="flex items-center justify-between mb-4 cursor-pointer px-4 sm:px-0" onClick={() => handleSectionAccordion('events')}>
                 <div className="flex items-center gap-2">
                   <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'events' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
                   <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🎊</span> {t.event_title} ({events.length})</h3>
@@ -1845,9 +1941,9 @@ const App: React.FC = () => {
                 <button onClick={(e) => { e.stopPropagation(); handleSectionAccordion('events', true); setIsEventModalOpen(true); }} className="w-10 h-10 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
               {expandedSection === 'events' && (
-                <div className="animate-in slide-in-from-top-2 duration-300">
+                <div className="animate-in slide-in-from-top-2 duration-300 px-2 sm:px-0">
                   <div className="w-full h-[1px] bg-slate-100 mb-6" />
-                  {events.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold">{t.history_empty}</div> : (
+                  {events.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold mx-3 sm:mx-0">{t.history_empty}</div> : (
                     <div className="grid grid-cols-1 gap-6">
                       {events.map(ev => {
                         const activeFilter = eventFilters[ev.id] || 'all';
@@ -1855,7 +1951,7 @@ const App: React.FC = () => {
                         const totalInc = ev.transactions.filter(t => t.type === 'income').reduce((s, x) => s + x.amount, 0);
                         const totalExp = ev.transactions.filter(t => t.type === 'expense').reduce((s, x) => s + x.amount, 0);
                         return (
-                          <div key={ev.id} className="bg-slate-50 rounded-[2.5rem] border border-slate-100 p-6 space-y-4 shadow-sm">
+                          <div key={ev.id} className="bg-slate-50 rounded-[2.5rem] border border-slate-100 px-4 py-6 sm:p-6 space-y-4 shadow-sm">
                             <div className="flex justify-between items-center"><div><h4 className="text-[12px] font-black text-slate-800 uppercase leading-tight">{ev.name}</h4><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{ev.date} • {ev.transactions.length} GD</p></div></div>
                             <div className="flex items-center justify-between gap-2 pt-2">
                               <div className="flex bg-white rounded-lg p-0.5 border border-slate-100 shadow-sm">{['all', 'income', 'expense'].map(f => <button key={f} onClick={() => setEventFilters({...eventFilters, [ev.id]: f as any})} className={`px-2 py-1 text-[7px] font-black uppercase rounded-md transition-all ${activeFilter === f ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400'}`}>{f === 'all' ? t.history_all : f === 'income' ? t.event_sum_inc : t.event_sum_exp}</button>)}</div>
@@ -1874,11 +1970,11 @@ const App: React.FC = () => {
             </section>
 
             {/* TƯƠNG LAI SECTION */}
-            <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl mb-10 relative group">
+            <section className="bg-white px-1 py-6 sm:p-6 rounded-[2.5rem] border-2 border-slate-200 shadow-xl mb-10 relative group mx-[-0.5rem] sm:mx-0">
               <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
                 <HelpTooltip content={t.future_title_help} position="bottom" />
               </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => handleSectionAccordion('future')}>
+              <div className="flex items-center justify-between mb-4 cursor-pointer px-4 sm:px-0" onClick={() => handleSectionAccordion('future')}>
                 <div className="flex items-center gap-2">
                   <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'future' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
                   <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🔮</span> {t.future_title} ({futureGroups.length})</h3>
@@ -1886,9 +1982,9 @@ const App: React.FC = () => {
                 <button onClick={(e) => { e.stopPropagation(); handleSectionAccordion('future', true); setIsFutureModalOpen(true); }} className="w-10 h-10 bg-sky-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
               </div>
               {expandedSection === 'future' && (
-                <div className="animate-in slide-in-from-top-2 duration-300">
+                <div className="animate-in slide-in-from-top-2 duration-300 px-2 sm:px-0">
                   <div className="w-full h-[1px] bg-slate-100 mb-6" />
-                  {futureGroups.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold">{t.history_empty}</div> : (
+                  {futureGroups.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold mx-3 sm:mx-0">{t.history_empty}</div> : (
                     <div className="grid grid-cols-1 gap-6">
                       {futureGroups.map(fg => {
                         const activeFilter = futureFilters[fg.id] || 'all';
@@ -1896,14 +1992,22 @@ const App: React.FC = () => {
                         const totalInc = fg.transactions.filter(t => t.type === 'income').reduce((s, x) => s + x.amount, 0);
                         const totalExp = fg.transactions.filter(t => t.type === 'expense').reduce((s, x) => s + x.amount, 0);
                         return (
-                          <div key={fg.id} className="bg-slate-50 rounded-[2.5rem] border border-slate-100 p-6 space-y-4 shadow-sm">
+                          <div key={fg.id} className="bg-slate-50 rounded-[2.5rem] border border-slate-100 px-4 py-6 sm:p-6 space-y-4 shadow-sm">
                             <div className="flex justify-between items-center"><div><h4 className="text-[12px] font-black text-slate-800 uppercase leading-tight">{fg.name}</h4><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{fg.date} • {fg.transactions.length} Dự định</p></div></div>
                             <div className="flex items-center justify-between gap-2 pt-2">
                               <div className="flex bg-white rounded-lg p-0.5 border border-slate-100 shadow-sm">{['all', 'income', 'expense'].map(f => <button key={f} onClick={() => setFutureFilters({...futureFilters, [fg.id]: f as any})} className={`px-2 py-1 text-[7px] font-black uppercase rounded-md transition-all ${activeFilter === f ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-400'}`}>{f === 'all' ? t.history_all : f === 'income' ? t.event_sum_inc : t.event_sum_exp}</button>)}</div>
                               <div className="flex gap-2"><button onClick={() => { setFutureToSave(fg); setIsFutureJarSelectorOpen(true); }} className="py-2 px-4 bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase shadow-sm active:scale-95 transition-all">{t.future_save_history}</button><button onClick={(e) => { e.stopPropagation(); handleTripleDelete(fg.id); }} className={`py-2 px-4 rounded-xl text-[8px] font-black uppercase shadow-sm transition-all active:scale-95 ${deleteClickData.id === fg.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'}`}>{deleteClickData.id === fg.id ? `Xóa? (${deleteClickData.count}/3)` : 'Xóa'}</button></div>
                             </div>
                             <div className="bg-white/70 rounded-2xl p-4 border border-slate-200/50 space-y-2 max-h-[180px] overflow-y-auto shadow-inner mt-2">{filteredTxs.length === 0 ? <p className="text-center text-[9px] text-slate-300 italic py-4">{t.history_empty}</p> : filteredTxs.map(ft => (<div key={ft.id} className="flex justify-between items-center text-[10px] py-2 border-b border-slate-100 last:border-none"><span className="text-slate-700 font-bold">{ft.description}</span><div className="flex items-center gap-2"><span className={ft.type === 'income' ? 'text-emerald-600 font-black' : 'text-rose-600 font-black'}>{formatCurrency(ft.amount)}</span><button onClick={() => handleDeleteFutureTransaction(fg.id, ft.id)} className="w-5 h-5 flex items-center justify-center text-rose-300 hover:text-rose-600 font-black transition-colors">✕</button></div></div>))}</div>
-                            <div className="flex items-center justify-center gap-6 py-2 border-t border-slate-200/50 mt-2 flex-wrap text-[8px] font-black uppercase tracking-tighter"><span className="text-emerald-600">{t.event_sum_inc}: {formatCurrency(totalInc)}</span><span className="text-rose-600">{t.event_sum_exp}: {formatCurrency(totalExp)}</span></div>
+                            <div className="flex flex-col items-center gap-1 py-2 border-t border-slate-200/50 mt-2">
+                              <div className="flex items-center justify-center gap-6 flex-wrap text-[8px] font-black uppercase tracking-tighter">
+                                <span className="text-emerald-600">{t.event_sum_inc}: {formatCurrency(totalInc)}</span>
+                                <span className="text-rose-600">{t.event_sum_exp}: {formatCurrency(totalExp)}</span>
+                              </div>
+                              <div className="text-[9px] font-black uppercase text-slate-900 px-3 py-1 bg-white rounded-full border border-slate-100 shadow-sm ring-2 ring-indigo-50/50 mt-1">
+                                {t.event_sum_net_label}: {formatCurrency(totalInc - totalExp)}
+                              </div>
+                            </div>
                             <div className="flex justify-center pt-1"><button onClick={() => { setActiveFutureId(fg.id); setIsFutureEntryModalOpen(true); }} className="w-10 h-10 bg-sky-600 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all text-2xl font-light">＋</button></div>
                           </div>
                         );
@@ -2005,16 +2109,55 @@ const App: React.FC = () => {
 
       {isEntryModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
-            <h2 className="text-[12px] font-black text-slate-800 uppercase mb-5 tracking-widest text-center">{editingTransactionId ? t.manual_edit : t.manual_title}</h2>
-            <form onSubmit={handleManualSubmit} className="space-y-4">
-               <div className="flex bg-slate-100 p-1 rounded-2xl border-2 border-slate-200"><button type="button" onClick={() => setManualType('expense')} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_expense}</button><button type="button" onClick={() => setManualType('income')} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_income}</button></div>
-               <div className="space-y-1"><div className="relative"><input required type="text" inputMode="numeric" value={manualAmount} onChange={e => setManualAmount(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl pl-4 pr-12 h-12 text-sm font-black outline-none focus:border-indigo-400 placeholder:text-[10px]" /><button type="button" onClick={() => openCalculator('manual')} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 text-slate-400 text-2xl active:scale-90">🧮</button></div><AmountHintLabel val={manualAmount} currency={settings.currency} lang={settings.language} /></div>
-               <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-bold outline-none" />
-               <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.manual_jar_img}</label><select value={manualJar} onChange={e => setManualJar(e.target.value as any)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-normal outline-none"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(type => <option key={type} value={type}>{JAR_CONFIG[type].icon} {t[`jar_${type.toLowerCase()}_name`]}</option>)}</select></div>
-               <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.manual_date_label}</label><input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-normal outline-none text-center min-w-0 max-w-full appearance-none" /></div>
-               <input type="text" value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder={t.manual_note} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-bold outline-none" />
-               <div className="flex gap-3 pt-2"><button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); }} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.manual_cancel}</button><button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95">{editingTransactionId ? t.manual_update : t.manual_save}</button></div>
+          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-5 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
+            <h2 className="text-[12px] font-black text-slate-800 uppercase mb-3 tracking-widest text-center">{editingTransactionId ? t.manual_edit : t.manual_title}</h2>
+            <form onSubmit={handleManualSubmit} className="space-y-2">
+               <div className="flex bg-slate-100 p-1 rounded-2xl border-2 border-slate-200"><button type="button" onClick={() => setManualType('expense')} className={`flex-1 py-2.5 text-[10px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_expense}</button><button type="button" onClick={() => setManualType('income')} className={`flex-1 py-2.5 text-[10px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_income}</button></div>
+               
+               <div className="space-y-0.5">
+                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
+                 <div className="relative">
+                   <input required type="text" inputMode="numeric" value={manualAmount} onChange={e => setManualAmount(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl pl-4 pr-12 h-10 text-sm font-black outline-none focus:border-indigo-400 placeholder:text-[10px]" />
+                   <button type="button" onClick={() => openCalculator('manual')} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-slate-400 text-xl active:scale-90">🧮</button>
+                 </div>
+                 <AmountHintLabel val={manualAmount} currency={settings.currency} lang={settings.language} />
+               </div>
+
+               <div className="space-y-0.5">
+                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên giao dịch</label>
+                 <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-10 text-[11px] font-normal outline-none" />
+               </div>
+
+               <div className="space-y-0.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_jar_img}</label><select value={manualJar} onChange={e => setManualJar(e.target.value as any)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-10 text-[11px] font-normal outline-none"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(type => <option key={type} value={type}>{JAR_CONFIG[type].icon} {t[`jar_${type.toLowerCase()}_name`]}</option>)}</select></div>
+               <div className="space-y-0.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_date_label}</label><input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-10 text-[11px] font-normal outline-none text-center min-w-0 max-w-full appearance-none" /></div>
+               
+               <div className="space-y-0.5">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_img_label}</label>
+                 <div 
+                   onClick={() => manualImageInputRef.current?.click()}
+                   className={`w-full ${manualImage ? 'h-auto' : 'h-20'} bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center cursor-pointer overflow-hidden group relative`}
+                 >
+                   {manualImage ? (
+                     <img src={manualImage} className="w-full h-auto" alt="Transaction" />
+                   ) : (
+                     <div className="flex flex-col items-center gap-1">
+                       <span className="text-2xl text-slate-300 group-hover:text-indigo-400 transition-colors">＋</span>
+                       <span className="text-[7px] font-normal text-slate-400 uppercase">{t.loan_add_img}</span>
+                     </div>
+                   )}
+                   {manualImage && (
+                     <button 
+                       type="button"
+                       onClick={(e) => { e.stopPropagation(); setManualImage(null); }}
+                       className="absolute top-2 right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs shadow-lg"
+                     >✕</button>
+                   )}
+                 </div>
+                 <input type="file" ref={manualImageInputRef} className="hidden" accept="image/*" onChange={handleManualImageChange} />
+               </div>
+
+               <input type="text" value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder={t.manual_note} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-10 text-[11px] font-normal outline-none" />
+               <div className="flex gap-3 pt-1"><button type="button" onClick={() => { setIsEntryModalOpen(false); setEditingTransactionId(null); setManualImage(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.manual_cancel}</button><button type="submit" className="flex-[2] py-3 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95">{editingTransactionId ? t.manual_update : t.manual_save}</button></div>
             </form>
           </div>
         </div>
