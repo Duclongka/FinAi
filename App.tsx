@@ -1309,9 +1309,17 @@ const App: React.FC = () => {
     e.preventDefault();
     const amountVnd = parseFormattedNumber(eventManualAmount);
     if (!eventManualDesc.trim() || amountVnd <= 0 || !activeEventId) return;
-    const newTx: Transaction = { id: Date.now().toString(), type: eventManualType, amount: amountVnd, description: eventManualDesc, timestamp: Date.now() };
+    const newTx: Transaction = { 
+      id: Date.now().toString(), 
+      type: eventManualType, 
+      amount: amountVnd, 
+      description: eventManualDesc, 
+      timestamp: Date.now(),
+      imageUrl: manualImage || undefined
+    };
     setEvents(prev => prev.map(ev => ev.id === activeEventId ? { ...ev, transactions: [newTx, ...ev.transactions] } : ev));
     setEventManualAmount(''); setEventManualDesc('');
+    setManualImage(null);
     showToast("Added");
   };
 
@@ -1355,10 +1363,12 @@ const App: React.FC = () => {
       amount: amountVnd, 
       description: futureManualDesc, 
       note: futureManualNote,
-      timestamp: Date.now() 
+      timestamp: Date.now(),
+      imageUrl: manualImage || undefined
     };
     setFutureGroups(prev => prev.map(f => f.id === activeFutureId ? { ...f, transactions: [newTx, ...f.transactions] } : f));
     setFutureManualAmount(''); setFutureManualDesc(''); setFutureManualNote('');
+    setManualImage(null);
     showToast("Added Plan");
   };
 
@@ -1772,13 +1782,14 @@ const App: React.FC = () => {
                           <div className="flex items-center gap-2 text-[7px] font-black text-slate-400 uppercase mt-0.5">
                             <span>{new Date(tx.timestamp).toLocaleDateString()}</span>
                             {tx.jarType && <span className="bg-indigo-50 px-1.5 py-0.5 rounded text-indigo-500">{t[`jar_${tx.jarType.toLowerCase()}_name`]}</span>}
+                            {tx.imageUrl && <span className="text-indigo-400">🖼️</span>}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <p className={`text-[11px] font-black ${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}</p>
                         <div className={`flex gap-1 transition-all ml-1 ${activeItemId === tx.id ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'} group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto`}>
-                          <button onClick={(e) => { e.stopPropagation(); setEditingTransactionId(tx.id); setManualType(tx.type); setManualAmount(formatDots((tx.amount * EXCHANGE_RATES[settings.currency]).toString())); setManualDesc(tx.description); setManualNote(tx.note || ''); setManualJar(tx.jarType || 'AUTO'); setManualDate(new Date(tx.timestamp).toISOString().split('T')[0]); setIsEntryModalOpen(true); }} className="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-[10px]">✏️</button>
+                          <button onClick={(e) => { e.stopPropagation(); setEditingTransactionId(tx.id); setManualType(tx.type); setManualAmount(formatDots((tx.amount * EXCHANGE_RATES[settings.currency]).toString())); setManualDesc(tx.description); setManualNote(tx.note || ''); setManualJar(tx.jarType || 'AUTO'); setManualDate(new Date(tx.timestamp).toISOString().split('T')[0]); setManualImage(tx.imageUrl || null); setIsEntryModalOpen(true); }} className="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-[10px]">✏️</button>
                           <button onClick={(e) => { e.stopPropagation(); handleTripleDelete(tx.id); }} className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] ${deleteClickData.id === tx.id ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600'}`}>{deleteClickData.id === tx.id ? '❓' : '🗑️'}</button>
                         </div>
                       </div>
@@ -1957,7 +1968,7 @@ const App: React.FC = () => {
                               <div className="flex bg-white rounded-lg p-0.5 border border-slate-100 shadow-sm">{['all', 'income', 'expense'].map(f => <button key={f} onClick={() => setEventFilters({...eventFilters, [ev.id]: f as any})} className={`px-2 py-1 text-[7px] font-black uppercase rounded-md transition-all ${activeFilter === f ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400'}`}>{f === 'all' ? t.history_all : f === 'income' ? t.event_sum_inc : t.event_sum_exp}</button>)}</div>
                               <div className="flex gap-2"><button onClick={() => { setEventToSave(ev); setIsEventJarSelectorOpen(true); }} className="py-2 px-4 bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase shadow-sm active:scale-95 transition-all">{t.event_save_history}</button><button onClick={(e) => { e.stopPropagation(); handleTripleDelete(ev.id); }} className={`py-2 px-4 rounded-xl text-[8px] font-black uppercase shadow-sm transition-all active:scale-95 ${deleteClickData.id === ev.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'}`}>{deleteClickData.id === ev.id ? `Xóa? (${deleteClickData.count}/3)` : 'Xóa'}</button></div>
                             </div>
-                            <div className="bg-white/70 rounded-2xl p-4 border border-slate-200/50 space-y-2 max-h-[180px] overflow-y-auto shadow-inner mt-2">{filteredTxs.length === 0 ? <p className="text-center text-[9px] text-slate-300 italic py-4">{t.history_empty}</p> : filteredTxs.map(et => (<div key={et.id} className="flex justify-between items-center text-[10px] py-2 border-b border-slate-100 last:border-none"><span className="text-slate-700 font-bold">{et.description}</span><div className="flex items-center gap-2"><span className={et.type === 'income' ? 'text-emerald-600 font-black' : 'text-rose-600 font-black'}>{formatCurrency(et.amount)}</span><button onClick={() => handleDeleteEventTransaction(ev.id, et.id)} className="w-5 h-5 flex items-center justify-center text-rose-300 hover:text-rose-600 font-black transition-colors">✕</button></div></div>))}</div>
+                            <div className="bg-white/70 rounded-2xl p-4 border border-slate-200/50 space-y-2 max-h-[180px] overflow-y-auto shadow-inner mt-2">{filteredTxs.length === 0 ? <p className="text-center text-[9px] text-slate-300 italic py-4">{t.history_empty}</p> : filteredTxs.map(et => (<div key={et.id} onClick={() => { setSelectedTx(et); setIsHistoryDetailModalOpen(true); }} className="flex justify-between items-center text-[10px] py-2 border-b border-slate-100 last:border-none cursor-pointer hover:bg-slate-100/50 px-2 rounded-lg transition-colors"><span className="text-slate-700 font-bold flex items-center gap-1">{et.description} {et.imageUrl && <span className="text-[8px]">🖼️</span>}</span><div className="flex items-center gap-2"><span className={et.type === 'income' ? 'text-emerald-600 font-black' : 'text-rose-600 font-black'}>{formatCurrency(et.amount)}</span><button onClick={(e) => { e.stopPropagation(); handleDeleteEventTransaction(ev.id, et.id); }} className="w-5 h-5 flex items-center justify-center text-rose-300 hover:text-rose-600 font-black transition-colors">✕</button></div></div>))}</div>
                             <div className="flex items-center justify-center gap-6 py-2 border-t border-slate-200/50 mt-2 flex-wrap"><span className="text-[8px] font-black text-emerald-600 uppercase tracking-tighter">{t.event_sum_inc}: {formatCurrency(totalInc)}</span><span className="text-[8px] font-black text-rose-600 uppercase tracking-tighter">{t.event_sum_exp}: {formatCurrency(totalExp)}</span><span className="text-[9px] font-black uppercase text-slate-900 px-3 py-1 bg-white rounded-full border border-slate-100 shadow-sm ring-2 ring-indigo-50/50">{t.event_sum_total}: {formatCurrency(Math.abs(totalInc - totalExp))}</span></div>
                             <div className="flex justify-center pt-1"><button onClick={() => { setActiveEventId(ev.id); setIsEventEntryModalOpen(true); }} className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all text-2xl font-light">＋</button></div>
                           </div>
@@ -1998,7 +2009,7 @@ const App: React.FC = () => {
                               <div className="flex bg-white rounded-lg p-0.5 border border-slate-100 shadow-sm">{['all', 'income', 'expense'].map(f => <button key={f} onClick={() => setFutureFilters({...futureFilters, [fg.id]: f as any})} className={`px-2 py-1 text-[7px] font-black uppercase rounded-md transition-all ${activeFilter === f ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-400'}`}>{f === 'all' ? t.history_all : f === 'income' ? t.event_sum_inc : t.event_sum_exp}</button>)}</div>
                               <div className="flex gap-2"><button onClick={() => { setFutureToSave(fg); setIsFutureJarSelectorOpen(true); }} className="py-2 px-4 bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase shadow-sm active:scale-95 transition-all">{t.future_save_history}</button><button onClick={(e) => { e.stopPropagation(); handleTripleDelete(fg.id); }} className={`py-2 px-4 rounded-xl text-[8px] font-black uppercase shadow-sm transition-all active:scale-95 ${deleteClickData.id === fg.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'}`}>{deleteClickData.id === fg.id ? `Xóa? (${deleteClickData.count}/3)` : 'Xóa'}</button></div>
                             </div>
-                            <div className="bg-white/70 rounded-2xl p-4 border border-slate-200/50 space-y-2 max-h-[180px] overflow-y-auto shadow-inner mt-2">{filteredTxs.length === 0 ? <p className="text-center text-[9px] text-slate-300 italic py-4">{t.history_empty}</p> : filteredTxs.map(ft => (<div key={ft.id} className="flex justify-between items-center text-[10px] py-2 border-b border-slate-100 last:border-none"><span className="text-slate-700 font-bold">{ft.description}</span><div className="flex items-center gap-2"><span className={ft.type === 'income' ? 'text-emerald-600 font-black' : 'text-rose-600 font-black'}>{formatCurrency(ft.amount)}</span><button onClick={() => handleDeleteFutureTransaction(fg.id, ft.id)} className="w-5 h-5 flex items-center justify-center text-rose-300 hover:text-rose-600 font-black transition-colors">✕</button></div></div>))}</div>
+                            <div className="bg-white/70 rounded-2xl p-4 border border-slate-200/50 space-y-2 max-h-[180px] overflow-y-auto shadow-inner mt-2">{filteredTxs.length === 0 ? <p className="text-center text-[9px] text-slate-300 italic py-4">{t.history_empty}</p> : filteredTxs.map(ft => (<div key={ft.id} onClick={() => { setSelectedTx(ft); setIsHistoryDetailModalOpen(true); }} className="flex justify-between items-center text-[10px] py-2 border-b border-slate-100 last:border-none cursor-pointer hover:bg-slate-100/50 px-2 rounded-lg transition-colors"><span className="text-slate-700 font-bold flex items-center gap-1">{ft.description} {ft.imageUrl && <span className="text-[8px]">🖼️</span>}</span><div className="flex items-center gap-2"><span className={ft.type === 'income' ? 'text-emerald-600 font-black' : 'text-rose-600 font-black'}>{formatCurrency(ft.amount)}</span><button onClick={(e) => { e.stopPropagation(); handleDeleteFutureTransaction(fg.id, ft.id); }} className="w-5 h-5 flex items-center justify-center text-rose-300 hover:text-rose-600 font-black transition-colors">✕</button></div></div>))}</div>
                             <div className="flex flex-col items-center gap-1 py-2 border-t border-slate-200/50 mt-2">
                               <div className="flex items-center justify-center gap-6 flex-wrap text-[8px] font-black uppercase tracking-tighter">
                                 <span className="text-emerald-600">{t.event_sum_inc}: {formatCurrency(totalInc)}</span>
@@ -2024,7 +2035,7 @@ const App: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100/50 p-2 shadow-2xl" style={{ paddingBottom: 'calc(var(--sab, 0px) + 12px)' }}>
         <div className="max-w-5xl mx-auto flex items-center justify-around">
           {[{ id: 'home', icon: '🏠', label: t.nav_home }, { id: 'history', icon: '📜', label: t.nav_history }, { id: 'entry', icon: '＋', special: true }, { id: 'overview', icon: '📊', label: t.nav_overview }, { id: 'loans', icon: '🏦', label: t.nav_loans }].map(btn => btn.special ? (
-            <div key={btn.id} className="relative flex items-center justify-center px-4 -mt-2"><button onClick={() => setIsEntryModalOpen(true)} className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all -translate-y-5 ring-4 ring-white"><span className="text-3xl font-light">＋</span></button></div>
+            <div key={btn.id} className="relative flex items-center justify-center px-4 -mt-2"><button onClick={() => { setManualImage(null); setIsEntryModalOpen(true); }} className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all -translate-y-5 ring-4 ring-white"><span className="text-3xl font-light">＋</span></button></div>
           ) : (
             <button key={btn.id} onClick={() => setActiveTab(btn.id as AppTab)} className={`flex flex-col items-center gap-1 p-2 min-w-[70px] transition-all ${activeTab === btn.id ? 'text-indigo-600 scale-105' : 'text-slate-400'}`}><span className="text-xl">{btn.icon}</span><span className="text-[8px] font-black uppercase tracking-tight">{btn.label}</span></button>
           ))}
@@ -2115,17 +2126,17 @@ const App: React.FC = () => {
                <div className="flex bg-slate-100 p-1 rounded-2xl border-2 border-slate-200"><button type="button" onClick={() => setManualType('expense')} className={`flex-1 py-2.5 text-[10px] font-black rounded-xl transition-all ${manualType === 'expense' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_expense}</button><button type="button" onClick={() => setManualType('income')} className={`flex-1 py-2.5 text-[10px] font-black rounded-xl transition-all ${manualType === 'income' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_income}</button></div>
                
                <div className="space-y-0.5">
-                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên giao dịch</label>
+                 <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-10 text-[11px] font-normal outline-none" />
+               </div>
+
+               <div className="space-y-0.5">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
                  <div className="relative">
                    <input required type="text" inputMode="numeric" value={manualAmount} onChange={e => setManualAmount(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl pl-4 pr-12 h-10 text-sm font-black outline-none focus:border-indigo-400 placeholder:text-[10px]" />
                    <button type="button" onClick={() => openCalculator('manual')} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-slate-400 text-xl active:scale-90">🧮</button>
                  </div>
                  <AmountHintLabel val={manualAmount} currency={settings.currency} lang={settings.language} />
-               </div>
-
-               <div className="space-y-0.5">
-                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên giao dịch</label>
-                 <input required type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-10 text-[11px] font-normal outline-none" />
                </div>
 
                <div className="space-y-0.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_jar_img}</label><select value={manualJar} onChange={e => setManualJar(e.target.value as any)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-10 text-[11px] font-normal outline-none"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(type => <option key={type} value={type}>{JAR_CONFIG[type].icon} {t[`jar_${type.toLowerCase()}_name`]}</option>)}</select></div>
@@ -2223,7 +2234,23 @@ const App: React.FC = () => {
                <div className="flex bg-slate-50 p-1 rounded-xl border-2 border-slate-200 shadow-sm"><button type="button" onClick={() => setEventManualType('expense')} className={`flex-1 py-2 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'expense' ? 'bg-[#e11d48] text-white shadow-md' : 'text-slate-400'}`}>CHI TIÊU</button><button type="button" onClick={() => setEventManualType('income')} className={`flex-1 py-2 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'income' ? 'bg-[#059669] text-white shadow-md' : 'text-slate-400'}`}>THU NHẬP</button></div>
                <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label><div className="relative"><input required type="text" inputMode="numeric" value={eventManualAmount} onChange={e => setEventManualAmount(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl pl-4 pr-12 h-11 text-lg font-black text-slate-800 outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 placeholder:text-sm" /><button type="button" onClick={() => openCalculator('event')} className="absolute right-3 top-1/2 -translate-y-1/2 text-2xl active:scale-90">🧮</button></div><AmountHintLabel val={eventManualAmount} currency={settings.currency} lang={settings.language} /></div>
                <div className="space-y-1.5"><input required type="text" value={eventManualDesc} onChange={e => setEventManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 h-11 text-[11px] font-bold text-slate-800 outline-none focus:border-indigo-400 transition-all placeholder:text-slate-400 placeholder:text-[10px] placeholder:font-normal" /></div>
-               <div className="flex gap-3 pt-2"><button type="button" onClick={() => { setIsEventEntryModalOpen(false); setActiveEventId(null); }} className="flex-1 py-3 bg-[#f1f5f9] text-slate-500 font-black uppercase text-[10px] rounded-xl active:scale-95 border border-slate-200 shadow-sm">{t.manual_cancel}</button><button type="submit" className="flex-[1.8] py-3 bg-[#4f46e5] text-white font-black uppercase text-[14px] rounded-xl shadow-lg active:scale-95">＋</button></div>
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_img_label}</label>
+                 <div 
+                   onClick={() => manualImageInputRef.current?.click()}
+                   className={`w-full ${manualImage ? 'h-auto' : 'h-16'} bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden group relative`}
+                 >
+                   {manualImage ? (
+                     <img src={manualImage} className="w-full h-auto" alt="Transaction" />
+                   ) : (
+                     <div className="flex flex-col items-center gap-1">
+                       <span className="text-xl text-slate-300 group-hover:text-indigo-400 transition-colors">＋</span>
+                       <span className="text-[6px] font-normal text-slate-400 uppercase">{t.loan_add_img}</span>
+                     </div>
+                   )}
+                 </div>
+               </div>
+               <div className="flex gap-3 pt-2"><button type="button" onClick={() => { setIsEventEntryModalOpen(false); setActiveEventId(null); setManualImage(null); }} className="flex-1 py-3 bg-[#f1f5f9] text-slate-500 font-black uppercase text-[10px] rounded-xl active:scale-95 border border-slate-200 shadow-sm">{t.manual_cancel}</button><button type="submit" className="flex-[1.8] py-3 bg-[#4f46e5] text-white font-black uppercase text-[14px] rounded-xl shadow-lg active:scale-95">＋</button></div>
              </form>
           </div>
         </div>
@@ -2239,7 +2266,23 @@ const App: React.FC = () => {
                <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label><div className="relative"><input required type="text" inputMode="numeric" value={futureManualAmount} onChange={e => setFutureManualAmount(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl pl-4 pr-12 h-11 text-lg font-black text-slate-800 outline-none focus:border-sky-400 transition-all placeholder:text-slate-300 placeholder:text-sm" /><button type="button" onClick={() => openCalculator('future')} className="absolute right-3 top-1/2 -translate-y-1/2 text-2xl active:scale-90">🧮</button></div><AmountHintLabel val={futureManualAmount} currency={settings.currency} lang={settings.language} /></div>
                <div className="space-y-1.5"><input required type="text" value={futureManualDesc} onChange={e => setFutureManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 h-11 text-[11px] font-bold text-slate-800 outline-none focus:border-sky-400 transition-all placeholder:text-slate-400 placeholder:text-[10px] placeholder:font-normal" /></div>
                <div className="space-y-1.5"><input type="text" value={futureManualNote} onChange={e => setFutureManualNote(e.target.value)} placeholder={t.manual_note} className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 h-11 text-[11px] font-bold text-slate-800 outline-none focus:border-sky-400 transition-all placeholder:text-slate-400 placeholder:text-[10px] placeholder:font-normal" /></div>
-               <div className="flex gap-3 pt-2"><button type="button" onClick={() => { setIsFutureEntryModalOpen(false); setActiveFutureId(null); }} className="flex-1 py-3 bg-[#f1f5f9] text-slate-500 font-black uppercase text-[10px] rounded-xl active:scale-95 border border-slate-200 shadow-sm">{t.manual_cancel}</button><button type="submit" className="flex-[1.8] py-3 bg-sky-600 text-white font-black uppercase text-[14px] rounded-xl shadow-lg active:scale-95">＋</button></div>
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_img_label}</label>
+                 <div 
+                   onClick={() => manualImageInputRef.current?.click()}
+                   className={`w-full ${manualImage ? 'h-auto' : 'h-16'} bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden group relative`}
+                 >
+                   {manualImage ? (
+                     <img src={manualImage} className="w-full h-auto" alt="Transaction" />
+                   ) : (
+                     <div className="flex flex-col items-center gap-1">
+                       <span className="text-xl text-slate-300 group-hover:text-sky-400 transition-colors">＋</span>
+                       <span className="text-[6px] font-normal text-slate-400 uppercase">{t.loan_add_img}</span>
+                     </div>
+                   )}
+                 </div>
+               </div>
+               <div className="flex gap-3 pt-2"><button type="button" onClick={() => { setIsFutureEntryModalOpen(false); setActiveFutureId(null); setManualImage(null); }} className="flex-1 py-3 bg-[#f1f5f9] text-slate-500 font-black uppercase text-[10px] rounded-xl active:scale-95 border border-slate-200 shadow-sm">{t.manual_cancel}</button><button type="submit" className="flex-[1.8] py-3 bg-sky-600 text-white font-black uppercase text-[14px] rounded-xl shadow-lg active:scale-95">＋</button></div>
              </form>
           </div>
         </div>
@@ -2292,6 +2335,14 @@ const App: React.FC = () => {
                 <div className="flex justify-between border-b pb-2"><span>{t.history_jar}:</span><span className="text-indigo-600">{selectedTx.jarType ? t[`jar_${selectedTx.jarType.toLowerCase()}_name`] : t.manual_auto}</span></div>
                 <div className="flex justify-between border-b pb-2"><span>{t.history_date}:</span><span>{new Date(selectedTx.timestamp).toLocaleString()}</span></div>
                 {selectedTx.note && <div className="flex flex-col border-b pb-2"><span>{t.manual_note}:</span><span className="text-slate-400 font-normal italic mt-1">{selectedTx.note}</span></div>}
+                {selectedTx.imageUrl && (
+                  <div className="mt-4 space-y-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.loan_img_label}:</span>
+                    <div className="w-full rounded-2xl overflow-hidden border-2 border-slate-100 shadow-sm">
+                      <img src={selectedTx.imageUrl} className="w-full h-auto object-contain max-h-[300px]" alt="Receipt" />
+                    </div>
+                  </div>
+                )}
              </div>
              <button onClick={() => setIsHistoryDetailModalOpen(false)} className="w-full mt-8 py-4 bg-indigo-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl">{t.calculator_close}</button>
           </div>
