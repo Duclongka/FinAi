@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { JarType, Transaction, JarBalance, Loan, LoanCategory, LoanType, User, AppSettings, RecurringTemplate, EventGroup, FutureGroup, SubscriptionType } from './types';
+import { JarType, Transaction, JarBalance, Loan, LoanCategory, LoanType, User, AppSettings, RecurringTemplate, EventGroup, FutureGroup, SubscriptionType, EventTransaction } from './types';
 import { JAR_CONFIG } from './constants';
 import { analyzeTransactionText, getFinancialAdvice, importTransactionsAI } from './services/geminiService';
 import JarVisual from './components/JarVisual';
@@ -217,6 +217,10 @@ const TRANSLATIONS: Record<string, any> = {
     nav_history: "LỊCH SỬ",
     nav_overview: "TỔNG QUAN",
     nav_loans: "GD KHÁC",
+    subtab_loans: "Vay nợ",
+    subtab_recurring: "Định kỳ",
+    subtab_events: "Sự kiện",
+    subtab_future: "Tương lai",
     nav_menu: "MENU",
     jar_nec_name: "Thiết yếu",
     jar_nec_desc: "Dành cho các khoản chi tiêu cần thiết hàng tháng như tiền thuê nhà, hóa đơn điện nước, thực phẩm, và các chi phí sinh hoạt khác.",
@@ -400,6 +404,10 @@ const TRANSLATIONS: Record<string, any> = {
     nav_history: "HISTORY",
     nav_overview: "OVERVIEW",
     nav_loans: "OTHERS",
+    subtab_loans: "Loans",
+    subtab_recurring: "Recurring",
+    subtab_events: "Events",
+    subtab_future: "Future",
     nav_menu: "MENU",
     jar_nec_name: "Necessities",
     jar_nec_desc: "For essential monthly expenses like rent, utilities, food, etc.",
@@ -583,6 +591,10 @@ const TRANSLATIONS: Record<string, any> = {
     nav_history: "履歴",
     nav_overview: "統計",
     nav_loans: "その他",
+    subtab_loans: "借入・貸付",
+    subtab_recurring: "定期取引",
+    subtab_events: "イベント",
+    subtab_future: "将来計画",
     nav_menu: "メニュー",
     jar_nec_name: "生活費",
     jar_nec_desc: "家賃、光熱費、食費などの必須支出用。",
@@ -726,6 +738,10 @@ const App: React.FC = () => {
 
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
 
+  const [eventVisibleCount, setEventVisibleCount] = useState(5);
+  const [otherSubTab, setOtherSubTab] = useState<'loans' | 'recurring' | 'events' | 'future'>('loans');
+  const [expandedTransactionId, setExpandedTransactionId] = useState<string | null>(null);
+
   // Use a single state for accordion expansion in the "GD Khác" tab
   const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
 
@@ -763,12 +779,19 @@ const App: React.FC = () => {
   const [recurringAmountStr, setRecurringAmountStr] = useState('');
 
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [eventForm, setEventForm] = useState({ name: '', date: getTodayString(), description: '' });
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingEventTransactionId, setEditingEventTransactionId] = useState<string | null>(null);
   const [eventName, setEventName] = useState('');
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [isEventEntryModalOpen, setIsEventEntryModalOpen] = useState(false);
   const [eventManualAmount, setEventManualAmount] = useState('');
   const [eventManualDesc, setEventManualDesc] = useState('');
   const [eventManualType, setEventManualType] = useState<'income' | 'expense'>('expense');
+  const [eventManualName, setEventManualName] = useState('');
+  const [eventManualAddress, setEventManualAddress] = useState('');
+  const [eventManualNote, setEventManualNote] = useState('');
+  const [eventSearch, setEventSearch] = useState('');
   const [eventFilters, setEventFilters] = useState<Record<string, 'all' | 'income' | 'expense'>>({});
   
   const [isEventDetailModalOpen, setIsEventDetailModalOpen] = useState(false);
@@ -838,9 +861,37 @@ const App: React.FC = () => {
     if (touchStartX.current === null) return;
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchEndX - touchStartX.current;
-    if (diff > 100 && !isSettingsOpen && !isAuthModalOpen && !isEntryModalOpen && !isLoanModalOpen && !isRecurringModalOpen && !isEventModalOpen && !isFutureModalOpen) {
-      setIsSettingsOpen(true);
+    
+    const isAnyModalOpen = isAuthModalOpen || isEntryModalOpen || isLoanModalOpen || isRecurringModalOpen || isEventModalOpen || isFutureModalOpen;
+    if (isAnyModalOpen) {
+      touchStartX.current = null;
+      return;
     }
+
+    if (diff < -100) { // RTL Swipe (Next / Close Menu)
+      if (isSettingsOpen) {
+        setIsSettingsOpen(false);
+      } else {
+        if (activeTab === 'home') setActiveTab('history');
+        else if (activeTab === 'history') setActiveTab('overview');
+        else if (activeTab === 'overview') { setActiveTab('loans'); setOtherSubTab('loans'); }
+        else if (activeTab === 'loans') {
+          if (otherSubTab === 'loans') setOtherSubTab('recurring');
+          else if (otherSubTab === 'recurring') setOtherSubTab('events');
+          else if (otherSubTab === 'events') setOtherSubTab('future');
+        }
+      }
+    } else if (diff > 100) { // LTR Swipe (Prev / Open Menu)
+      if (activeTab === 'loans') {
+        if (otherSubTab === 'future') setOtherSubTab('events');
+        else if (otherSubTab === 'events') setOtherSubTab('recurring');
+        else if (otherSubTab === 'recurring') setOtherSubTab('loans');
+        else setActiveTab('overview');
+      } else if (activeTab === 'overview') setActiveTab('history');
+      else if (activeTab === 'history') setActiveTab('home');
+      else if (activeTab === 'home') setIsSettingsOpen(true);
+    }
+    
     touchStartX.current = null;
   };
 
@@ -967,6 +1018,25 @@ const App: React.FC = () => {
   }, [currentUser, settings.pinEnabled, isPinVerified]);
 
   useEffect(() => {
+    if (isCloudLoaded) {
+      setEvents(prev => {
+        const hasWedding = prev.some(e => e.name === "Lễ cưới");
+        if (!hasWedding) {
+          return [{
+            id: 'wedding_fixed',
+            name: 'Lễ cưới',
+            date: getTodayString(),
+            description: 'Sự kiện lễ cưới trọng đại',
+            transactions: [],
+            updatedAt: Date.now()
+          }, ...prev];
+        }
+        return prev;
+      });
+    }
+  }, [isCloudLoaded]);
+
+  useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -1000,6 +1070,36 @@ const App: React.FC = () => {
   const showToast = (msg: string, type: 'success' | 'info' | 'danger' = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const formatCompactCurrency = (val: number) => {
+    const absVal = Math.abs(val);
+    const sign = val < 0 ? '-' : '';
+    const currencyVal = absVal * EXCHANGE_RATES[settings.currency];
+    
+    if (settings.currency === 'VND') {
+      if (currencyVal >= 1000000000) return `${sign}${(currencyVal / 1000000000).toFixed(1)} tỷ`;
+      if (currencyVal >= 1000000) return `${sign}${(currencyVal / 1000000).toFixed(1)} tr`;
+      if (currencyVal >= 1000) {
+        const k = Math.floor(currencyVal / 1000);
+        const rem = Math.floor((currencyVal % 1000) / 100);
+        return `${sign}${k}${rem > 0 ? '.' + rem : ''}k`;
+      }
+      return `${sign}${currencyVal.toFixed(0)}`;
+    }
+    return `${sign}${currencyVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}${settings.currency}`;
+  };
+
+  const formatDetailedCurrency = (val: number) => {
+    const absVal = Math.abs(val);
+    const sign = val < 0 ? '-' : '';
+    const currencyVal = Math.round(absVal * EXCHANGE_RATES[settings.currency]);
+    
+    if (settings.currency === 'VND') {
+      const formatted = currencyVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return `${sign}${formatted} đ`;
+    }
+    return formatCompactCurrency(val);
   };
 
   const formatCurrency = (valInVnd: number) => {
@@ -1297,97 +1397,204 @@ const App: React.FC = () => {
 
   const handleSaveEvent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventName.trim()) return;
-    const newEvent: EventGroup = { id: Date.now().toString(), name: eventName, date: getTodayString(), transactions: [] };
-    setEvents(p => [...p, newEvent]);
+    if (!eventForm.name.trim()) return;
+    
+    if (editingEventId) {
+      setEvents(prev => prev.map(ev => ev.id === editingEventId ? { ...ev, name: eventForm.name, date: eventForm.date, description: eventForm.description, updatedAt: Date.now() } : ev));
+      showToast("Đã cập nhật sự kiện");
+    } else {
+      const newEvent: EventGroup = { 
+        id: Date.now().toString(), 
+        name: eventForm.name, 
+        date: eventForm.date, 
+        description: eventForm.description,
+        transactions: [],
+        updatedAt: Date.now()
+      };
+      setEvents(p => [newEvent, ...p]);
+      showToast("Đã thêm sự kiện mới");
+    }
     setIsEventModalOpen(false);
-    setEventName('');
-    showToast("Event OK");
+    setEditingEventId(null);
+    setEventForm({ name: '', date: getTodayString(), description: '' });
   };
 
   const handleEventEntrySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const amountVnd = parseFormattedNumber(eventManualAmount);
-    if (!eventManualDesc.trim() || amountVnd <= 0 || !activeEventId) return;
-    const newTx: Transaction = { 
-      id: Date.now().toString(), 
-      type: eventManualType, 
-      amount: amountVnd, 
-      description: eventManualDesc, 
-      timestamp: Date.now(),
-      imageUrl: manualImage || undefined
-    };
-    setEvents(prev => prev.map(ev => ev.id === activeEventId ? { ...ev, transactions: [newTx, ...ev.transactions] } : ev));
-    setEventManualAmount(''); setEventManualDesc('');
-    setManualImage(null);
-    showToast("Added");
+    if (!eventManualName.trim() || amountVnd <= 0 || !activeEventId) return;
+    
+    if (editingEventTransactionId) {
+      setEvents(prev => prev.map(ev => ev.id === activeEventId ? {
+        ...ev,
+        transactions: ev.transactions.map(t => t.id === editingEventTransactionId ? {
+          ...t,
+          type: eventManualType,
+          amount: amountVnd,
+          name: eventManualName,
+          address: eventManualAddress,
+          note: eventManualNote,
+          timestamp: Date.now()
+        } : t),
+        updatedAt: Date.now()
+      } : ev));
+      showToast("Đã cập nhật giao dịch");
+      setEditingEventTransactionId(null);
+    } else {
+      const newTx: EventTransaction = { 
+        id: Date.now().toString(), 
+        type: eventManualType, 
+        amount: amountVnd, 
+        name: eventManualName,
+        address: eventManualAddress,
+        note: eventManualNote,
+        timestamp: Date.now()
+      };
+      setEvents(prev => prev.map(ev => ev.id === activeEventId ? { ...ev, transactions: [newTx, ...ev.transactions], updatedAt: Date.now() } : ev));
+      showToast("Đã thêm giao dịch");
+    }
+    
+    setEventManualAmount(''); 
+    setEventManualName('');
+    setEventManualAddress('');
+    setEventManualNote('');
+    // Modal stays open as requested
   };
 
   const handleDeleteEventTransaction = (eventId: string, txId: string) => {
-    setEvents(prev => prev.map(ev => ev.id === eventId ? { ...ev, transactions: ev.transactions.filter(t => t.id !== txId) } : ev));
-    showToast("Removed");
+    setEvents(prev => prev.map(ev => ev.id === eventId ? { ...ev, transactions: ev.transactions.filter(t => t.id !== txId), updatedAt: Date.now() } : ev));
+    showToast("Đã xóa giao dịch");
   };
 
-  const handlePushEventToHistory = (event: EventGroup, jarType: JarType | 'AUTO') => {
-    if (event.transactions.length === 0) return;
-    const totalIncome = event.transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const totalExpense = event.transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const netAmount = Math.abs(totalIncome - totalExpense);
-    const mainType = totalIncome >= totalExpense ? 'income' : 'expense';
-    const mainTx: Transaction = { id: `ev_main_${event.id}`, type: mainType, amount: netAmount, description: `[${t.event_title}] ${event.name}`, jarType: jarType === 'AUTO' ? undefined : jarType as JarType, timestamp: Date.now() };
-    setTransactions(p => [mainTx, ...p]);
-    updateBalances(null, mainTx);
-    setEvents(p => p.filter(e => e.id !== event.id));
+  const handlePushEventToHistory = (event: EventGroup | null, jar: JarType | 'AUTO') => {
+    if (!event) return;
+    const newTxs: Transaction[] = event.transactions.map(et => ({
+      id: Date.now().toString() + Math.random(),
+      type: et.type,
+      amount: et.amount,
+      description: `${event.name}: ${et.name}`,
+      jarType: jar === 'AUTO' ? JarType.NEC : jar, 
+      timestamp: Date.now(),
+      note: et.note
+    }));
+    
+    setTransactions(prev => [...newTxs, ...prev]);
     setIsEventJarSelectorOpen(false);
-    setEventToSave(null);
-    showToast("Saved to History");
+    showToast(`Đã lưu ${newTxs.length} giao dịch vào lịch sử`);
+  };
+
+  const handleExportEventCSV = (event: EventGroup) => {
+    const headers = ["STT", "Tên GD", "Địa chỉ/Nơi mua", "Số tiền", "Ghi chú", "Ngày"];
+    const rows = event.transactions.map((t, i) => [
+      i + 1,
+      t.name,
+      t.address || '',
+      (t.type === 'income' ? 1 : -1) * t.amount * EXCHANGE_RATES[settings.currency],
+      t.note || '',
+      new Date(t.timestamp).toLocaleDateString()
+    ]);
+    
+    let csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `Su_kien_${event.name.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Đã xuất file CSV");
+  };
+
+  const handleImportEventCSV = (eventId: string) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event: any) => {
+        const text = event.target.result;
+        const lines = text.split('\n').slice(1);
+        const newTxs: EventTransaction[] = lines.filter((l: string) => l.trim()).map((line: string) => {
+          const parts = line.split(',');
+          if (parts.length < 5) return null;
+          const [stt, name, address, amountStr, note, date] = parts;
+          const amountVal = parseFloat(amountStr) || 0;
+          return {
+            id: Math.random().toString(36).substr(2, 9),
+            type: amountVal >= 0 ? 'income' : 'expense',
+            name: name || 'GD từ CSV',
+            address: address || '',
+            amount: Math.abs(amountVal) / EXCHANGE_RATES[settings.currency],
+            note: note || '',
+            timestamp: Date.now()
+          };
+        }).filter((t: any) => t !== null);
+        
+        if (newTxs.length > 0) {
+          setEvents(prev => prev.map(ev => ev.id === eventId ? { ...ev, transactions: [...newTxs, ...ev.transactions], updatedAt: Date.now() } : ev));
+          showToast(`Đã nhập ${newTxs.length} giao dịch`);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   };
 
   const handleSaveFuture = (e: React.FormEvent) => {
     e.preventDefault();
     if (!futureName.trim()) return;
-    const newFuture: FutureGroup = { id: Date.now().toString(), name: futureName, date: getTodayString(), transactions: [] };
+    const newFuture: FutureGroup = { 
+      id: Date.now().toString(), 
+      name: futureName, 
+      date: getTodayString(), 
+      transactions: [],
+      updatedAt: Date.now()
+    };
     setFutureGroups(p => [...p, newFuture]);
     setIsFutureModalOpen(false);
     setFutureName('');
-    showToast("Future Plan OK");
+    showToast("Đã thêm dự định");
   };
 
   const handleFutureEntrySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const amountVnd = parseFormattedNumber(futureManualAmount);
     if (!futureManualDesc.trim() || amountVnd <= 0 || !activeFutureId) return;
-    const newTx: Transaction = { 
+    const newTx: EventTransaction = { 
       id: Date.now().toString(), 
       type: futureManualType, 
       amount: amountVnd, 
-      description: futureManualDesc, 
+      name: futureManualDesc, 
       note: futureManualNote,
-      timestamp: Date.now(),
-      imageUrl: manualImage || undefined
+      timestamp: Date.now()
     };
-    setFutureGroups(prev => prev.map(f => f.id === activeFutureId ? { ...f, transactions: [newTx, ...f.transactions] } : f));
+    setFutureGroups(prev => prev.map(f => f.id === activeFutureId ? { ...f, transactions: [newTx, ...f.transactions], updatedAt: Date.now() } : f));
     setFutureManualAmount(''); setFutureManualDesc(''); setFutureManualNote('');
-    setManualImage(null);
-    showToast("Added Plan");
+    showToast("Đã thêm dự định");
   };
 
   const handleDeleteFutureTransaction = (futureId: string, txId: string) => {
-    setFutureGroups(prev => prev.map(f => f.id === futureId ? { ...f, transactions: f.transactions.filter(t => t.id !== txId) } : f));
-    showToast("Removed Plan");
+    setFutureGroups(prev => prev.map(f => f.id === futureId ? { ...f, transactions: f.transactions.filter(t => t.id !== txId), updatedAt: Date.now() } : f));
+    showToast("Đã xóa dự định");
   };
 
-  const handlePushFutureToHistory = (future: FutureGroup, jarType: JarType | 'AUTO') => {
-    if (future.transactions.length === 0) return;
-    future.transactions.forEach((ft, idx) => {
-      const realTx: Transaction = { ...ft, id: `fut_real_${future.id}_${idx}_${Date.now()}`, description: `[${t.future_title}] ${future.name}: ${ft.description}`, jarType: jarType === 'AUTO' ? undefined : jarType as JarType, timestamp: Date.now() };
-      setTransactions(p => [realTx, ...p]);
-      updateBalances(null, realTx);
-    });
-    setFutureGroups(p => p.filter(f => f.id !== future.id));
+  const handlePushFutureToHistory = (future: FutureGroup | null, jar: JarType | 'AUTO') => {
+    if (!future) return;
+    const newTxs: Transaction[] = future.transactions.map(et => ({
+      id: Date.now().toString() + Math.random(),
+      type: et.type,
+      amount: et.amount,
+      description: `${future.name}: ${et.name}`,
+      jarType: jar === 'AUTO' ? JarType.NEC : jar, 
+      timestamp: Date.now(),
+      note: et.note
+    }));
+    
+    setTransactions(prev => [...newTxs, ...prev]);
     setIsFutureJarSelectorOpen(false);
-    setFutureToSave(null);
-    showToast("Plans Executed");
+    showToast(`Đã lưu ${newTxs.length} dự định vào lịch sử`);
   };
 
   const handleDeleteTransaction = (id: string) => {
@@ -1411,12 +1618,19 @@ const App: React.FC = () => {
     if (deleteClickData.id === id) {
       const nextCount = deleteClickData.count + 1;
       if (nextCount >= 3) {
-        if (events.find(e => e.id === id)) setEvents(prev => prev.filter(e => e.id !== id));
+        if (events.find(e => e.id === id)) {
+          if (id === 'wedding_fixed') {
+            setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, transactions: [], updatedAt: Date.now() } : ev));
+            showToast("Đã xóa toàn bộ giao dịch");
+          } else {
+            setEvents(prev => prev.filter(e => e.id !== id));
+            showToast("Đã xóa sự kiện");
+          }
+        }
         else if (futureGroups.find(f => f.id === id)) setFutureGroups(prev => prev.filter(f => f.id !== id));
         else if (loans.find(l => l.id === id)) handleDeleteLoan(id);
         else handleDeleteTransaction(id);
         setDeleteClickData({ id: '', count: 0 });
-        showToast("Removed");
       } else {
         setDeleteClickData({ id, count: nextCount });
         deleteResetTimer.current = setTimeout(() => { setDeleteClickData({ id: '', count: 0 }); }, 1500);
@@ -1847,187 +2061,440 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'loans' && (
-          <div className="space-y-8 animate-in fade-in duration-300 pb-20">
-            {/* VAY NỢ SECTION */}
-            <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl relative group">
-              <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
-                <HelpTooltip content={t.loan_title_help} position="bottom" />
-              </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => handleSectionAccordion('loans')}>
-                <div className="flex items-center gap-2">
-                  <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'loans' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
-                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📉</span> {t.loan_title} ({loans.length})</h3>
+          <div className="space-y-4 animate-in fade-in duration-300 pb-24">
+            {/* Sub-tab Bar */}
+            <div className="flex bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border-2 border-slate-100 shadow-sm sticky top-0 z-20">
+              {[
+                { id: 'loans', label: 'Vay nợ', icon: '🏦' },
+                { id: 'recurring', label: 'Định kỳ', icon: '📅' },
+                { id: 'events', label: 'Sự kiện', icon: '🎊' },
+                { id: 'future', label: 'Tương lai', icon: '🔮' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setOtherSubTab(tab.id as any);
+                    setExpandedTransactionId(null);
+                  }}
+                  className={`flex-1 flex flex-col items-center py-2 rounded-xl transition-all ${
+                    otherSubTab === tab.id 
+                      ? 'bg-indigo-600 text-white shadow-lg scale-105' 
+                      : 'text-slate-400 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="text-sm mb-0.5">{tab.icon}</span>
+                  <span className="text-[8px] font-black uppercase tracking-tighter">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* VAY NỢ SUB-TAB */}
+            {otherSubTab === 'loans' && (
+              <section className="space-y-4 animate-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Danh sách vay nợ ({loans.length})</h3>
+                  <button onClick={handleOpenNewLoan} className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-xl font-light">＋</button>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); handleOpenNewLoan(); }} className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
-              </div>
-              {expandedSection === 'loans' && (
-                <div className="animate-in slide-in-from-top-2 duration-300">
-                  <div className="w-full h-[1px] bg-slate-100 mb-6" />
-                  {loans.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold">{t.history_empty}</div> : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {loans.map(loan => (
+                {loans.length === 0 ? (
+                  <div className="bg-white p-10 rounded-[2rem] border-2 border-dashed border-slate-100 text-center text-slate-400 italic text-[10px] font-bold">
+                    {t.history_empty}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {loans.map(loan => (
+                      <div key={loan.id} className="bg-white rounded-2xl border-2 border-slate-100 shadow-sm overflow-hidden transition-all">
                         <div 
-                          key={loan.id} 
-                          onClick={() => {
-                            if (activeItemId === loan.id) {
-                              setSelectedLoan(loan);
-                              setIsLoanDetailModalOpen(true);
-                            } else {
-                              setActiveItemId(loan.id);
-                            }
-                          }}
-                          className="bg-slate-50 rounded-2xl border border-slate-100 p-4 group relative pb-10 cursor-pointer transition-all hover:bg-white"
+                          onClick={() => setExpandedTransactionId(expandedTransactionId === loan.id ? null : loan.id)}
+                          className="p-4 flex items-center justify-between cursor-pointer active:bg-slate-50"
                         >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm ${loan.type === LoanType.BORROW ? 'bg-rose-50' : 'bg-emerald-50'}`}>{loan.type === LoanType.BORROW ? '💸' : '🤝'}</div>
-                              <div><p className="text-[11px] font-black text-slate-800 uppercase leading-tight">{loan.lenderName}</p><p className="text-[8px] font-bold text-slate-400 mt-0.5">{loan.startDate}</p></div>
-                            </div>
-                            <div className="flex flex-col items-end">
-                              {loan.paidAmount < loan.principal && <button onClick={(e) => { e.stopPropagation(); setPaymentLoanId(loan.id); setPaymentForm({ amountStr: '', date: getTodayString(), jar: JarType.NEC, note: '', imageUrl: '' }); setIsLoanPaymentModalOpen(true); }} className={`px-2 py-1 text-[7px] font-black uppercase rounded-lg shadow-sm mb-1 ${loan.type === LoanType.BORROW ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}>{loan.type === LoanType.BORROW ? t.loan_pay : t.loan_recover}</button>}
-                              <p className="text-[11px] font-black">{formatCurrency(loan.principal - loan.paidAmount)}</p>
-                            </div>
-                          </div>
-                          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden mt-2"><div className={`h-full ${loan.type === LoanType.BORROW ? 'bg-rose-400' : 'bg-emerald-400'}`} style={{ width: `${(loan.paidAmount/loan.principal)*100}%` }} /></div>
-                          <div className="flex justify-between mt-2 px-1 text-[8px] font-bold text-slate-400 uppercase"><span>{t.loan_paid}: {formatCurrency(loan.paidAmount)}</span><span>{t.loan_rem}: {formatCurrency(loan.principal - loan.paidAmount)}</span></div>
-                          <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 transition-all ${activeItemId === loan.id ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'} group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto`}>
-                            <button onClick={(e) => { e.stopPropagation(); setEditingLoanId(loan.id); setLoanForm({...loan, loanJar: loan.loanJar || 'AUTO'}); setLoanPrincipalStr(formatDots((loan.principal * EXCHANGE_RATES[settings.currency]).toString())); setIsLoanModalOpen(true); }} className="w-7 h-7 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-md border border-indigo-100 text-[10px]">✏️</button>
-                            <button onClick={(e) => { e.stopPropagation(); handleTripleDelete(loan.id); }} className={`w-7 h-7 rounded-full flex items-center justify-center shadow-md text-[10px] transition-all ${deleteClickData.id === loan.id ? 'bg-red-600 text-white animate-pulse' : 'bg-white text-rose-600 border border-rose-100'}`}>{deleteClickData.id === loan.id ? (deleteClickData.count >= 2 ? '❓' : deleteClickData.count) : '🗑️'}</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
-
-            {/* ĐỊNH KỲ SECTION */}
-            <section className="bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl relative group">
-              <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
-                <HelpTooltip content={t.recurring_title_help} position="bottom" />
-              </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => handleSectionAccordion('recurring')}>
-                <div className="flex items-center gap-2">
-                  <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'recurring' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
-                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>📅</span> {t.recurring_title} ({recurringTemplates.length})</h3>
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); handleSectionAccordion('recurring', true); setIsRecurringModalOpen(true); }} className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
-              </div>
-              {expandedSection === 'recurring' && (
-                <div className="animate-in slide-in-from-top-2 duration-300">
-                  <div className="w-full h-[1px] bg-slate-100 mb-6" />
-                  {recurringTemplates.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold">{t.history_empty}</div> : (
-                    <div className="space-y-3">
-                      {recurringTemplates.map(tpl => (
-                        <div key={tpl.id} onDoubleClick={() => { setSelectedRecurring(tpl); setIsRecurringDetailModalOpen(true); }} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group transition-all cursor-pointer">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px]">🔄</div>
-                            <div><p className="text-[11px] font-black text-slate-800">{tpl.description}</p><p className="text-[8px] font-bold text-slate-400 uppercase">{t.recurring_start_date}: {tpl.startDate} • {tpl.subscriptionType}</p></div>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            <div className="flex items-center gap-3">
-                               <p className={`text-[11px] font-black ${tpl.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{tpl.type === 'income' ? '+' : '-'}{formatCurrency(tpl.amount)}</p>
-                               <button onClick={(e) => { e.stopPropagation(); setRecurringTemplates(p => p.filter(x => x.id !== tpl.id)); }} className="w-6 h-6 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">🗑️</button>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${loan.type === LoanType.BORROW ? 'bg-rose-50' : 'bg-emerald-50'}`}>
+                              {loan.type === LoanType.BORROW ? '💸' : '🤝'}
                             </div>
+                            <div>
+                              <p className="text-[11px] font-black text-slate-800 uppercase leading-tight">{loan.lenderName}</p>
+                              <p className="text-[8px] font-bold text-slate-400 mt-0.5">{loan.startDate}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className={`text-[11px] font-black ${loan.type === LoanType.BORROW ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                {formatCurrency(loan.principal - loan.paidAmount)}
+                              </p>
+                              <p className="text-[7px] font-bold text-slate-400 uppercase">Còn lại</p>
+                            </div>
+                            <span className={`text-slate-300 transition-transform duration-300 ${expandedTransactionId === loan.id ? 'rotate-180' : ''}`}>▼</span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
-
-            {/* SỰ KIỆN SECTION */}
-            <section className="bg-white px-1 py-6 sm:p-6 rounded-[2.5rem] border-2 border-slate-200 shadow-xl relative group mx-[-0.5rem] sm:mx-0">
-              <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
-                <HelpTooltip content={t.event_title_help} position="bottom" />
-              </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer px-4 sm:px-0" onClick={() => handleSectionAccordion('events')}>
-                <div className="flex items-center gap-2">
-                  <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'events' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
-                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🎊</span> {t.event_title} ({events.length})</h3>
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); handleSectionAccordion('events', true); setIsEventModalOpen(true); }} className="w-10 h-10 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
-              </div>
-              {expandedSection === 'events' && (
-                <div className="animate-in slide-in-from-top-2 duration-300 px-2 sm:px-0">
-                  <div className="w-full h-[1px] bg-slate-100 mb-6" />
-                  {events.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold mx-3 sm:mx-0">{t.history_empty}</div> : (
-                    <div className="grid grid-cols-1 gap-6">
-                      {events.map(ev => {
-                        const activeFilter = eventFilters[ev.id] || 'all';
-                        const filteredTxs = ev.transactions.filter(t => activeFilter === 'all' || t.type === activeFilter);
-                        const totalInc = ev.transactions.filter(t => t.type === 'income').reduce((s, x) => s + x.amount, 0);
-                        const totalExp = ev.transactions.filter(t => t.type === 'expense').reduce((s, x) => s + x.amount, 0);
-                        return (
-                          <div key={ev.id} className="bg-slate-50 rounded-[2.5rem] border border-slate-100 px-4 py-6 sm:p-6 space-y-4 shadow-sm">
-                            <div className="flex justify-between items-center"><div><h4 className="text-[12px] font-black text-slate-800 uppercase leading-tight">{ev.name}</h4><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{ev.date} • {ev.transactions.length} GD</p></div></div>
-                            <div className="flex items-center justify-between gap-2 pt-2">
-                              <div className="flex bg-white rounded-lg p-0.5 border border-slate-100 shadow-sm">{['all', 'income', 'expense'].map(f => <button key={f} onClick={() => setEventFilters({...eventFilters, [ev.id]: f as any})} className={`px-2 py-1 text-[7px] font-black uppercase rounded-md transition-all ${activeFilter === f ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400'}`}>{f === 'all' ? t.history_all : f === 'income' ? t.event_sum_inc : t.event_sum_exp}</button>)}</div>
-                              <div className="flex gap-2"><button onClick={() => { setEventToSave(ev); setIsEventJarSelectorOpen(true); }} className="py-2 px-4 bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase shadow-sm active:scale-95 transition-all">{t.event_save_history}</button><button onClick={(e) => { e.stopPropagation(); handleTripleDelete(ev.id); }} className={`py-2 px-4 rounded-xl text-[8px] font-black uppercase shadow-sm transition-all active:scale-95 ${deleteClickData.id === ev.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'}`}>{deleteClickData.id === ev.id ? `Xóa? (${deleteClickData.count}/3)` : 'Xóa'}</button></div>
-                            </div>
-                            <div className="bg-white/70 rounded-2xl p-4 border border-slate-200/50 space-y-2 max-h-[180px] overflow-y-auto shadow-inner mt-2">{filteredTxs.length === 0 ? <p className="text-center text-[9px] text-slate-300 italic py-4">{t.history_empty}</p> : filteredTxs.map(et => (<div key={et.id} onClick={() => { setSelectedTx(et); setIsHistoryDetailModalOpen(true); }} className="flex justify-between items-center text-[10px] py-2 border-b border-slate-100 last:border-none cursor-pointer hover:bg-slate-100/50 px-2 rounded-lg transition-colors"><span className="text-slate-700 font-bold flex items-center gap-1">{et.description} {et.imageUrl && <span className="text-[8px]">🖼️</span>}</span><div className="flex items-center gap-2"><span className={et.type === 'income' ? 'text-emerald-600 font-black' : 'text-rose-600 font-black'}>{formatCurrency(et.amount)}</span><button onClick={(e) => { e.stopPropagation(); handleDeleteEventTransaction(ev.id, et.id); }} className="w-5 h-5 flex items-center justify-center text-rose-300 hover:text-rose-600 font-black transition-colors">✕</button></div></div>))}</div>
-                            <div className="flex items-center justify-center gap-6 py-2 border-t border-slate-200/50 mt-2 flex-wrap"><span className="text-[8px] font-black text-emerald-600 uppercase tracking-tighter">{t.event_sum_inc}: {formatCurrency(totalInc)}</span><span className="text-[8px] font-black text-rose-600 uppercase tracking-tighter">{t.event_sum_exp}: {formatCurrency(totalExp)}</span><span className="text-[9px] font-black uppercase text-slate-900 px-3 py-1 bg-white rounded-full border border-slate-100 shadow-sm ring-2 ring-indigo-50/50">{t.event_sum_total}: {formatCurrency(Math.abs(totalInc - totalExp))}</span></div>
-                            <div className="flex justify-center pt-1"><button onClick={() => { setActiveEventId(ev.id); setIsEventEntryModalOpen(true); }} className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all text-2xl font-light">＋</button></div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
-
-            {/* TƯƠNG LAI SECTION */}
-            <section className="bg-white px-1 py-6 sm:p-6 rounded-[2.5rem] border-2 border-slate-200 shadow-xl mb-10 relative group mx-[-0.5rem] sm:mx-0">
-              <div className="absolute top-4 right-16 opacity-0 group-hover:opacity-100 transition-opacity">
-                <HelpTooltip content={t.future_title_help} position="bottom" />
-              </div>
-              <div className="flex items-center justify-between mb-4 cursor-pointer px-4 sm:px-0" onClick={() => handleSectionAccordion('future')}>
-                <div className="flex items-center gap-2">
-                  <span className={`transition-transform duration-300 text-slate-400 ${expandedSection === 'future' ? 'rotate-0' : '-rotate-90'}`}>▼</span>
-                  <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><span>🔮</span> {t.future_title} ({futureGroups.length})</h3>
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); handleSectionAccordion('future', true); setIsFutureModalOpen(true); }} className="w-10 h-10 bg-sky-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
-              </div>
-              {expandedSection === 'future' && (
-                <div className="animate-in slide-in-from-top-2 duration-300 px-2 sm:px-0">
-                  <div className="w-full h-[1px] bg-slate-100 mb-6" />
-                  {futureGroups.length === 0 ? <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] py-10 text-slate-400 italic text-[10px] font-bold mx-3 sm:mx-0">{t.history_empty}</div> : (
-                    <div className="grid grid-cols-1 gap-6">
-                      {futureGroups.map(fg => {
-                        const activeFilter = futureFilters[fg.id] || 'all';
-                        const filteredTxs = fg.transactions.filter(t => activeFilter === 'all' || t.type === activeFilter);
-                        const totalInc = fg.transactions.filter(t => t.type === 'income').reduce((s, x) => s + x.amount, 0);
-                        const totalExp = fg.transactions.filter(t => t.type === 'expense').reduce((s, x) => s + x.amount, 0);
-                        return (
-                          <div key={fg.id} className="bg-slate-50 rounded-[2.5rem] border border-slate-100 px-4 py-6 sm:p-6 space-y-4 shadow-sm">
-                            <div className="flex justify-between items-center"><div><h4 className="text-[12px] font-black text-slate-800 uppercase leading-tight">{fg.name}</h4><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{fg.date} • {fg.transactions.length} Dự định</p></div></div>
-                            <div className="flex items-center justify-between gap-2 pt-2">
-                              <div className="flex bg-white rounded-lg p-0.5 border border-slate-100 shadow-sm">{['all', 'income', 'expense'].map(f => <button key={f} onClick={() => setFutureFilters({...futureFilters, [fg.id]: f as any})} className={`px-2 py-1 text-[7px] font-black uppercase rounded-md transition-all ${activeFilter === f ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-400'}`}>{f === 'all' ? t.history_all : f === 'income' ? t.event_sum_inc : t.event_sum_exp}</button>)}</div>
-                              <div className="flex gap-2"><button onClick={() => { setFutureToSave(fg); setIsFutureJarSelectorOpen(true); }} className="py-2 px-4 bg-emerald-600 text-white rounded-xl text-[8px] font-black uppercase shadow-sm active:scale-95 transition-all">{t.future_save_history}</button><button onClick={(e) => { e.stopPropagation(); handleTripleDelete(fg.id); }} className={`py-2 px-4 rounded-xl text-[8px] font-black uppercase shadow-sm transition-all active:scale-95 ${deleteClickData.id === fg.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'}`}>{deleteClickData.id === fg.id ? `Xóa? (${deleteClickData.count}/3)` : 'Xóa'}</button></div>
-                            </div>
-                            <div className="bg-white/70 rounded-2xl p-4 border border-slate-200/50 space-y-2 max-h-[180px] overflow-y-auto shadow-inner mt-2">{filteredTxs.length === 0 ? <p className="text-center text-[9px] text-slate-300 italic py-4">{t.history_empty}</p> : filteredTxs.map(ft => (<div key={ft.id} onClick={() => { setSelectedTx(ft); setIsHistoryDetailModalOpen(true); }} className="flex justify-between items-center text-[10px] py-2 border-b border-slate-100 last:border-none cursor-pointer hover:bg-slate-100/50 px-2 rounded-lg transition-colors"><span className="text-slate-700 font-bold flex items-center gap-1">{ft.description} {ft.imageUrl && <span className="text-[8px]">🖼️</span>}</span><div className="flex items-center gap-2"><span className={ft.type === 'income' ? 'text-emerald-600 font-black' : 'text-rose-600 font-black'}>{formatCurrency(ft.amount)}</span><button onClick={(e) => { e.stopPropagation(); handleDeleteFutureTransaction(fg.id, ft.id); }} className="w-5 h-5 flex items-center justify-center text-rose-300 hover:text-rose-600 font-black transition-colors">✕</button></div></div>))}</div>
-                            <div className="flex flex-col items-center gap-1 py-2 border-t border-slate-200/50 mt-2">
-                              <div className="flex items-center justify-center gap-6 flex-wrap text-[8px] font-black uppercase tracking-tighter">
-                                <span className="text-emerald-600">{t.event_sum_inc}: {formatCurrency(totalInc)}</span>
-                                <span className="text-rose-600">{t.event_sum_exp}: {formatCurrency(totalExp)}</span>
+                        
+                        {expandedTransactionId === loan.id && (
+                          <div className="px-4 pb-4 pt-2 border-t border-slate-50 animate-in slide-in-from-top-2">
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                              <div className="bg-slate-50 p-3 rounded-xl">
+                                <p className="text-[7px] font-black text-slate-400 uppercase mb-1">Tổng gốc</p>
+                                <p className="text-[10px] font-black text-slate-700">{formatCurrency(loan.principal)}</p>
                               </div>
-                              <div className="text-[9px] font-black uppercase text-slate-900 px-3 py-1 bg-white rounded-full border border-slate-100 shadow-sm ring-2 ring-indigo-50/50 mt-1">
-                                {t.event_sum_net_label}: {formatCurrency(totalInc - totalExp)}
+                              <div className="bg-slate-50 p-3 rounded-xl">
+                                <p className="text-[7px] font-black text-slate-400 uppercase mb-1">Đã trả/thu</p>
+                                <p className="text-[10px] font-black text-emerald-600">{formatCurrency(loan.paidAmount)}</p>
                               </div>
                             </div>
-                            <div className="flex justify-center pt-1"><button onClick={() => { setActiveFutureId(fg.id); setIsFutureEntryModalOpen(true); }} className="w-10 h-10 bg-sky-600 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all text-2xl font-light">＋</button></div>
+                            <div className="flex gap-2">
+                              {loan.paidAmount < loan.principal && (
+                                <button 
+                                  onClick={() => { setPaymentLoanId(loan.id); setPaymentForm({ amountStr: '', date: getTodayString(), jar: JarType.NEC, note: '', imageUrl: '' }); setIsLoanPaymentModalOpen(true); }}
+                                  className={`flex-1 py-2.5 text-[9px] font-black uppercase rounded-xl shadow-md active:scale-95 ${loan.type === LoanType.BORROW ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}
+                                >
+                                  {loan.type === LoanType.BORROW ? t.loan_pay : t.loan_recover}
+                                </button>
+                              )}
+                              <button 
+                                onClick={() => { setEditingLoanId(loan.id); setLoanForm({...loan, loanJar: loan.loanJar || 'AUTO'}); setLoanPrincipalStr(formatDots((loan.principal * EXCHANGE_RATES[settings.currency]).toString())); setIsLoanModalOpen(true); }}
+                                className="flex-1 py-2.5 bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase rounded-xl border border-indigo-100"
+                              >
+                                Sửa
+                              </button>
+                              <button 
+                                onClick={() => handleTripleDelete(loan.id)}
+                                className={`w-10 flex items-center justify-center rounded-xl transition-all ${deleteClickData.id === loan.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'}`}
+                              >
+                                {deleteClickData.id === loan.id ? '❓' : '🗑️'}
+                              </button>
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ĐỊNH KỲ SUB-TAB */}
+            {otherSubTab === 'recurring' && (
+              <section className="space-y-4 animate-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Giao dịch định kỳ ({recurringTemplates.length})</h3>
+                  <button onClick={() => setIsRecurringModalOpen(true)} className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-xl font-light">＋</button>
                 </div>
-              )}
-            </section>
+                {recurringTemplates.length === 0 ? (
+                  <div className="bg-white p-10 rounded-[2rem] border-2 border-dashed border-slate-100 text-center text-slate-400 italic text-[10px] font-bold">
+                    {t.history_empty}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recurringTemplates.map(tpl => (
+                      <div key={tpl.id} className="bg-white rounded-2xl border-2 border-slate-100 shadow-sm overflow-hidden">
+                        <div 
+                          onClick={() => setExpandedTransactionId(expandedTransactionId === tpl.id ? null : tpl.id)}
+                          className="p-4 flex items-center justify-between cursor-pointer active:bg-slate-50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">🔄</div>
+                            <div>
+                              <p className="text-[11px] font-black text-slate-800">{tpl.description}</p>
+                              <p className="text-[8px] font-bold text-slate-400 uppercase">{tpl.subscriptionType} • {tpl.startDate}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <p className={`text-[11px] font-black ${tpl.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                              {tpl.type === 'income' ? '+' : '-'}{formatCurrency(tpl.amount)}
+                            </p>
+                            <span className={`text-slate-300 transition-transform duration-300 ${expandedTransactionId === tpl.id ? 'rotate-180' : ''}`}>▼</span>
+                          </div>
+                        </div>
+
+                        {expandedTransactionId === tpl.id && (
+                          <div className="px-4 pb-4 pt-2 border-t border-slate-50 animate-in slide-in-from-top-2">
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => { setSelectedRecurring(tpl); setIsRecurringDetailModalOpen(true); }}
+                                className="flex-1 py-2.5 bg-indigo-600 text-white text-[9px] font-black uppercase rounded-xl shadow-md"
+                              >
+                                Chi tiết
+                              </button>
+                              <button 
+                                onClick={() => setRecurringTemplates(p => p.filter(x => x.id !== tpl.id))}
+                                className="w-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center border border-rose-100"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* SỰ KIỆN SUB-TAB */}
+            {otherSubTab === 'events' && (
+              <section className="space-y-4 animate-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Sự kiện</h3>
+                  <button onClick={() => { setEditingEventId(null); setEventForm({ name: '', date: getTodayString(), description: '' }); setIsEventModalOpen(true); }} className="w-8 h-8 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-xl font-light">＋</button>
+                </div>
+                
+                <div className="space-y-4">
+                  {events.map(ev => (
+                    <div key={ev.id} className="bg-white rounded-[2.5rem] border-2 border-slate-100 shadow-md overflow-hidden">
+                      <div 
+                        onClick={() => {
+                          if (expandedTransactionId === ev.id) {
+                            setExpandedTransactionId(null);
+                          } else {
+                            setExpandedTransactionId(ev.id);
+                            setEventVisibleCount(5);
+                          }
+                        }}
+                        className="p-5 flex items-center justify-between cursor-pointer active:bg-slate-50"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl">🎊</div>
+                          <div>
+                            <h4 className="text-[13px] font-black text-slate-800 uppercase leading-tight">{ev.name}</h4>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{ev.date} • {ev.transactions.length} GD</p>
+                            {ev.description && <p className="text-[9px] font-normal text-slate-500 italic mt-0.5 leading-tight">{ev.description}</p>}
+                          </div>
+                        </div>
+                        <span className={`text-slate-300 transition-transform duration-300 ${expandedTransactionId === ev.id ? 'rotate-180' : ''}`}>▼</span>
+                      </div>
+
+                      {expandedTransactionId === ev.id && (
+                        <div className="p-5 border-t border-slate-50 animate-in slide-in-from-top-2 space-y-5">
+                          {/* Filters and Actions */}
+                          <div className="flex flex-wrap items-center gap-2 pt-2">
+                            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                              {['all', 'income', 'expense'].map(f => (
+                                <button 
+                                  key={f} 
+                                  onClick={() => setEventFilters({...eventFilters, [ev.id]: f as any})}
+                                  className={`px-2.5 py-1.5 text-[8px] font-black uppercase rounded-lg transition-all ${
+                                    (eventFilters[ev.id] || 'all') === f ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'
+                                  }`}
+                                >
+                                  {f === 'all' ? 'Tất cả' : f === 'income' ? 'Thu' : 'Chi'}
+                                </button>
+                              ))}
+                            </div>
+                            <button onClick={() => handleImportEventCSV(ev.id)} className="px-2.5 py-2 bg-slate-50 text-slate-600 rounded-xl border border-slate-200 text-[8px] font-black uppercase">Nhập</button>
+                            <button onClick={() => handleExportEventCSV(ev)} className="px-2.5 py-2 bg-slate-50 text-slate-600 rounded-xl border border-slate-200 text-[8px] font-black uppercase">Lưu</button>
+                            <button onClick={() => { setEditingEventId(ev.id); setEventForm({ name: ev.name, date: ev.date, description: ev.description || '' }); setIsEventModalOpen(true); }} className="px-2.5 py-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100 text-[8px] font-black uppercase">Sửa SK</button>
+                            <button 
+                              onClick={() => handleTripleDelete(ev.id)}
+                              className={`px-2.5 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${
+                                deleteClickData.id === ev.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'
+                              }`}
+                            >
+                              {deleteClickData.id === ev.id ? `Xóa (${deleteClickData.count}/3)` : 'Xóa'}
+                            </button>
+                          </div>
+
+                          {/* Search */}
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              placeholder="Tìm kiếm theo tên, ngày, địa chỉ..." 
+                              value={eventSearch}
+                              onChange={(e) => setEventSearch(e.target.value)}
+                              className="w-full p-3 pl-10 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            />
+                            <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                          </div>
+
+                          {/* Transaction List */}
+                          <div className="bg-white border-2 border-slate-100 rounded-3xl overflow-hidden shadow-inner">
+                            <div className="overflow-x-auto custom-scrollbar">
+                              <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50 border-b border-slate-100">
+                                  <tr>
+                                    <th className="p-3 text-[7px] font-black text-slate-400 uppercase">STT</th>
+                                    <th className="p-3 text-[7px] font-black text-slate-400 uppercase">Tên GD</th>
+                                    <th className="p-3 text-[7px] font-black text-slate-400 uppercase">Địa chỉ</th>
+                                    <th className="p-3 text-[8px] font-black text-slate-400 uppercase text-right min-w-[110px]">Số tiền</th>
+                                    <th className="p-3 text-[7px] font-black text-slate-400 uppercase">Ghi chú</th>
+                                    <th className="p-3 w-8"></th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                  {(() => {
+                                    const filter = eventFilters[ev.id] || 'all';
+                                    const filtered = ev.transactions.filter(t => {
+                                      const matchesFilter = filter === 'all' || t.type === filter;
+                                      const matchesSearch = !eventSearch || 
+                                        t.name.toLowerCase().includes(eventSearch.toLowerCase()) || 
+                                        (t.address || '').toLowerCase().includes(eventSearch.toLowerCase()) ||
+                                        (t.note || '').toLowerCase().includes(eventSearch.toLowerCase());
+                                      return matchesFilter && matchesSearch;
+                                    });
+                                    
+                                    if (filtered.length === 0) return <tr><td colSpan={6} className="p-10 text-center text-[9px] text-slate-300 italic">Trống</td></tr>;
+                                    
+                                    const sliced = filtered.slice(0, eventVisibleCount);
+                                    
+                                    return (
+                                      <>
+                                        {sliced.map((et, idx) => (
+                                          <tr key={et.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="p-3 text-[9px] font-bold text-slate-400">{idx + 1}</td>
+                                            <td className="p-3 text-[10px] font-black text-slate-800 whitespace-nowrap">{et.name}</td>
+                                            <td className="p-3 text-[9px] font-medium text-slate-500 whitespace-nowrap">{et.address || '-'}</td>
+                                            <td className={`p-3 text-[9px] font-black text-right whitespace-nowrap ${et.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                              {formatDetailedCurrency(et.amount)}
+                                            </td>
+                                            <td className="p-3 text-[9px] font-medium text-slate-500 italic whitespace-nowrap">{et.note || '-'}</td>
+                                            <td className="p-3 flex items-center gap-2">
+                                              <button 
+                                                onClick={() => {
+                                                  setEditingEventTransactionId(et.id);
+                                                  setEventManualAmount(formatDots(et.amount.toString()));
+                                                  setEventManualName(et.name);
+                                                  setEventManualAddress(et.address || '');
+                                                  setEventManualNote(et.note || '');
+                                                  setEventManualType(et.type);
+                                                  setActiveEventId(ev.id);
+                                                  setIsEventEntryModalOpen(true);
+                                                }}
+                                                className="text-indigo-300 hover:text-indigo-600"
+                                              >
+                                                ✏️
+                                              </button>
+                                              <button onClick={() => handleDeleteEventTransaction(ev.id, et.id)} className="text-rose-300 hover:text-rose-600">✕</button>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                        {filtered.length > eventVisibleCount && (
+                                          <tr>
+                                            <td colSpan={6} className="p-2 text-center">
+                                              <button 
+                                                onClick={(e) => { e.stopPropagation(); setEventVisibleCount(p => p + 5); }}
+                                                className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline"
+                                              >
+                                                Xem thêm (+5)
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        )}
+                                        {eventVisibleCount > 5 && (
+                                          <tr>
+                                            <td colSpan={6} className="p-2 text-center">
+                                              <button 
+                                                onClick={(e) => { e.stopPropagation(); setEventVisibleCount(5); }}
+                                                className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:underline"
+                                              >
+                                                Thu gọn
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        )}
+                                        <tr className="bg-slate-50/50 font-black">
+                                          <td colSpan={6} className="p-3">
+                                            <div className="flex justify-between items-center text-[9px] uppercase tracking-wider">
+                                              <div className="flex gap-4">
+                                                <span className="text-emerald-600">Thu: {formatDetailedCurrency(filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0))}</span>
+                                                <span className="text-rose-600">Chi: {formatDetailedCurrency(filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}</span>
+                                              </div>
+                                              <div className="text-slate-900">
+                                                Tổng: {formatDetailedCurrency(filtered.reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0))}
+                                              </div>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      </>
+                                    );
+                                  })()}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* Footer Info */}
+                          <div className="flex justify-end">
+                            <p className="text-[8px] font-bold text-slate-400 italic">
+                              Ngày cập nhật: {ev.updatedAt ? new Date(ev.updatedAt).toLocaleDateString() : ev.date}
+                            </p>
+                          </div>
+
+                          {/* Add Transaction Button */}
+                          <div className="flex justify-center">
+                            <button 
+                              onClick={() => { setActiveEventId(ev.id); setIsEventEntryModalOpen(true); }}
+                              className="px-8 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-200 text-[10px] font-black uppercase active:scale-95 transition-all"
+                            >
+                              {ev.id === 'wedding_fixed' ? 'Nhập GD lễ cưới' : 'Nhập GD'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* TƯƠNG LAI SUB-TAB */}
+            {otherSubTab === 'future' && (
+              <section className="space-y-4 animate-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Dự định tương lai ({futureGroups.length})</h3>
+                  <button onClick={() => setIsFutureModalOpen(true)} className="w-8 h-8 bg-sky-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-xl font-light">＋</button>
+                </div>
+                {futureGroups.length === 0 ? (
+                  <div className="bg-white p-10 rounded-[2rem] border-2 border-dashed border-slate-100 text-center text-slate-400 italic text-[10px] font-bold">
+                    {t.history_empty}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {futureGroups.map(fg => (
+                      <div key={fg.id} className="bg-white rounded-[2.5rem] border-2 border-slate-100 shadow-md overflow-hidden">
+                        <div 
+                          onClick={() => setExpandedTransactionId(expandedTransactionId === fg.id ? null : fg.id)}
+                          className="p-5 flex items-center justify-between cursor-pointer active:bg-slate-50"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-2xl">🔮</div>
+                            <div>
+                              <h4 className="text-[13px] font-black text-slate-800 uppercase leading-tight">{fg.name}</h4>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{fg.date} • {fg.transactions.length} Dự định</p>
+                            </div>
+                          </div>
+                          <span className={`text-slate-300 transition-transform duration-300 ${expandedTransactionId === fg.id ? 'rotate-180' : ''}`}>▼</span>
+                        </div>
+
+                        {expandedTransactionId === fg.id && (
+                          <div className="p-5 border-t border-slate-50 animate-in slide-in-from-top-2 space-y-4">
+                            <div className="flex justify-between items-center">
+                              <div className="flex bg-slate-100 p-1 rounded-xl">
+                                {['all', 'income', 'expense'].map(f => (
+                                  <button key={f} onClick={() => setFutureFilters({...futureFilters, [fg.id]: f as any})} className={`px-3 py-1.5 text-[8px] font-black uppercase rounded-lg transition-all ${(futureFilters[fg.id] || 'all') === f ? 'bg-sky-600 text-white shadow-md' : 'text-slate-400'}`}>{f === 'all' ? 'Tất cả' : f === 'income' ? 'Thu' : 'Chi'}</button>
+                                ))}
+                              </div>
+                              <button onClick={() => handleTripleDelete(fg.id)} className={`p-2 rounded-xl text-[9px] font-black uppercase transition-all ${deleteClickData.id === fg.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'}`}>{deleteClickData.id === fg.id ? `Xóa (${deleteClickData.count}/3)` : 'Xóa'}</button>
+                            </div>
+                            <div className="bg-slate-50 rounded-2xl p-4 space-y-2 max-h-[150px] overflow-y-auto">
+                              {fg.transactions.length === 0 ? <p className="text-center text-[9px] text-slate-300 italic py-4">Chưa có dự định</p> : fg.transactions.map(ft => (
+                                <div key={ft.id} className="flex justify-between items-center text-[10px] py-2 border-b border-slate-100 last:border-none">
+                                  <span className="text-slate-700 font-bold">{ft.name}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className={ft.type === 'income' ? 'text-emerald-600 font-black' : 'text-rose-600 font-black'}>{formatCurrency(ft.amount)}</span>
+                                    <button onClick={() => handleDeleteFutureTransaction(fg.id, ft.id)} className="text-rose-300">✕</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex justify-center">
+                              <button onClick={() => { setActiveFutureId(fg.id); setIsFutureEntryModalOpen(true); }} className="w-10 h-10 bg-sky-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 text-2xl font-light">＋</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         )}
       </main>
@@ -2209,9 +2676,48 @@ const App: React.FC = () => {
 
       {isEventModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-xs p-8 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
-            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest text-center">🎊 {t.event_add}</h2>
-            <form onSubmit={handleSaveEvent} className="space-y-6"><input required type="text" value={eventName} onChange={e => setEventName(e.target.value)} placeholder="..." className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 text-[11px] font-bold outline-none h-14" /><div className="flex gap-3"><button type="button" onClick={() => setIsEventModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">{t.manual_cancel}</button><button type="submit" className="flex-[2] py-4 bg-rose-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95 transition-all">OK</button></div></form>
+          <div className="bg-white rounded-[2.5rem] w-full max-w-[340px] p-8 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
+            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest text-center">
+              🎊 {editingEventId ? 'Sửa sự kiện' : 'Thêm sự kiện mới'}
+            </h2>
+            <form onSubmit={handleSaveEvent} className="space-y-5">
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên sự kiện</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={eventForm.name} 
+                  onChange={e => setEventForm({...eventForm, name: e.target.value})} 
+                  placeholder="Ví dụ: Lễ cưới, Sinh nhật..." 
+                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 text-[11px] font-bold outline-none h-12 focus:border-indigo-400 transition-all" 
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày diễn ra</label>
+                <input 
+                  required 
+                  type="date" 
+                  value={eventForm.date} 
+                  onChange={e => setEventForm({...eventForm, date: e.target.value})} 
+                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 text-[11px] font-bold outline-none h-12 focus:border-indigo-400 transition-all" 
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Mô tả sự kiện</label>
+                <textarea 
+                  value={eventForm.description} 
+                  onChange={e => setEventForm({...eventForm, description: e.target.value})} 
+                  placeholder="Mô tả ngắn gọn về sự kiện..." 
+                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-3 text-[11px] font-bold outline-none h-24 focus:border-indigo-400 transition-all resize-none" 
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setIsEventModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">Hủy</button>
+                <button type="submit" className="flex-[2] py-4 bg-rose-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95 transition-all">
+                  {editingEventId ? 'Cập nhật' : 'Thêm mới'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -2228,29 +2734,75 @@ const App: React.FC = () => {
       {isEventEntryModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-[2rem] w-full max-w-[340px] p-6 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-300">
-             <h2 className="text-[13px] font-black text-slate-800 uppercase mb-4 tracking-widest flex items-center justify-center gap-2"><span>📝</span> {t.event_entry_title}</h2>
+             <h2 className="text-[13px] font-black text-slate-800 uppercase mb-4 tracking-widest flex items-center justify-center gap-2">
+               <span>📝</span> {activeEventId === 'wedding_fixed' ? 'Nhập giao dịch lễ cưới' : 'Nhập giao dịch sự kiện lớn'}
+             </h2>
              <div className="w-full h-[1px] bg-slate-100 mb-4" />
              <form onSubmit={handleEventEntrySubmit} className="space-y-4">
-               <div className="flex bg-slate-50 p-1 rounded-xl border-2 border-slate-200 shadow-sm"><button type="button" onClick={() => setEventManualType('expense')} className={`flex-1 py-2 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'expense' ? 'bg-[#e11d48] text-white shadow-md' : 'text-slate-400'}`}>CHI TIÊU</button><button type="button" onClick={() => setEventManualType('income')} className={`flex-1 py-2 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'income' ? 'bg-[#059669] text-white shadow-md' : 'text-slate-400'}`}>THU NHẬP</button></div>
-               <div className="space-y-1.5"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label><div className="relative"><input required type="text" inputMode="numeric" value={eventManualAmount} onChange={e => setEventManualAmount(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl pl-4 pr-12 h-11 text-lg font-black text-slate-800 outline-none focus:border-indigo-400 transition-all placeholder:text-slate-300 placeholder:text-sm" /><button type="button" onClick={() => openCalculator('event')} className="absolute right-3 top-1/2 -translate-y-1/2 text-2xl active:scale-90">🧮</button></div><AmountHintLabel val={eventManualAmount} currency={settings.currency} lang={settings.language} /></div>
-               <div className="space-y-1.5"><input required type="text" value={eventManualDesc} onChange={e => setEventManualDesc(e.target.value)} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 h-11 text-[11px] font-bold text-slate-800 outline-none focus:border-indigo-400 transition-all placeholder:text-slate-400 placeholder:text-[10px] placeholder:font-normal" /></div>
-               <div className="space-y-1">
-                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.loan_img_label}</label>
-                 <div 
-                   onClick={() => manualImageInputRef.current?.click()}
-                   className={`w-full ${manualImage ? 'h-auto' : 'h-16'} bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden group relative`}
-                 >
-                   {manualImage ? (
-                     <img src={manualImage} className="w-full h-auto" alt="Transaction" />
-                   ) : (
-                     <div className="flex flex-col items-center gap-1">
-                       <span className="text-xl text-slate-300 group-hover:text-indigo-400 transition-colors">＋</span>
-                       <span className="text-[6px] font-normal text-slate-400 uppercase">{t.loan_add_img}</span>
-                     </div>
-                   )}
-                 </div>
+               <div className="flex bg-slate-50 p-1 rounded-xl border-2 border-slate-200 shadow-sm">
+                 <button type="button" onClick={() => setEventManualType('expense')} className={`flex-1 py-2 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'expense' ? 'bg-[#e11d48] text-white shadow-md' : 'text-slate-400'}`}>CHI TIÊU</button>
+                 <button type="button" onClick={() => setEventManualType('income')} className={`flex-1 py-2 text-[9px] font-black rounded-lg transition-all ${eventManualType === 'income' ? 'bg-[#059669] text-white shadow-md' : 'text-slate-400'}`}>THU NHẬP</button>
                </div>
-               <div className="flex gap-3 pt-2"><button type="button" onClick={() => { setIsEventEntryModalOpen(false); setActiveEventId(null); setManualImage(null); }} className="flex-1 py-3 bg-[#f1f5f9] text-slate-500 font-black uppercase text-[10px] rounded-xl active:scale-95 border border-slate-200 shadow-sm">{t.manual_cancel}</button><button type="submit" className="flex-[1.8] py-3 bg-[#4f46e5] text-white font-black uppercase text-[14px] rounded-xl shadow-lg active:scale-95">＋</button></div>
+               
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên giao dịch</label>
+                 <input 
+                   required 
+                   type="text" 
+                   value={eventManualName} 
+                   onChange={e => setEventManualName(e.target.value)} 
+                   placeholder={eventManualType === 'income' ? (activeEventId === 'wedding_fixed' ? 'Tên khách mời (Chị A, Anh B...)' : 'Chị A, Anh B...') : 'Thuê rạp, MC...'} 
+                   className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 h-11 text-[11px] font-bold text-slate-800 outline-none focus:border-indigo-400 transition-all" 
+                 />
+               </div>
+
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                   {eventManualType === 'income' ? 'Địa chỉ' : 'Nơi mua'}
+                 </label>
+                 <input 
+                   type="text" 
+                   value={eventManualAddress} 
+                   onChange={e => setEventManualAddress(e.target.value)} 
+                   placeholder={eventManualType === 'income' ? 'Tổ dân phố, xã, phường...' : 'Chợ A, tạp hóa B...'} 
+                   className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 h-11 text-[11px] font-bold text-slate-800 outline-none focus:border-indigo-400 transition-all" 
+                 />
+               </div>
+
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.manual_amount}</label>
+                 <div className="relative">
+                   <input 
+                     required 
+                     type="text" 
+                     inputMode="numeric" 
+                     value={eventManualAmount} 
+                     onChange={e => setEventManualAmount(formatDots(e.target.value))} 
+                     placeholder="0" 
+                     className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl pl-4 pr-12 h-11 text-lg font-black text-slate-800 outline-none focus:border-indigo-400 transition-all" 
+                   />
+                   <button type="button" onClick={() => openCalculator('event')} className="absolute right-3 top-1/2 -translate-y-1/2 text-2xl active:scale-90">🧮</button>
+                 </div>
+                 <AmountHintLabel val={eventManualAmount} currency={settings.currency} lang={settings.language} />
+               </div>
+
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Ghi chú</label>
+                 <input 
+                   type="text" 
+                   value={eventManualNote} 
+                   onChange={e => setEventManualNote(e.target.value)} 
+                   placeholder={activeEventId === 'wedding_fixed' ? 'Quà cưới: 1 chỉ vàng...' : 'Ghi chú thêm...'} 
+                   className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 h-11 text-[11px] font-bold text-slate-800 outline-none focus:border-indigo-400 transition-all" 
+                 />
+               </div>
+
+               <div className="flex gap-3 pt-2">
+                 <button type="button" onClick={() => { setIsEventEntryModalOpen(false); setEditingEventTransactionId(null); setActiveEventId(null); setManualImage(null); }} className="flex-1 py-3 bg-[#f1f5f9] text-slate-500 font-black uppercase text-[10px] rounded-xl active:scale-95 border border-slate-200 shadow-sm">Đóng</button>
+                 <button type="submit" className="flex-[1.8] py-3 bg-[#4f46e5] text-white font-black uppercase text-[14px] rounded-xl shadow-lg active:scale-95">
+                   {editingEventTransactionId ? 'Cập nhật' : 'Thêm'}
+                 </button>
+               </div>
              </form>
           </div>
         </div>

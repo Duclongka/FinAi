@@ -83,18 +83,32 @@ export interface RecurringTemplate {
   isActive: boolean;
 }
 
+export interface EventTransaction {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  name: string;
+  address?: string;
+  note?: string;
+  timestamp: number;
+}
+
 export interface EventGroup {
   id: string;
   name: string;
   date: string;
-  transactions: Transaction[];
+  description?: string;
+  transactions: EventTransaction[];
+  updatedAt?: number;
 }
 
 export interface FutureGroup {
   id: string;
   name: string;
   date: string;
-  transactions: Transaction[];
+  description?: string;
+  transactions: EventTransaction[];
+  updatedAt?: number;
 }
 
 export interface User {
