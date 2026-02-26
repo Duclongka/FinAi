@@ -2265,26 +2265,26 @@ const App: React.FC = () => {
                       {expandedTransactionId === ev.id && (
                         <div className="p-5 border-t border-slate-50 animate-in slide-in-from-top-2 space-y-5">
                           {/* Filters and Actions */}
-                          <div className="flex flex-wrap items-center gap-2 pt-2">
-                            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                          <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                            <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                               {['all', 'income', 'expense'].map(f => (
                                 <button 
                                   key={f} 
                                   onClick={() => setEventFilters({...eventFilters, [ev.id]: f as any})}
-                                  className={`px-2.5 py-1.5 text-[8px] font-black uppercase rounded-lg transition-all ${
-                                    (eventFilters[ev.id] || 'all') === f ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'
+                                  className={`px-1.5 py-1 text-[7px] font-black uppercase rounded-md transition-all ${
+                                    (eventFilters[ev.id] || 'all') === f ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400'
                                   }`}
                                 >
                                   {f === 'all' ? 'Tất cả' : f === 'income' ? 'Thu' : 'Chi'}
                                 </button>
                               ))}
                             </div>
-                            <button onClick={() => handleImportEventCSV(ev.id)} className="px-2.5 py-2 bg-slate-50 text-slate-600 rounded-xl border border-slate-200 text-[8px] font-black uppercase">Nhập</button>
-                            <button onClick={() => handleExportEventCSV(ev)} className="px-2.5 py-2 bg-slate-50 text-slate-600 rounded-xl border border-slate-200 text-[8px] font-black uppercase">Lưu</button>
-                            <button onClick={() => { setEditingEventId(ev.id); setEventForm({ name: ev.name, date: ev.date, description: ev.description || '' }); setIsEventModalOpen(true); }} className="px-2.5 py-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100 text-[8px] font-black uppercase">Sửa SK</button>
+                            <button onClick={() => handleImportEventCSV(ev.id)} className="px-2 py-1.5 bg-slate-50 text-slate-600 rounded-lg border border-slate-200 text-[7px] font-black uppercase">Nhập</button>
+                            <button onClick={() => handleExportEventCSV(ev)} className="px-2 py-1.5 bg-slate-50 text-slate-600 rounded-lg border border-slate-200 text-[7px] font-black uppercase">Lưu</button>
+                            <button onClick={() => { setEditingEventId(ev.id); setEventForm({ name: ev.name, date: ev.date, description: ev.description || '' }); setIsEventModalOpen(true); }} className="px-2 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 text-[7px] font-black uppercase">Sửa SK</button>
                             <button 
                               onClick={() => handleTripleDelete(ev.id)}
-                              className={`px-2.5 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${
+                              className={`px-2 py-1.5 rounded-lg text-[7px] font-black uppercase transition-all ${
                                 deleteClickData.id === ev.id ? 'bg-red-600 text-white animate-pulse' : 'bg-red-50 text-red-600 border border-red-100'
                               }`}
                             >
@@ -2306,7 +2306,11 @@ const App: React.FC = () => {
 
                           {/* Transaction List */}
                           <div className="bg-white border-2 border-slate-100 rounded-3xl overflow-hidden shadow-inner">
-                            <div className="overflow-x-auto custom-scrollbar">
+                            <div 
+                              className="overflow-x-auto custom-scrollbar"
+                              onTouchStart={(e) => e.stopPropagation()}
+                              onTouchEnd={(e) => e.stopPropagation()}
+                            >
                               <table className="w-full text-left border-collapse">
                                 <thead className="bg-slate-50 border-b border-slate-100">
                                   <tr>
