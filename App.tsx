@@ -868,9 +868,15 @@ const App: React.FC = () => {
       return;
     }
 
-    if (diff < -100) { // RTL Swipe (Next / Close Menu)
+    const swipeThreshold = 80; // Slightly lower for better responsiveness
+    const settingsTabs: ('info' | 'policy' | 'guide' | 'app')[] = ['app', 'info', 'policy', 'guide'];
+
+    if (diff < -swipeThreshold) { // RTL Swipe (Next / Close Menu)
       if (isSettingsOpen) {
-        setIsSettingsOpen(false);
+        const currentIndex = settingsTabs.indexOf(settingsTab);
+        if (currentIndex < settingsTabs.length - 1) {
+          setSettingsTab(settingsTabs[currentIndex + 1]);
+        }
       } else {
         if (activeTab === 'home') setActiveTab('history');
         else if (activeTab === 'history') setActiveTab('overview');
@@ -881,15 +887,24 @@ const App: React.FC = () => {
           else if (otherSubTab === 'events') setOtherSubTab('future');
         }
       }
-    } else if (diff > 100) { // LTR Swipe (Prev / Open Menu)
-      if (activeTab === 'loans') {
-        if (otherSubTab === 'future') setOtherSubTab('events');
-        else if (otherSubTab === 'events') setOtherSubTab('recurring');
-        else if (otherSubTab === 'recurring') setOtherSubTab('loans');
-        else setActiveTab('overview');
-      } else if (activeTab === 'overview') setActiveTab('history');
-      else if (activeTab === 'history') setActiveTab('home');
-      else if (activeTab === 'home') setIsSettingsOpen(true);
+    } else if (diff > swipeThreshold) { // LTR Swipe (Prev / Open Menu)
+      if (isSettingsOpen) {
+        const currentIndex = settingsTabs.indexOf(settingsTab);
+        if (currentIndex > 0) {
+          setSettingsTab(settingsTabs[currentIndex - 1]);
+        } else {
+          setIsSettingsOpen(false);
+        }
+      } else {
+        if (activeTab === 'loans') {
+          if (otherSubTab === 'future') setOtherSubTab('events');
+          else if (otherSubTab === 'events') setOtherSubTab('recurring');
+          else if (otherSubTab === 'recurring') setOtherSubTab('loans');
+          else setActiveTab('overview');
+        } else if (activeTab === 'overview') setActiveTab('history');
+        else if (activeTab === 'history') setActiveTab('home');
+        else if (activeTab === 'home') setIsSettingsOpen(true);
+      }
     }
     
     touchStartX.current = null;
@@ -1088,6 +1103,23 @@ const App: React.FC = () => {
       return `${sign}${currencyVal.toFixed(0)}`;
     }
     return `${sign}${currencyVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}${settings.currency}`;
+  };
+
+  const formatEventCurrency = (val: number) => {
+    const absVal = Math.abs(val);
+    const sign = val < 0 ? '-' : '';
+    const currencyVal = Math.round(absVal * EXCHANGE_RATES[settings.currency]);
+    
+    if (settings.currency === 'VND') {
+      if (currencyVal >= 1000000000 && currencyVal % 1000000000 === 0) return `${sign}${currencyVal / 1000000000} tỷ`;
+      if (currencyVal >= 1000000 && currencyVal % 1000000 === 0) return `${sign}${currencyVal / 1000000}tr`;
+      if (currencyVal >= 100000 && currencyVal % 100000 === 0) return `${sign}${currencyVal / 1000}k`;
+      if (currencyVal >= 1000 && currencyVal % 1000 === 0) return `${sign}${currencyVal / 1000}k`;
+      
+      const formatted = currencyVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return `${sign}${formatted}đ`;
+    }
+    return formatCompactCurrency(val);
   };
 
   const formatDetailedCurrency = (val: number) => {
@@ -2346,7 +2378,7 @@ const App: React.FC = () => {
                                             <td className="p-3 text-[10px] font-black text-slate-800 whitespace-nowrap">{et.name}</td>
                                             <td className="p-3 text-[9px] font-medium text-slate-500 whitespace-nowrap">{et.address || '-'}</td>
                                             <td className={`p-3 text-[9px] font-black text-right whitespace-nowrap ${et.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                              {formatDetailedCurrency(et.amount)}
+                                              {formatEventCurrency(et.amount)}
                                             </td>
                                             <td className="p-3 text-[9px] font-medium text-slate-500 italic whitespace-nowrap">{et.note || '-'}</td>
                                             <td className="p-3 flex items-center gap-2">
@@ -2395,14 +2427,10 @@ const App: React.FC = () => {
                                         )}
                                         <tr className="bg-slate-50/50 font-black">
                                           <td colSpan={6} className="p-3">
-                                            <div className="flex justify-between items-center text-[9px] uppercase tracking-wider">
-                                              <div className="flex gap-4">
-                                                <span className="text-emerald-600">Thu: {formatDetailedCurrency(filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0))}</span>
-                                                <span className="text-rose-600">Chi: {formatDetailedCurrency(filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}</span>
-                                              </div>
-                                              <div className="text-slate-900">
-                                                Tổng: {formatDetailedCurrency(filtered.reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0))}
-                                              </div>
+                                            <div className="flex justify-center items-center gap-4 text-[8px] uppercase tracking-wider">
+                                              <span className="text-emerald-600">Thu: {formatEventCurrency(filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0))}</span>
+                                              <span className="text-rose-600">Chi: {formatEventCurrency(filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}</span>
+                                              <span className="text-slate-900">Tổng: {formatEventCurrency(filtered.reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0))}</span>
                                             </div>
                                           </td>
                                         </tr>
@@ -2647,12 +2675,32 @@ const App: React.FC = () => {
 
       {isRecurringModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-sm:max-w-sm p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-[340px] p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
             <h2 className="text-[12px] font-black text-slate-800 uppercase mb-5 tracking-widest text-center">{t.recurring_add}</h2>
             <form onSubmit={handleSaveRecurring} className="space-y-4">
                <div className="flex bg-slate-100 p-1 rounded-2xl border-2 border-slate-200"><button type="button" onClick={() => setRecurringForm({...recurringForm, type: 'expense'})} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${recurringForm.type === 'expense' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_expense}</button><button type="button" onClick={() => setRecurringForm({...recurringForm, type: 'income'})} className={`flex-1 py-3 text-[10px] font-black rounded-xl transition-all ${recurringForm.type === 'income' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400'}`}>{t.manual_income}</button></div>
-               <div className="space-y-1"><div className="relative"><input required type="text" inputMode="numeric" value={recurringAmountStr} onChange={e => setRecurringAmountStr(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl pl-4 pr-12 h-12 text-sm font-black outline-none focus:border-indigo-400 placeholder:text-[10px]" /><button type="button" onClick={() => openCalculator('recurring')} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 text-slate-400 text-2xl active:scale-90">🧮</button></div><AmountHintLabel val={recurringAmountStr} currency={settings.currency} lang={settings.language} /></div>
-               <input required type="text" value={recurringForm.description} onChange={e => setRecurringForm({...recurringForm, description: e.target.value})} placeholder={t.manual_desc} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-bold outline-none" />
+               
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Tiêu đề</label>
+                 <input 
+                   required 
+                   type="text" 
+                   value={recurringForm.description} 
+                   onChange={e => setRecurringForm({...recurringForm, description: e.target.value})} 
+                   placeholder={recurringForm.type === 'expense' ? "Thuê bao Viettel ..." : "Lãi ngân hàng ..."} 
+                   className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-bold outline-none focus:border-indigo-400 transition-all" 
+                 />
+               </div>
+
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Số tiền</label>
+                 <div className="relative">
+                   <input required type="text" inputMode="numeric" value={recurringAmountStr} onChange={e => setRecurringAmountStr(formatDots(e.target.value))} placeholder="0" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl pl-4 pr-12 h-12 text-sm font-black outline-none focus:border-indigo-400 placeholder:text-[10px]" />
+                   <button type="button" onClick={() => openCalculator('recurring')} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 text-slate-400 text-2xl active:scale-90">🧮</button>
+                 </div>
+                 <AmountHintLabel val={recurringAmountStr} currency={settings.currency} lang={settings.language} />
+               </div>
+
                <div className="grid grid-cols-2 gap-3">
                  <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.recurring_freq}</label><select value={recurringForm.subscriptionType} onChange={e => setRecurringForm({...recurringForm, subscriptionType: e.target.value as SubscriptionType})} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 h-12 text-[10px] font-normal outline-none"><option value="1d">{t.freq_daily}</option><option value="1w">{t.freq_weekly}</option><option value="1m">{t.freq_monthly}</option><option value="1y">{t.freq_yearly}</option></select></div>
                  <div className="space-y-1"><label className="text-[8px] font-normal text-slate-400 uppercase tracking-widest ml-1">{t.manual_jar_img}</label><select value={recurringForm.jarType} onChange={e => setRecurringForm({...recurringForm, jarType: e.target.value as any})} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 h-12 text-[10px] font-normal outline-none"><option value="AUTO">{t.manual_auto}</option>{Object.values(JarType).map(type => <option key={type} value={type}>{t[`jar_${type.toLowerCase()}_name`]}</option>)}</select></div>
@@ -2680,47 +2728,45 @@ const App: React.FC = () => {
 
       {isEventModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-[340px] p-8 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200">
-            <h2 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase mb-6 tracking-widest text-center">
-              🎊 {editingEventId ? 'Sửa sự kiện' : 'Thêm sự kiện mới'}
-            </h2>
-            <form onSubmit={handleSaveEvent} className="space-y-5">
-              <div className="space-y-1">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên sự kiện</label>
-                <input 
-                  required 
-                  type="text" 
-                  value={eventForm.name} 
-                  onChange={e => setEventForm({...eventForm, name: e.target.value})} 
-                  placeholder="Ví dụ: Lễ cưới, Sinh nhật..." 
-                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 text-[11px] font-bold outline-none h-12 focus:border-indigo-400 transition-all" 
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày diễn ra</label>
-                <input 
-                  required 
-                  type="date" 
-                  value={eventForm.date} 
-                  onChange={e => setEventForm({...eventForm, date: e.target.value})} 
-                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 text-[11px] font-bold outline-none h-12 focus:border-indigo-400 transition-all" 
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Mô tả sự kiện</label>
-                <textarea 
-                  value={eventForm.description} 
-                  onChange={e => setEventForm({...eventForm, description: e.target.value})} 
-                  placeholder="Mô tả ngắn gọn về sự kiện..." 
-                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-3 text-[11px] font-bold outline-none h-24 focus:border-indigo-400 transition-all resize-none" 
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsEventModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 font-black uppercase text-[10px] rounded-2xl active:scale-95">Hủy</button>
-                <button type="submit" className="flex-[2] py-4 bg-rose-600 text-white font-black uppercase text-[10px] rounded-2xl shadow-xl active:scale-95 transition-all">
-                  {editingEventId ? 'Cập nhật' : 'Thêm mới'}
-                </button>
-              </div>
+          <div className="bg-white rounded-[2.5rem] w-full max-w-[340px] p-7 shadow-2xl relative animate-in zoom-in-95 border-2 border-slate-200 overflow-hidden">
+            <h2 className="text-[12px] font-black text-slate-800 uppercase mb-5 tracking-widest text-center">🎊 {editingEventId ? 'Sửa sự kiện' : 'Thêm sự kiện mới'}</h2>
+            <form onSubmit={handleSaveEvent} className="space-y-4">
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên sự kiện</label>
+                 <input 
+                   required 
+                   type="text" 
+                   value={eventForm.name} 
+                   onChange={e => setEventForm({...eventForm, name: e.target.value})} 
+                   placeholder="Ví dụ: Lễ cưới, Sinh nhật..." 
+                   className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 h-12 text-[11px] font-bold outline-none focus:border-indigo-400 transition-all" 
+                 />
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày diễn ra</label>
+                 <input 
+                   required 
+                   type="date" 
+                   value={eventForm.date} 
+                   onChange={e => setEventForm({...eventForm, date: e.target.value})} 
+                   className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 text-[11px] font-bold outline-none h-12 focus:border-indigo-400 transition-all appearance-none" 
+                 />
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Mô tả sự kiện</label>
+                 <textarea 
+                   value={eventForm.description} 
+                   onChange={e => setEventForm({...eventForm, description: e.target.value})} 
+                   placeholder="Mô tả ngắn gọn về sự kiện..." 
+                   className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-[11px] font-bold outline-none h-20 focus:border-indigo-400 transition-all resize-none" 
+                 />
+               </div>
+               <div className="flex gap-3 pt-2">
+                 <button type="button" onClick={() => setIsEventModalOpen(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-400 font-black uppercase text-[9px] rounded-xl active:scale-95">Hủy</button>
+                 <button type="submit" className="flex-[2] py-3.5 bg-rose-600 text-white font-black uppercase text-[9px] rounded-xl shadow-xl active:scale-95 transition-all">
+                   {editingEventId ? 'Cập nhật' : 'Thêm mới'}
+                 </button>
+               </div>
             </form>
           </div>
         </div>
